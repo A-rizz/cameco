@@ -125,6 +125,12 @@ export function NavPayroll() {
             href: '/payroll/payments/tracking',
             enabled: true,
         },
+        {
+            title: 'Cash Management',
+            icon: DollarSign,
+            href: '/payroll/payments/cash',
+            enabled: true,
+        },
     ];
 
     const reportsItems = [
@@ -132,19 +138,19 @@ export function NavPayroll() {
             title: 'Payroll Register',
             icon: ClipboardList,
             href: '/payroll/reports/register',
-            enabled: false,
+            enabled: true,
         },
         {
             title: 'Government Reports',
             icon: Building2,
             href: '/payroll/reports/government',
-            enabled: false,
+            enabled: true,
         },
         {
             title: 'Analytics',
             icon: BarChart3,
             href: '/payroll/reports/analytics',
-            enabled: false,
+            enabled: true,
         },
     ];
 

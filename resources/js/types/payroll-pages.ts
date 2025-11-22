@@ -1707,3 +1707,586 @@ export interface FailedPayment {
     // Memo/Notes
     notes?: string;
 }
+
+// ============================================================================
+// CASH PAYMENTS PAGE TYPES
+// ============================================================================
+
+/**
+ * Cash Payments Page Props
+ * Passed from CashPaymentController@index() via Inertia
+ */
+export interface CashPaymentPageProps {
+    cash_employees: CashEmployee[];
+    summary: CashPaymentSummary;
+    payroll_periods: PayrollPeriod[];
+    distributions: CashDistribution[];
+    unclaimed_cash: UnclaimedCash[];
+}
+
+/**
+ * Cash Payment Summary (Overview Cards)
+ */
+export interface CashPaymentSummary {
+    total_cash_employees: number;
+    total_cash_amount: number;
+    formatted_total_cash: string;
+    envelopes_printed: number;
+    envelopes_pending: number;
+    distributed_count: number;
+    pending_distribution: number;
+    unclaimed_count: number;
+    formatted_unclaimed_amount: string;
+}
+
+/**
+ * Employee eligible for cash payment
+ */
+export interface CashEmployee {
+    id: number;
+    employee_id: number;
+    employee_number: string;
+    employee_name: string;
+    department: string;
+    position: string;
+    
+    payroll_period_id: number;
+    period_name: string;
+    
+    net_pay: number;
+    formatted_net_pay: string;
+    
+    payment_method: 'cash';
+    payment_method_label: string;
+    
+    // Envelope Status
+    envelope_status: 'pending' | 'printed' | 'prepared' | 'distributed' | 'unclaimed';
+    envelope_status_label: string;
+    envelope_status_color: 'gray' | 'yellow' | 'blue' | 'green' | 'red';
+    
+    envelope_printed_at?: string;
+    envelope_printed_by?: string;
+    
+    // Distribution Status
+    distribution_status: 'pending' | 'distributed' | 'unclaimed' | 'claimed';
+    distribution_status_label: string;
+    
+    distributed_at?: string;
+    distributed_by?: string;
+    claimed_at?: string;
+    claimed_by?: string;
+    
+    // Accountability
+    signature_capture_url?: string;  // Path to signature image
+    distribution_notes?: string;
+    contact_number?: string;
+    email?: string;
+}
+
+/**
+ * Envelope Data for Printing
+ */
+export interface EnvelopeData {
+    id: number;
+    employee_id: number;
+    employee_number: string;
+    employee_name: string;
+    position: string;
+    
+    period_name: string;
+    period_start_date: string;
+    period_end_date: string;
+    
+    net_pay: number;
+    formatted_net_pay: string;
+    
+    barcode: string;  // Unique barcode/reference
+    qr_code: string;  // QR code data URL
+    
+    department: string;
+    print_date: string;
+    page_number: number;
+    total_pages: number;
+}
+
+/**
+ * Cash Distribution Tracking Record
+ */
+export interface CashDistribution {
+    id: number;
+    cash_employee_id: number;
+    
+    distribution_date: string;
+    distribution_time: string;
+    
+    distributed_by: string;
+    distributed_by_employee_id: number;
+    
+    received_by?: string;                 // Employee or representative
+    recipient_contact_number?: string;
+    
+    signature_file_path?: string;
+    signature_captured_at?: string;
+    
+    amount: number;
+    formatted_amount: string;
+    
+    status: 'distributed' | 'unclaimed' | 'claimed' | 'returned';
+    status_label: string;
+    
+    notes: string;
+    
+    created_at: string;
+    updated_at: string;
+}
+
+/**
+ * Unclaimed Cash Tracking
+ */
+export interface UnclaimedCash {
+    id: number;
+    cash_employee_id: number;
+    employee_id: number;
+    employee_number: string;
+    employee_name: string;
+    
+    period_name: string;
+    
+    amount: number;
+    formatted_amount: string;
+    
+    days_unclaimed: number;
+    days_until_returned: number;           // Days until money must be returned to company
+    
+    envelope_prepared_at: string;
+    distribution_scheduled_for: string;
+    
+    contact_attempts: number;
+    last_contact_attempt: string;
+    
+    status: 'pending_distribution' | 'pending_collection' | 'escalated' | 'returned';
+    status_label: string;
+    status_color: string;
+    
+    notes: string;
+}
+
+// ============================================================================
+// PHASE 5: REPORTS & ANALYTICS - Payroll Register
+// ============================================================================
+
+/**
+ * Payroll Register Employee Record
+ * Detailed employee payroll information for reporting
+ */
+export interface PayrollRegisterEmployee {
+    id: number;
+    employee_id: number;
+    period_id: number;
+    employee_number: string;
+    full_name: string;
+    department_id: number;
+    department_name: string;
+    position: string;
+    status: 'active' | 'inactive' | 'on_leave';
+    
+    // Earnings
+    basic_salary: number;
+    overtime: number;
+    rice_allowance: number;
+    cola: number;
+    gross_pay: number;
+    
+    // Deductions
+    sss: number;
+    philhealth: number;
+    pagibig: number;
+    withholding_tax: number;
+    total_deductions: number;
+    
+    // Net Pay
+    net_pay: number;
+    
+    // Components breakdown
+    components: Array<{
+        code: string;
+        name: string;
+        type: 'earning' | 'deduction' | 'benefit' | 'tax' | 'allowance';
+        amount: number;
+    }>;
+}
+
+/**
+ * Payroll Register Summary
+ * Overall summary statistics
+ */
+export interface PayrollRegisterSummary {
+    total_employees: number;
+    total_gross_pay: number;
+    total_deductions: number;
+    total_net_pay: number;
+    formatted_total_gross_pay: string;
+    formatted_total_deductions: string;
+    formatted_total_net_pay: string;
+}
+
+/**
+ * Department Breakdown Record
+ * Department-level payroll summary
+ */
+export interface DepartmentBreakdown {
+    department_id: number;
+    department_name: string;
+    employee_count: number;
+    total_gross_pay: number;
+    total_deductions: number;
+    total_net_pay: number;
+    average_net_pay: number;
+    formatted_gross_pay: string;
+    formatted_deductions: string;
+    formatted_net_pay: string;
+    formatted_average_net_pay: string;
+}
+
+/**
+ * Payroll Register Report Page Props
+ */
+export interface PayrollRegisterPageProps {
+    register_data: PayrollRegisterEmployee[];
+    summary: PayrollRegisterSummary;
+    department_breakdown: DepartmentBreakdown[];
+    periods: Array<{
+        id: number;
+        name: string;
+        period_type: string;
+        start_date: string;
+        end_date: string;
+        pay_date: string;
+    }>;
+    departments: Array<{
+        id: number;
+        name: string;
+    }>;
+    employee_statuses: Array<{
+        id: string;
+        label: string;
+    }>;
+    salary_components: Array<{
+        id: number;
+        code: string;
+        name: string;
+        type: string;
+    }>;
+    filters: {
+        period_id: string;
+        department_id: string;
+        employee_status: string;
+        component_filter: string;
+        search: string;
+    };
+}
+
+// ============================================================================
+// GOVERNMENT REPORTS PAGE TYPES
+// ============================================================================
+
+/**
+ * Government Reports Summary Page Props
+ * Displays all government reports (SSS, PhilHealth, Pag-IBIG, BIR) in one view
+ */
+export interface GovernmentReportsPageProps {
+    reports_summary: GovernmentReportsSummary;
+    sss_reports: SSSReportCard[];
+    philhealth_reports: PhilHealthReportCard[];
+    pagibig_reports: PagIbigReportCard[];
+    bir_reports: BIRReportCard[];
+    upcoming_deadlines: GovernmentReportDeadline[];
+    compliance_status: GovernmentReportCompliance;
+}
+
+export interface GovernmentReportsSummary {
+    total_reports_generated: number;
+    total_reports_submitted: number;
+    reports_pending_submission: number;
+    total_contributions: number;
+    next_deadline: string | null;
+    overdue_reports: number;
+}
+
+export interface SSSReportCard {
+    id: number;
+    report_type: 'R3' | 'Monthly';
+    period_id: number;
+    period_name: string;
+    month: string;
+    year: number;
+    total_employees: number;
+    total_compensation: number;
+    employee_share: number;
+    employer_share: number;
+    ec_share: number;
+    total_contribution: number;
+    status: 'draft' | 'ready' | 'submitted' | 'accepted' | 'rejected';
+    status_label: string;
+    status_color: 'blue' | 'yellow' | 'green' | 'red';
+    submission_date: string | null;
+    due_date: string;
+    is_overdue: boolean;
+    file_name: string | null;
+    file_path: string | null;
+    action_required: boolean;
+    error_message: string | null;
+}
+
+export interface PhilHealthReportCard {
+    id: number;
+    report_type: 'RF1' | 'Monthly';
+    period_id: number;
+    period_name: string;
+    month: string;
+    year: number;
+    total_employees: number;
+    total_compensation: number;
+    employee_share: number;
+    employer_share: number;
+    total_contribution: number;
+    status: 'draft' | 'ready' | 'submitted' | 'accepted' | 'rejected';
+    status_label: string;
+    status_color: 'blue' | 'yellow' | 'green' | 'red';
+    submission_date: string | null;
+    due_date: string;
+    is_overdue: boolean;
+    file_name: string | null;
+    file_path: string | null;
+    action_required: boolean;
+    error_message: string | null;
+}
+
+export interface PagIbigReportCard {
+    id: number;
+    report_type: 'MCRF' | 'Monthly';
+    period_id: number;
+    period_name: string;
+    month: string;
+    year: number;
+    total_employees: number;
+    total_compensation: number;
+    employee_share: number;
+    employer_share: number;
+    total_contribution: number;
+    status: 'draft' | 'ready' | 'submitted' | 'accepted' | 'rejected';
+    status_label: string;
+    status_color: 'blue' | 'yellow' | 'green' | 'red';
+    submission_date: string | null;
+    due_date: string;
+    is_overdue: boolean;
+    file_name: string | null;
+    file_path: string | null;
+    action_required: boolean;
+    error_message: string | null;
+}
+
+export interface BIRReportCard {
+    id: number;
+    report_type: '1601C' | '2316' | 'Alphalist' | 'Monthly';
+    period_id: number;
+    period_name: string;
+    month: string;
+    year: number;
+    total_employees: number;
+    total_compensation: number;
+    total_tax_withheld: number;
+    status: 'draft' | 'ready' | 'submitted' | 'accepted' | 'rejected';
+    status_label: string;
+    status_color: 'blue' | 'yellow' | 'green' | 'red';
+    submission_date: string | null;
+    due_date: string;
+    is_overdue: boolean;
+    file_name: string | null;
+    file_path: string | null;
+    action_required: boolean;
+    error_message: string | null;
+}
+
+export interface GovernmentReportDeadline {
+    id: number;
+    report_type: string;
+    agency: 'SSS' | 'PhilHealth' | 'Pag-IBIG' | 'BIR';
+    agency_label: string;
+    due_date: string;
+    days_until_due: number;
+    is_overdue: boolean;
+    related_period_id: number;
+    related_period_name: string;
+    action_url: string;
+}
+
+export interface GovernmentReportCompliance {
+    total_required_reports: number;
+    total_submitted_reports: number;
+    submission_percentage: number;
+    submission_status: 'on_track' | 'at_risk' | 'non_compliant';
+    submission_status_label: string;
+    last_submission_date: string | null;
+    next_due_date: string | null;
+    agencies: {
+        sss: AgencyComplianceStatus;
+        philhealth: AgencyComplianceStatus;
+        pagibig: AgencyComplianceStatus;
+        bir: AgencyComplianceStatus;
+    };
+}
+
+export interface AgencyComplianceStatus {
+    agency: string;
+    total_reports_required: number;
+    total_reports_submitted: number;
+    submission_percentage: number;
+    compliance_status: 'compliant' | 'at_risk' | 'non_compliant';
+    compliance_status_label: string;
+    last_submission_date: string | null;
+    next_due_date: string | null;
+}
+
+// ============================================================
+// PHASE 5.3: LABOR COST ANALYTICS
+// ============================================================
+
+export interface LaborCostAnalyticsPageProps {
+    cost_trend_data: MonthlyLaborCostTrend[];
+    department_comparisons: DepartmentCostComparison[];
+    component_breakdown: ComponentCostBreakdown[];
+    yoy_comparisons: YearOverYearComparison[];
+    employee_cost_analysis: EmployeeCostAnalysis[];
+    budget_variance_data: BudgetVarianceData[];
+    forecast_projections: ForecastProjection[];
+    analytics_summary: AnalyticsSummary;
+    selected_period: string;
+    available_periods: string[];
+    available_departments: Department[];
+}
+
+export interface MonthlyLaborCostTrend {
+    month: string;
+    month_label: string;
+    total_labor_cost: number;
+    total_basic_salary: number;
+    total_allowances: number;
+    total_overtime: number;
+    total_benefits: number;
+    total_contributions: number;
+    total_taxes: number;
+    employee_count: number;
+    cost_per_employee: number;
+}
+
+export interface DepartmentCostComparison {
+    department_id: number;
+    department_name: string;
+    total_employees: number;
+    total_labor_cost: number;
+    basic_salary_cost: number;
+    allowances_cost: number;
+    overtime_cost: number;
+    benefits_cost: number;
+    contributions_cost: number;
+    tax_cost: number;
+    cost_percentage: number;
+    average_cost_per_employee: number;
+    trend: 'up' | 'down' | 'stable';
+    trend_percentage: number;
+}
+
+export interface ComponentCostBreakdown {
+    component_id: number;
+    component_name: string;
+    component_code: string;
+    component_type: 'earning' | 'deduction' | 'benefit' | 'tax' | 'contribution';
+    total_amount: number;
+    percentage_of_gross: number;
+    affected_employees: number;
+    average_per_employee: number;
+    trend: 'up' | 'down' | 'stable';
+    trend_percentage: number;
+}
+
+export interface YearOverYearComparison {
+    month: string;
+    current_year_cost: number;
+    previous_year_cost: number;
+    difference: number;
+    percentage_change: number;
+    current_year_employees: number;
+    previous_year_employees: number;
+    cost_per_employee_current: number;
+    cost_per_employee_previous: number;
+}
+
+export interface EmployeeCostAnalysis {
+    employee_id: number;
+    employee_name: string;
+    employee_code: string;
+    department_id: number;
+    department_name: string;
+    position: string;
+    basic_salary: number;
+    total_gross_pay: number;
+    total_deductions: number;
+    net_pay: number;
+    cost_to_company: number;
+    component_breakdown: EmployeeComponentBreakdown[];
+    vs_department_average: number;
+    vs_position_average: number;
+}
+
+export interface EmployeeComponentBreakdown {
+    component_name: string;
+    component_type: string;
+    amount: number;
+}
+
+export interface BudgetVarianceData {
+    department_id: number;
+    department_name: string;
+    component_name: string;
+    budgeted_amount: number;
+    actual_amount: number;
+    variance: number;
+    variance_percentage: number;
+    variance_status: 'favorable' | 'unfavorable' | 'on_target';
+    remaining_budget: number;
+}
+
+export interface ForecastProjection {
+    month: string;
+    month_label: string;
+    projected_labor_cost: number;
+    projected_basic_salary: number;
+    projected_allowances: number;
+    projected_overtime: number;
+    projected_benefits: number;
+    projected_contributions: number;
+    projected_taxes: number;
+    projected_employee_count: number;
+    confidence_level: 'high' | 'medium' | 'low';
+}
+
+export interface AnalyticsSummary {
+    current_period: string;
+    total_labor_cost: number;
+    average_monthly_cost: number;
+    total_employees: number;
+    average_cost_per_employee: number;
+    largest_cost_component: string;
+    largest_cost_component_amount: number;
+    largest_cost_component_percentage: number;
+    highest_cost_department: string;
+    highest_cost_department_amount: number;
+    trend_vs_last_period: number;
+    trend_vs_last_year: number;
+}
+
+export interface Department {
+    id: number;
+    name: string;
+}

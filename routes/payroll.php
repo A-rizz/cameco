@@ -20,6 +20,10 @@ use App\Http\Controllers\Payroll\Government\GovernmentRemittancesController;
 use App\Http\Controllers\Payroll\Payments\BankFilesController;
 use App\Http\Controllers\Payroll\Payments\PayslipsController;
 use App\Http\Controllers\Payroll\Payments\PaymentTrackingController;
+use App\Http\Controllers\Payroll\Payments\CashPaymentController;
+use App\Http\Controllers\Payroll\Reports\PayrollRegisterController;
+use App\Http\Controllers\Payroll\Reports\PayrollGovernmentReportsController;
+use App\Http\Controllers\Payroll\Reports\PayrollAnalyticsController;
 
 Route::prefix('payroll')->middleware(['auth', 'verified', EnsurePayrollOfficer::class])->group(function () {
     Route::name('payroll.')->group(function () {
@@ -158,5 +162,20 @@ Route::prefix('payroll')->middleware(['auth', 'verified', EnsurePayrollOfficer::
         Route::post('/payments/tracking/mark-paid', [PaymentTrackingController::class, 'markPaid'])->name('payments.tracking.mark-paid');
         Route::post('/payments/tracking/retry', [PaymentTrackingController::class, 'retry'])->name('payments.tracking.retry');
         Route::post('/payments/tracking/change-method', [PaymentTrackingController::class, 'changeMethod'])->name('payments.tracking.change-method');
+
+        // Cash Payments - Phase 4.4
+        Route::get('/payments/cash', [CashPaymentController::class, 'index'])->name('payments.cash.index');
+        Route::post('/payments/cash/generate-envelopes', [CashPaymentController::class, 'generateEnvelopes'])->name('payments.cash.generate-envelopes');
+        Route::post('/payments/cash/record-distribution', [CashPaymentController::class, 'recordDistribution'])->name('payments.cash.record-distribution');
+        Route::post('/payments/cash/mark-claimed', [CashPaymentController::class, 'markClaimed'])->name('payments.cash.mark-claimed');
+        Route::post('/payments/cash/record-contact-attempt', [CashPaymentController::class, 'recordContactAttempt'])->name('payments.cash.record-contact-attempt');
+        Route::get('/payments/cash/accountability-report', [CashPaymentController::class, 'generateAccountabilityReport'])->name('payments.cash.accountability-report');
+
+        // Payroll Register Reports - Phase 5.1
+        Route::get('/reports/register', [PayrollRegisterController::class, 'index'])->name('reports.register.index');
+
+        // Government Reports Summary - Phase 5.2
+        Route::get('/reports/government', [PayrollGovernmentReportsController::class, 'index'])->name('reports.government.index');
+        Route::get('/reports/analytics', [PayrollAnalyticsController::class, 'index'])->name('reports.analytics.index');
     });
 });
