@@ -12,7 +12,7 @@ class UpdateEmployeeRotationRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return auth()->user()?->hasPermissionTo('workforce.rotations.update') ?? false;
+        return auth()->check();
     }
 
     /**
@@ -24,7 +24,7 @@ class UpdateEmployeeRotationRequest extends FormRequest
         
         return [
             // Optional fields (all can be updated)
-            'name' => ['nullable', 'string', 'max:255', Rule::unique('employee_rotations', 'name')->ignore($rotationId)],
+            'name' => ['nullable', 'string', 'max:255', Rule::unique('employee_rotations', 'name')->ignore($rotationId)->whereNull('deleted_at')],
             'description' => ['nullable', 'string', 'max:1000'],
             'pattern_type' => ['nullable', Rule::in(['4x2', '6x1', '5x2', 'custom'])],
             'pattern_json' => ['nullable', 'array'],

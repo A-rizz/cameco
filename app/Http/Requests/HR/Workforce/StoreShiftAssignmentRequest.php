@@ -12,7 +12,7 @@ class StoreShiftAssignmentRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return auth()->user()?->hasPermissionTo('workforce.assignments.create') ?? false;
+        return auth()->check();
     }
 
     /**

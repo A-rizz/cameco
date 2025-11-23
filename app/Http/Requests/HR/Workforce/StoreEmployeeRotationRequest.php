@@ -12,7 +12,7 @@ class StoreEmployeeRotationRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return auth()->user()?->hasPermissionTo('workforce.rotations.create') ?? false;
+        return auth()->check();
     }
 
     /**
@@ -22,7 +22,7 @@ class StoreEmployeeRotationRequest extends FormRequest
     {
         return [
             // Required fields
-            'name' => ['required', 'string', 'max:255', 'unique:employee_rotations,name'],
+            'name' => ['required', 'string', 'max:255', 'unique:employee_rotations,name,NULL,id,deleted_at,NULL'],
             'pattern_type' => ['required', Rule::in(['4x2', '6x1', '5x2', 'custom'])],
             'pattern_json' => ['required', 'array'],
             

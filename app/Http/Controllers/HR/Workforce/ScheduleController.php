@@ -3,370 +3,39 @@
 namespace App\Http\Controllers\HR\Workforce;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\HR\Workforce\StoreWorkScheduleRequest;
+use App\Http\Requests\HR\Workforce\UpdateWorkScheduleRequest;
+use App\Models\WorkSchedule;
+use App\Services\HR\Workforce\WorkScheduleService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class ScheduleController extends Controller
 {
+    protected WorkScheduleService $workScheduleService;
+
+    public function __construct(WorkScheduleService $workScheduleService)
+    {
+        $this->workScheduleService = $workScheduleService;
+    }
+
     /**
-     * Display a listing of work schedules with mock data.
+     * Display a listing of work schedules.
      */
     public function index(Request $request): Response
     {
-        // Mock data: 8 schedules (5 active, 2 expired, 1 draft)
-        $schedules = [
-            [
-                'id' => 1,
-                'name' => 'Standard Day Shift - Production',
-                'description' => '8-hour day shift for production employees',
-                'effective_date' => '2025-01-01',
-                'expires_at' => '2025-12-31',
-                'status' => 'active',
-                'monday_start' => '06:00:00',
-                'monday_end' => '14:00:00',
-                'tuesday_start' => '06:00:00',
-                'tuesday_end' => '14:00:00',
-                'wednesday_start' => '06:00:00',
-                'wednesday_end' => '14:00:00',
-                'thursday_start' => '06:00:00',
-                'thursday_end' => '14:00:00',
-                'friday_start' => '06:00:00',
-                'friday_end' => '14:00:00',
-                'saturday_start' => null,
-                'saturday_end' => null,
-                'sunday_start' => null,
-                'sunday_end' => null,
-                'lunch_break_duration' => 60,
-                'morning_break_duration' => 15,
-                'afternoon_break_duration' => 15,
-                'overtime_threshold' => 8,
-                'overtime_rate_multiplier' => 1.25,
-                'department_id' => 3,
-                'department_name' => 'Rolling Mill 3',
-                'assigned_employees_count' => 45,
-                'is_template' => false,
-                'created_by' => 1,
-                'created_by_name' => 'Admin User',
-                'created_at' => '2024-12-15 08:00:00',
-                'updated_at' => '2024-12-15 08:00:00',
-            ],
-            [
-                'id' => 2,
-                'name' => 'Night Shift - Wire Mill',
-                'description' => '8-hour night shift for wire mill operations',
-                'effective_date' => '2025-01-01',
-                'expires_at' => null,
-                'status' => 'active',
-                'monday_start' => '22:00:00',
-                'monday_end' => '06:00:00',
-                'tuesday_start' => '22:00:00',
-                'tuesday_end' => '06:00:00',
-                'wednesday_start' => '22:00:00',
-                'wednesday_end' => '06:00:00',
-                'thursday_start' => '22:00:00',
-                'thursday_end' => '06:00:00',
-                'friday_start' => '22:00:00',
-                'friday_end' => '06:00:00',
-                'saturday_start' => null,
-                'saturday_end' => null,
-                'sunday_start' => null,
-                'sunday_end' => null,
-                'lunch_break_duration' => 60,
-                'morning_break_duration' => 15,
-                'afternoon_break_duration' => 15,
-                'overtime_threshold' => 8,
-                'overtime_rate_multiplier' => 1.5,
-                'department_id' => 4,
-                'department_name' => 'Wire Mill',
-                'assigned_employees_count' => 32,
-                'is_template' => false,
-                'created_by' => 1,
-                'created_by_name' => 'Admin User',
-                'created_at' => '2024-12-15 08:00:00',
-                'updated_at' => '2024-12-15 08:00:00',
-            ],
-            [
-                'id' => 3,
-                'name' => 'Afternoon Shift - Quality Control',
-                'description' => '8-hour afternoon shift for QC team',
-                'effective_date' => '2025-01-01',
-                'expires_at' => '2025-06-30',
-                'status' => 'active',
-                'monday_start' => '14:00:00',
-                'monday_end' => '22:00:00',
-                'tuesday_start' => '14:00:00',
-                'tuesday_end' => '22:00:00',
-                'wednesday_start' => '14:00:00',
-                'wednesday_end' => '22:00:00',
-                'thursday_start' => '14:00:00',
-                'thursday_end' => '22:00:00',
-                'friday_start' => '14:00:00',
-                'friday_end' => '22:00:00',
-                'saturday_start' => null,
-                'saturday_end' => null,
-                'sunday_start' => null,
-                'sunday_end' => null,
-                'lunch_break_duration' => 60,
-                'morning_break_duration' => 15,
-                'afternoon_break_duration' => 15,
-                'overtime_threshold' => 8,
-                'overtime_rate_multiplier' => 1.25,
-                'department_id' => 5,
-                'department_name' => 'Quality Assurance',
-                'assigned_employees_count' => 18,
-                'is_template' => false,
-                'created_by' => 1,
-                'created_by_name' => 'Admin User',
-                'created_at' => '2024-12-15 08:00:00',
-                'updated_at' => '2024-12-15 08:00:00',
-            ],
-            [
-                'id' => 4,
-                'name' => 'Office Hours - Admin',
-                'description' => 'Standard office hours for administrative staff',
-                'effective_date' => '2025-01-01',
-                'expires_at' => null,
-                'status' => 'active',
-                'monday_start' => '08:00:00',
-                'monday_end' => '17:00:00',
-                'tuesday_start' => '08:00:00',
-                'tuesday_end' => '17:00:00',
-                'wednesday_start' => '08:00:00',
-                'wednesday_end' => '17:00:00',
-                'thursday_start' => '08:00:00',
-                'thursday_end' => '17:00:00',
-                'friday_start' => '08:00:00',
-                'friday_end' => '17:00:00',
-                'saturday_start' => null,
-                'saturday_end' => null,
-                'sunday_start' => null,
-                'sunday_end' => null,
-                'lunch_break_duration' => 60,
-                'morning_break_duration' => 15,
-                'afternoon_break_duration' => 15,
-                'overtime_threshold' => 8,
-                'overtime_rate_multiplier' => 1.25,
-                'department_id' => 1,
-                'department_name' => 'Human Resources',
-                'assigned_employees_count' => 12,
-                'is_template' => false,
-                'created_by' => 1,
-                'created_by_name' => 'Admin User',
-                'created_at' => '2024-12-15 08:00:00',
-                'updated_at' => '2024-12-15 08:00:00',
-            ],
-            [
-                'id' => 5,
-                'name' => '6-Day Work Week - Maintenance',
-                'description' => '6-day work week including Saturday for maintenance team',
-                'effective_date' => '2025-01-01',
-                'expires_at' => null,
-                'status' => 'active',
-                'monday_start' => '06:00:00',
-                'monday_end' => '14:00:00',
-                'tuesday_start' => '06:00:00',
-                'tuesday_end' => '14:00:00',
-                'wednesday_start' => '06:00:00',
-                'wednesday_end' => '14:00:00',
-                'thursday_start' => '06:00:00',
-                'thursday_end' => '14:00:00',
-                'friday_start' => '06:00:00',
-                'friday_end' => '14:00:00',
-                'saturday_start' => '06:00:00',
-                'saturday_end' => '14:00:00',
-                'sunday_start' => null,
-                'sunday_end' => null,
-                'lunch_break_duration' => 60,
-                'morning_break_duration' => 15,
-                'afternoon_break_duration' => 15,
-                'overtime_threshold' => 8,
-                'overtime_rate_multiplier' => 1.5,
-                'department_id' => 6,
-                'department_name' => 'Maintenance',
-                'assigned_employees_count' => 24,
-                'is_template' => false,
-                'created_by' => 1,
-                'created_by_name' => 'Admin User',
-                'created_at' => '2024-12-15 08:00:00',
-                'updated_at' => '2024-12-15 08:00:00',
-            ],
-            [
-                'id' => 6,
-                'name' => 'Flexible Hours - IT Department',
-                'description' => 'Flexible work schedule for IT staff',
-                'effective_date' => '2024-06-01',
-                'expires_at' => '2024-12-31',
-                'status' => 'expired',
-                'monday_start' => '09:00:00',
-                'monday_end' => '18:00:00',
-                'tuesday_start' => '09:00:00',
-                'tuesday_end' => '18:00:00',
-                'wednesday_start' => '09:00:00',
-                'wednesday_end' => '18:00:00',
-                'thursday_start' => '09:00:00',
-                'thursday_end' => '18:00:00',
-                'friday_start' => '09:00:00',
-                'friday_end' => '18:00:00',
-                'saturday_start' => null,
-                'saturday_end' => null,
-                'sunday_start' => null,
-                'sunday_end' => null,
-                'lunch_break_duration' => 60,
-                'morning_break_duration' => 15,
-                'afternoon_break_duration' => 15,
-                'overtime_threshold' => 8,
-                'overtime_rate_multiplier' => 1.25,
-                'department_id' => 7,
-                'department_name' => 'IT',
-                'assigned_employees_count' => 0,
-                'is_template' => false,
-                'created_by' => 1,
-                'created_by_name' => 'Admin User',
-                'created_at' => '2024-06-01 08:00:00',
-                'updated_at' => '2024-12-31 23:59:59',
-            ],
-            [
-                'id' => 7,
-                'name' => 'Emergency Response Team - 24/7',
-                'description' => 'Old schedule for emergency response team',
-                'effective_date' => '2024-01-01',
-                'expires_at' => '2024-06-30',
-                'status' => 'expired',
-                'monday_start' => '00:00:00',
-                'monday_end' => '23:59:59',
-                'tuesday_start' => '00:00:00',
-                'tuesday_end' => '23:59:59',
-                'wednesday_start' => '00:00:00',
-                'wednesday_end' => '23:59:59',
-                'thursday_start' => '00:00:00',
-                'thursday_end' => '23:59:59',
-                'friday_start' => '00:00:00',
-                'friday_end' => '23:59:59',
-                'saturday_start' => '00:00:00',
-                'saturday_end' => '23:59:59',
-                'sunday_start' => '00:00:00',
-                'sunday_end' => '23:59:59',
-                'lunch_break_duration' => 0,
-                'morning_break_duration' => 0,
-                'afternoon_break_duration' => 0,
-                'overtime_threshold' => 12,
-                'overtime_rate_multiplier' => 2.0,
-                'department_id' => 8,
-                'department_name' => 'Safety',
-                'assigned_employees_count' => 0,
-                'is_template' => false,
-                'created_by' => 1,
-                'created_by_name' => 'Admin User',
-                'created_at' => '2024-01-01 08:00:00',
-                'updated_at' => '2024-06-30 23:59:59',
-            ],
-            [
-                'id' => 8,
-                'name' => 'Draft Schedule - New Production Line',
-                'description' => 'Draft schedule for upcoming production line expansion',
-                'effective_date' => '2025-03-01',
-                'expires_at' => null,
-                'status' => 'draft',
-                'monday_start' => '07:00:00',
-                'monday_end' => '15:00:00',
-                'tuesday_start' => '07:00:00',
-                'tuesday_end' => '15:00:00',
-                'wednesday_start' => '07:00:00',
-                'wednesday_end' => '15:00:00',
-                'thursday_start' => '07:00:00',
-                'thursday_end' => '15:00:00',
-                'friday_start' => '07:00:00',
-                'friday_end' => '15:00:00',
-                'saturday_start' => null,
-                'saturday_end' => null,
-                'sunday_start' => null,
-                'sunday_end' => null,
-                'lunch_break_duration' => 60,
-                'morning_break_duration' => 15,
-                'afternoon_break_duration' => 15,
-                'overtime_threshold' => 8,
-                'overtime_rate_multiplier' => 1.25,
-                'department_id' => null,
-                'department_name' => null,
-                'assigned_employees_count' => 0,
-                'is_template' => false,
-                'created_by' => 1,
-                'created_by_name' => 'Admin User',
-                'created_at' => '2025-01-10 10:00:00',
-                'updated_at' => '2025-01-10 10:00:00',
-            ],
-        ];
-
-        // Mock summary statistics
+        $schedules = $this->workScheduleService->getSchedules();
         $summary = [
-            'total_schedules' => 8,
-            'active_schedules' => 5,
-            'expired_schedules' => 2,
-            'draft_schedules' => 1,
-            'employees_assigned' => 131,
-            'templates_available' => 5,
+            'total_schedules' => $schedules->count(),
+            'active_schedules' => $schedules->where('status', 'active')->count(),
+            'expired_schedules' => $schedules->where('status', 'expired')->count(),
+            'draft_schedules' => $schedules->where('status', 'draft')->count(),
+            'employees_assigned' => 0,
+            'templates_available' => $schedules->where('is_template', true)->count(),
         ];
 
-        // Mock departments for filters
-        $departments = [
-            ['id' => 1, 'name' => 'Human Resources', 'code' => 'HR'],
-            ['id' => 3, 'name' => 'Rolling Mill 3', 'code' => 'RM3'],
-            ['id' => 4, 'name' => 'Wire Mill', 'code' => 'WM'],
-            ['id' => 5, 'name' => 'Quality Assurance', 'code' => 'QA'],
-            ['id' => 6, 'name' => 'Maintenance', 'code' => 'MNT'],
-            ['id' => 7, 'name' => 'IT', 'code' => 'IT'],
-            ['id' => 8, 'name' => 'Safety', 'code' => 'SFT'],
-        ];
-
-        // Mock schedule templates
-        $templates = [
-            [
-                'id' => 1,
-                'name' => 'Morning Shift Template (6AM-2PM)',
-                'shift_type' => 'morning',
-                'shift_start' => '06:00:00',
-                'shift_end' => '14:00:00',
-                'is_active' => true,
-                'usage_count' => 45,
-            ],
-            [
-                'id' => 2,
-                'name' => 'Afternoon Shift Template (2PM-10PM)',
-                'shift_type' => 'afternoon',
-                'shift_start' => '14:00:00',
-                'shift_end' => '22:00:00',
-                'is_active' => true,
-                'usage_count' => 32,
-            ],
-            [
-                'id' => 3,
-                'name' => 'Night Shift Template (10PM-6AM)',
-                'shift_type' => 'night',
-                'shift_start' => '22:00:00',
-                'shift_end' => '06:00:00',
-                'is_active' => true,
-                'usage_count' => 28,
-            ],
-            [
-                'id' => 4,
-                'name' => 'Office Hours Template (8AM-5PM)',
-                'shift_type' => 'custom',
-                'shift_start' => '08:00:00',
-                'shift_end' => '17:00:00',
-                'is_active' => true,
-                'usage_count' => 15,
-            ],
-            [
-                'id' => 5,
-                'name' => 'Graveyard Shift Template (11PM-7AM)',
-                'shift_type' => 'graveyard',
-                'shift_start' => '23:00:00',
-                'shift_end' => '07:00:00',
-                'is_active' => true,
-                'usage_count' => 12,
-            ],
-        ];
+        $departments = \App\Models\Department::all(['id', 'name', 'code'])->toArray();
 
         $filters = [
             'search' => $request->input('search', ''),
@@ -381,7 +50,6 @@ class ScheduleController extends Controller
             'schedules' => $schedules,
             'summary' => $summary,
             'departments' => $departments,
-            'templates' => $templates,
             'filters' => $filters,
         ]);
     }
@@ -391,59 +59,25 @@ class ScheduleController extends Controller
      */
     public function create(): Response
     {
-        // Mock departments
-        $departments = [
-            ['id' => 1, 'name' => 'Human Resources', 'code' => 'HR'],
-            ['id' => 3, 'name' => 'Rolling Mill 3', 'code' => 'RM3'],
-            ['id' => 4, 'name' => 'Wire Mill', 'code' => 'WM'],
-            ['id' => 5, 'name' => 'Quality Assurance', 'code' => 'QA'],
-            ['id' => 6, 'name' => 'Maintenance', 'code' => 'MNT'],
-        ];
-
-        // Mock employees for assignment
-        $employees = [
-            ['id' => 1, 'employee_number' => 'EMP001', 'full_name' => 'Juan dela Cruz', 'department_id' => 3, 'department_name' => 'Rolling Mill 3'],
-            ['id' => 2, 'employee_number' => 'EMP002', 'full_name' => 'Maria Santos', 'department_id' => 3, 'department_name' => 'Rolling Mill 3'],
-            ['id' => 3, 'employee_number' => 'EMP003', 'full_name' => 'Pedro Reyes', 'department_id' => 4, 'department_name' => 'Wire Mill'],
-        ];
-
-        // Mock templates
-        $templates = [
-            [
-                'id' => 1,
-                'name' => 'Morning Shift Template (6AM-2PM)',
-                'shift_type' => 'morning',
-                'shift_start' => '06:00:00',
-                'shift_end' => '14:00:00',
-            ],
-            [
-                'id' => 2,
-                'name' => 'Afternoon Shift Template (2PM-10PM)',
-                'shift_type' => 'afternoon',
-                'shift_start' => '14:00:00',
-                'shift_end' => '22:00:00',
-            ],
-        ];
+        $departments = \App\Models\Department::all(['id', 'name', 'code'])->toArray();
+        $employees = \App\Models\Employee::all(['id', 'employee_number', 'first_name', 'last_name', 'department_id'])->toArray();
 
         return Inertia::render('HR/Workforce/Schedules/Create', [
             'departments' => $departments,
             'employees' => $employees,
-            'templates' => $templates,
         ]);
     }
 
     /**
      * Store a newly created schedule in storage.
      */
-    public function store(Request $request)
+    public function store(StoreWorkScheduleRequest $request)
     {
-        // Validate request
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'effective_date' => 'required|date',
-        ]);
+        $this->workScheduleService->createSchedule(
+            $request->validated(),
+            auth()->user()
+        );
 
-        // Mock: Just return success message
         return redirect()->route('hr.workforce.schedules.index')
             ->with('success', 'Schedule created successfully.');
     }
@@ -453,20 +87,7 @@ class ScheduleController extends Controller
      */
     public function show(string $id): Response
     {
-        // Mock schedule detail
-        $schedule = [
-            'id' => 1,
-            'name' => 'Standard Day Shift - Production',
-            'description' => '8-hour day shift for production employees',
-            'effective_date' => '2025-01-01',
-            'expires_at' => '2025-12-31',
-            'status' => 'active',
-            'monday_start' => '06:00:00',
-            'monday_end' => '14:00:00',
-            'department_id' => 3,
-            'department_name' => 'Rolling Mill 3',
-            'assigned_employees_count' => 45,
-        ];
+        $schedule = WorkSchedule::with(['department', 'createdBy', 'employeeSchedules'])->findOrFail($id);
 
         return Inertia::render('HR/Workforce/Schedules/Show', [
             'schedule' => $schedule,
@@ -478,45 +99,24 @@ class ScheduleController extends Controller
      */
     public function edit(string $id): Response
     {
-        // Mock schedule data
-        $schedule = [
-            'id' => 1,
-            'name' => 'Standard Day Shift - Production',
-            'description' => '8-hour day shift for production employees',
-            'effective_date' => '2025-01-01',
-            'expires_at' => '2025-12-31',
-        ];
-
-        $departments = [
-            ['id' => 1, 'name' => 'Human Resources'],
-            ['id' => 3, 'name' => 'Rolling Mill 3'],
-        ];
-
-        $employees = [
-            ['id' => 1, 'employee_number' => 'EMP001', 'full_name' => 'Juan dela Cruz'],
-        ];
-
-        $templates = [
-            ['id' => 1, 'name' => 'Morning Shift Template', 'shift_start' => '06:00:00', 'shift_end' => '14:00:00'],
-        ];
+        $schedule = WorkSchedule::findOrFail($id);
+        $departments = \App\Models\Department::all(['id', 'name', 'code'])->toArray();
+        $employees = \App\Models\Employee::all(['id', 'employee_number', 'first_name', 'last_name', 'department_id'])->toArray();
 
         return Inertia::render('HR/Workforce/Schedules/Edit', [
             'schedule' => $schedule,
             'departments' => $departments,
             'employees' => $employees,
-            'templates' => $templates,
         ]);
     }
 
     /**
      * Update the specified schedule in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(UpdateWorkScheduleRequest $request, string $id)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'effective_date' => 'required|date',
-        ]);
+        $schedule = WorkSchedule::findOrFail($id);
+        $this->workScheduleService->updateSchedule($schedule, $request->validated());
 
         return redirect()->route('hr.workforce.schedules.index')
             ->with('success', 'Schedule updated successfully.');
@@ -527,6 +127,9 @@ class ScheduleController extends Controller
      */
     public function destroy(string $id)
     {
+        $schedule = WorkSchedule::findOrFail($id);
+        $this->workScheduleService->deleteSchedule($schedule);
+
         return redirect()->route('hr.workforce.schedules.index')
             ->with('success', 'Schedule deleted successfully.');
     }
@@ -536,16 +139,14 @@ class ScheduleController extends Controller
      */
     public function assignEmployees(Request $request, string $id)
     {
-        $request->validate([
-            'employee_ids' => 'required|array|min:1',
-            'employee_ids.*' => 'integer|exists:employees,id',
-        ]);
+        $schedule = WorkSchedule::findOrFail($id);
+        $employeeIds = $request->input('employee_ids', []);
+        $effectiveDate = $request->input('effective_date', now());
 
-        // Mock: Process employee assignments
-        $assignedCount = count($request->input('employee_ids'));
+        $this->workScheduleService->assignToMultipleEmployees($schedule, $employeeIds, $effectiveDate);
 
         return redirect()->route('hr.workforce.schedules.show', $id)
-            ->with('success', "{$assignedCount} employee(s) assigned to schedule successfully.");
+            ->with('success', count($employeeIds) . ' employee(s) assigned to schedule successfully.');
     }
 
     /**
@@ -553,16 +154,18 @@ class ScheduleController extends Controller
      */
     public function unassignEmployees(Request $request, string $id)
     {
-        $request->validate([
-            'employee_ids' => 'required|array|min:1',
-            'employee_ids.*' => 'integer|exists:employees,id',
-        ]);
+        $schedule = WorkSchedule::findOrFail($id);
+        $employeeIds = $request->input('employee_ids', []);
 
-        // Mock: Process employee unassignments
-        $unassignedCount = count($request->input('employee_ids'));
+        foreach ($employeeIds as $employeeId) {
+            $employee = \App\Models\Employee::find($employeeId);
+            if ($employee) {
+                $this->workScheduleService->unassignFromEmployee($schedule, $employee);
+            }
+        }
 
         return redirect()->route('hr.workforce.schedules.show', $id)
-            ->with('success', "{$unassignedCount} employee(s) removed from schedule successfully.");
+            ->with('success', count($employeeIds) . ' employee(s) removed from schedule successfully.');
     }
 
     /**
@@ -570,28 +173,34 @@ class ScheduleController extends Controller
      */
     public function duplicate(string $id)
     {
-        // Mock: Create a duplicate of the schedule
-        $newScheduleId = 9; // Mock ID for duplicated schedule
+        $schedule = WorkSchedule::findOrFail($id);
+        $newName = request('name', $schedule->name . ' (Copy)');
+        $newSchedule = $this->workScheduleService->duplicateSchedule($schedule, $newName);
 
-        return redirect()->route('hr.workforce.schedules.edit', $newScheduleId)
-            ->with('success', 'Schedule duplicated successfully. Edit and save to create a new schedule.');
+        return redirect()->route('hr.workforce.schedules.index')
+            ->with('success', 'Schedule duplicated successfully.');
     }
 
     /**
-     * Clone a schedule template to create a new schedule.
+     * Activate a schedule.
      */
-    public function cloneTemplate(Request $request)
+    public function activate(string $id)
     {
-        $request->validate([
-            'template_id' => 'required|integer|exists:templates,id',
-            'name' => 'required|string|max:255',
-        ]);
+        $schedule = WorkSchedule::findOrFail($id);
+        $this->workScheduleService->activateSchedule($schedule);
 
-        // Mock: Create schedule from template
-        $newScheduleId = 9; // Mock ID for new schedule from template
+        return back()->with('success', 'Schedule activated successfully.');
+    }
 
-        return redirect()->route('hr.workforce.schedules.edit', $newScheduleId)
-            ->with('success', 'Schedule created from template successfully.');
+    /**
+     * Expire a schedule.
+     */
+    public function expire(string $id)
+    {
+        $schedule = WorkSchedule::findOrFail($id);
+        $this->workScheduleService->expireSchedule($schedule);
+
+        return back()->with('success', 'Schedule expired successfully.');
     }
 
     /**
@@ -599,18 +208,18 @@ class ScheduleController extends Controller
      */
     public function bulkUpdateStatus(Request $request)
     {
-        $request->validate([
-            'schedule_ids' => 'required|array|min:1',
-            'schedule_ids.*' => 'integer|exists:schedules,id',
-            'status' => 'required|in:active,expired,draft',
-        ]);
-
-        // Mock: Update status for multiple schedules
-        $updatedCount = count($request->input('schedule_ids'));
+        $scheduleIds = $request->input('schedule_ids', []);
         $status = $request->input('status');
 
+        foreach ($scheduleIds as $scheduleId) {
+            $schedule = WorkSchedule::find($scheduleId);
+            if ($schedule) {
+                $schedule->update(['status' => $status]);
+            }
+        }
+
         return redirect()->route('hr.workforce.schedules.index')
-            ->with('success', "{$updatedCount} schedule(s) status updated to '{$status}' successfully.");
+            ->with('success', count($scheduleIds) . " schedule(s) status updated to '{$status}' successfully.");
     }
 
     /**
@@ -618,11 +227,33 @@ class ScheduleController extends Controller
      */
     public function exportCsv(Request $request)
     {
-        // Mock: Generate CSV export
+        $schedules = $this->workScheduleService->getSchedules();
+        
         $filename = 'schedules_' . date('Y-m-d_H-i-s') . '.csv';
+        $path = storage_path("app/exports/{$filename}");
 
-        return response()->download(storage_path("app/exports/{$filename}"))
-            ->header('Content-Type', 'text/csv');
+        if (!is_dir(dirname($path))) {
+            mkdir(dirname($path), 0755, true);
+        }
+
+        $file = fopen($path, 'w');
+        fputcsv($file, ['ID', 'Name', 'Description', 'Status', 'Effective Date', 'Expires At', 'Department']);
+
+        foreach ($schedules as $schedule) {
+            fputcsv($file, [
+                $schedule->id,
+                $schedule->name,
+                $schedule->description,
+                $schedule->status,
+                $schedule->effective_date,
+                $schedule->expires_at,
+                $schedule->department?->name,
+            ]);
+        }
+
+        fclose($file);
+
+        return response()->download($path)->deleteFileAfterSend(true);
     }
 
     /**
@@ -630,27 +261,14 @@ class ScheduleController extends Controller
      */
     public function getStatistics()
     {
-        // Mock statistics data
+        $schedules = $this->workScheduleService->getSchedules();
+
         $statistics = [
-            'total_schedules' => 8,
-            'active_schedules' => 5,
-            'expired_schedules' => 2,
-            'draft_schedules' => 1,
-            'total_employees_assigned' => 131,
-            'department_distribution' => [
-                ['department' => 'Rolling Mill 3', 'count' => 45],
-                ['department' => 'Wire Mill', 'count' => 32],
-                ['department' => 'Quality Assurance', 'count' => 18],
-                ['department' => 'Human Resources', 'count' => 12],
-                ['department' => 'Maintenance', 'count' => 24],
-            ],
-            'shift_distribution' => [
-                ['shift_type' => 'Morning (6AM-2PM)', 'count' => 45],
-                ['shift_type' => 'Afternoon (2PM-10PM)', 'count' => 32],
-                ['shift_type' => 'Night (10PM-6AM)', 'count' => 28],
-                ['shift_type' => 'Office Hours (8AM-5PM)', 'count' => 15],
-                ['shift_type' => 'Graveyard (11PM-7AM)', 'count' => 11],
-            ],
+            'total_schedules' => $schedules->count(),
+            'active_schedules' => $schedules->where('status', 'active')->count(),
+            'expired_schedules' => $schedules->where('status', 'expired')->count(),
+            'draft_schedules' => $schedules->where('status', 'draft')->count(),
+            'templates' => $schedules->where('is_template', true)->count(),
         ];
 
         return response()->json($statistics);
@@ -662,23 +280,13 @@ class ScheduleController extends Controller
     public function getAvailableEmployees(Request $request)
     {
         $departmentId = $request->input('department_id');
+        $query = \App\Models\Employee::all(['id', 'employee_number', 'first_name', 'last_name', 'department_id']);
 
-        // Mock employees
-        $employees = [
-            ['id' => 1, 'employee_number' => 'EMP001', 'full_name' => 'Juan dela Cruz', 'department_id' => 3, 'position' => 'Operator'],
-            ['id' => 2, 'employee_number' => 'EMP002', 'full_name' => 'Maria Santos', 'department_id' => 3, 'position' => 'Operator'],
-            ['id' => 3, 'employee_number' => 'EMP003', 'full_name' => 'Pedro Reyes', 'department_id' => 4, 'position' => 'Technician'],
-            ['id' => 4, 'employee_number' => 'EMP004', 'full_name' => 'Anna Garcia', 'department_id' => 1, 'position' => 'HR Specialist'],
-        ];
-
-        // Filter by department if provided
         if ($departmentId) {
-            $employees = array_filter($employees, function ($emp) use ($departmentId) {
-                return $emp['department_id'] == $departmentId;
-            });
+            $query = $query->where('department_id', $departmentId);
         }
 
-        return response()->json(array_values($employees));
+        return response()->json($query->values());
     }
 
     /**
@@ -686,12 +294,10 @@ class ScheduleController extends Controller
      */
     public function getAssignedEmployees(string $id)
     {
-        // Mock assigned employees for schedule
-        $assignedEmployees = [
-            ['id' => 1, 'employee_number' => 'EMP001', 'full_name' => 'Juan dela Cruz', 'department_id' => 3, 'department_name' => 'Rolling Mill 3', 'position' => 'Operator', 'assigned_date' => '2025-01-01'],
-            ['id' => 2, 'employee_number' => 'EMP002', 'full_name' => 'Maria Santos', 'department_id' => 3, 'department_name' => 'Rolling Mill 3', 'position' => 'Operator', 'assigned_date' => '2025-01-01'],
-            ['id' => 5, 'employee_number' => 'EMP005', 'full_name' => 'Carlos Mendoza', 'department_id' => 3, 'department_name' => 'Rolling Mill 3', 'position' => 'Lead Operator', 'assigned_date' => '2024-12-15'],
-        ];
+        $schedule = WorkSchedule::findOrFail($id);
+        $assignedEmployees = $schedule->employeeSchedules()
+            ->with(['employee', 'workSchedule'])
+            ->get();
 
         return response()->json($assignedEmployees);
     }

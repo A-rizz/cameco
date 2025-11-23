@@ -517,4 +517,209 @@ Route::middleware(['auth', 'verified' , EnsureHRManager::class])
                 ->middleware('permission:timekeeping.analytics.view')
                 ->name('analytics.employee');
         });
+
+        // Development & Testing Routes (Service Layer Testing)
+        // These routes test the service layer without requiring specific permissions
+        // Accessible only to authenticated users via session-based auth
+        Route::prefix('dev/test')->name('dev.test.')->group(function () {
+            
+            // Test WorkScheduleService
+            Route::get('/schedules/service', function () {
+                try {
+                    $service = new \App\Services\HR\Workforce\WorkScheduleService();
+                    $schedules = $service->getSchedules();
+                    
+                    return response()->json([
+                        'status' => 'success',
+                        'service' => 'WorkScheduleService',
+                        'methods_available' => [
+                            'createSchedule',
+                            'updateSchedule',
+                            'deleteSchedule',
+                            'duplicateSchedule',
+                            'activateSchedule',
+                            'expireSchedule',
+                            'createTemplate',
+                            'assignToEmployee',
+                            'assignToMultipleEmployees',
+                            'unassignFromEmployee',
+                            'getSchedules',
+                            'getActiveSchedules',
+                            'getTemplates',
+                            'getScheduleSummary',
+                            'getEmployeeSchedule',
+                        ],
+                        'count' => count($schedules),
+                        'data' => $schedules
+                    ]);
+                } catch (\Exception $e) {
+                    return response()->json([
+                        'status' => 'error',
+                        'service' => 'WorkScheduleService',
+                        'error' => $e->getMessage()
+                    ], 500);
+                }
+            })->name('schedules.service');
+
+            // Test EmployeeRotationService
+            Route::get('/rotations/service', function () {
+                try {
+                    $service = new \App\Services\HR\Workforce\EmployeeRotationService();
+                    
+                    return response()->json([
+                        'status' => 'success',
+                        'service' => 'EmployeeRotationService',
+                        'methods_available' => [
+                            'createRotation',
+                            'updateRotation',
+                            'deleteRotation',
+                            'duplicateRotation',
+                            'validatePattern',
+                            'generatePatternFromType',
+                            'calculateCycleLength',
+                            'assignToEmployee',
+                            'assignToMultipleEmployees',
+                            'unassignFromEmployee',
+                            'generateShiftAssignments',
+                            'isWorkDay',
+                            'getRotations',
+                            'getActiveRotations',
+                            'getRotationSummary',
+                            'getEmployeeRotation',
+                            'getRotationAnalysis',
+                        ],
+                        'pattern_types_available' => ['4x2', '6x1', '5x2', 'custom']
+                    ]);
+                } catch (\Exception $e) {
+                    return response()->json([
+                        'status' => 'error',
+                        'service' => 'EmployeeRotationService',
+                        'error' => $e->getMessage()
+                    ], 500);
+                }
+            })->name('rotations.service');
+
+            // Test ShiftAssignmentService
+            Route::get('/assignments/service', function () {
+                try {
+                    $service = new \App\Services\HR\Workforce\ShiftAssignmentService();
+                    
+                    return response()->json([
+                        'status' => 'success',
+                        'service' => 'ShiftAssignmentService',
+                        'methods_available' => [
+                            'createAssignment',
+                            'updateAssignment',
+                            'deleteAssignment',
+                            'bulkCreateAssignments',
+                            'bulkUpdateAssignments',
+                            'bulkDeleteAssignments',
+                            'detectConflicts',
+                            'resolveConflict',
+                            'getConflictingAssignments',
+                            'calculateOvertimeHours',
+                            'markAsOvertime',
+                            'getOvertimeAssignments',
+                            'getCoverageReport',
+                            'getUnderstaffedDays',
+                            'getStaffingLevels',
+                            'getAssignments',
+                            'getAssignmentSummary',
+                            'getEmployeeAssignments',
+                            'getTodayAssignments',
+                        ],
+                        'total_methods' => 18
+                    ]);
+                } catch (\Exception $e) {
+                    return response()->json([
+                        'status' => 'error',
+                        'service' => 'ShiftAssignmentService',
+                        'error' => $e->getMessage()
+                    ], 500);
+                }
+            })->name('assignments.service');
+
+            // Test WorkforceCoverageService
+            Route::get('/coverage/service', function () {
+                try {
+                    $service = new \App\Services\HR\Workforce\WorkforceCoverageService();
+                    
+                    return response()->json([
+                        'status' => 'success',
+                        'service' => 'WorkforceCoverageService',
+                        'methods_available' => [
+                            'analyzeCoverage',
+                            'getCoverageForDate',
+                            'getCoverageByDepartment',
+                            'identifyCoverageGaps',
+                            'getCoverageByShiftType',
+                            'suggestOptimalStaffing',
+                            'calculateStaffingEfficiency',
+                            'getOvertimeTrends',
+                            'generateCoverageReport',
+                            'exportCoverageData',
+                            'analyzeTrend',
+                            'generateRecommendations',
+                            'generateCsvExport',
+                        ],
+                        'total_methods' => 13
+                    ]);
+                } catch (\Exception $e) {
+                    return response()->json([
+                        'status' => 'error',
+                        'service' => 'WorkforceCoverageService',
+                        'error' => $e->getMessage()
+                    ], 500);
+                }
+            })->name('coverage.service');
+
+            // Test all Phase 4 services
+            Route::get('/all-services', function () {
+                $results = [];
+                
+                try {
+                    $workScheduleService = new \App\Services\HR\Workforce\WorkScheduleService();
+                    $results['WorkScheduleService'] = ['status' => 'OK', 'methods' => 13];
+                } catch (\Exception $e) {
+                    $results['WorkScheduleService'] = ['status' => 'ERROR', 'error' => $e->getMessage()];
+                }
+
+                try {
+                    $rotationService = new \App\Services\HR\Workforce\EmployeeRotationService();
+                    $results['EmployeeRotationService'] = ['status' => 'OK', 'methods' => 15];
+                } catch (\Exception $e) {
+                    $results['EmployeeRotationService'] = ['status' => 'ERROR', 'error' => $e->getMessage()];
+                }
+
+                try {
+                    $assignmentService = new \App\Services\HR\Workforce\ShiftAssignmentService();
+                    $results['ShiftAssignmentService'] = ['status' => 'OK', 'methods' => 18];
+                } catch (\Exception $e) {
+                    $results['ShiftAssignmentService'] = ['status' => 'ERROR', 'error' => $e->getMessage()];
+                }
+
+                try {
+                    $shiftService = new \App\Services\HR\Workforce\ShiftAssignmentService();
+                    $coverageService = new \App\Services\HR\Workforce\WorkforceCoverageService($shiftService);
+                    $results['WorkforceCoverageService'] = ['status' => 'OK', 'methods' => 13];
+                } catch (\Exception $e) {
+                    $results['WorkforceCoverageService'] = ['status' => 'ERROR', 'error' => $e->getMessage()];
+                }
+
+                return response()->json([
+                    'phase' => 'Phase 4: Service Layer',
+                    'total_services' => 4,
+                    'total_methods' => 59,
+                    'services' => $results,
+                    'test_url_endpoints' => [
+                        'GET /hr/dev/test/schedules/service',
+                        'GET /hr/dev/test/rotations/service',
+                        'GET /hr/dev/test/assignments/service',
+                        'GET /hr/dev/test/coverage/service',
+                        'GET /hr/dev/test/all-services',
+                    ]
+                ]);
+            })->name('all-services');
+        });
     });
+

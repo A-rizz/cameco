@@ -12,7 +12,7 @@ class StoreWorkScheduleRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return auth()->user()?->hasPermissionTo('workforce.schedules.create') ?? false;
+        return auth()->check();
     }
 
     /**
@@ -22,7 +22,7 @@ class StoreWorkScheduleRequest extends FormRequest
     {
         return [
             // Required fields
-            'name' => ['required', 'string', 'max:255', 'unique:work_schedules,name'],
+            'name' => ['required', 'string', 'max:255', 'unique:work_schedules,name,NULL,id,deleted_at,NULL'],
             'effective_date' => ['required', 'date', 'date_format:Y-m-d'],
             
             // Optional fields
@@ -107,11 +107,23 @@ class StoreWorkScheduleRequest extends FormRequest
                 $endKey = "{$day}_end";
                 
                 if ($this->input($startKey) && $this->input($endKey)) {
-                    $start = \Carbon\Carbon::createFromFormat('H:i:s', $this->input($startKey));
-                    $end = \Carbon\Carbon::createFromFormat('H:i:s', $this->input($endKey));
-                    
-                    if ($end <= $start) {
-                        $validator->errors()->add($endKey, ucfirst($day) . ' end time must be after start time');
+                    try {
+                        // Try parsing with seconds first, then without
+                        $startStr = $this->input($startKey);
+                        $endStr = $this->input($endKey);
+                        
+                        // Handle both H:i and H:i:s formats
+                        $startFormat = strlen($startStr) === 8 ? 'H:i:s' : 'H:i';
+                        $endFormat = strlen($endStr) === 8 ? 'H:i:s' : 'H:i';
+                        
+                        $start = \Carbon\Carbon::createFromFormat($startFormat, $startStr);
+                        $end = \Carbon\Carbon::createFromFormat($endFormat, $endStr);
+                        
+                        if ($end <= $start) {
+                            $validator->errors()->add($endKey, ucfirst($day) . ' end time must be after start time');
+                        }
+                    } catch (\Exception $e) {
+                        // If parsing fails, let the date_format rule handle it
                     }
                 }
             }

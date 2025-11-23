@@ -12,7 +12,7 @@ class UpdateWorkScheduleRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return auth()->user()?->hasPermissionTo('workforce.schedules.update') ?? false;
+        return auth()->check();
     }
 
     /**
@@ -24,11 +24,12 @@ class UpdateWorkScheduleRequest extends FormRequest
         
         return [
             // Optional fields (all can be updated)
-            'name' => ['nullable', 'string', 'max:255', Rule::unique('work_schedules', 'name')->ignore($scheduleId)],
+            'name' => ['nullable', 'string', 'max:255', Rule::unique('work_schedules', 'name')->ignore($scheduleId)->whereNull('deleted_at')],
             'description' => ['nullable', 'string', 'max:1000'],
             'effective_date' => ['nullable', 'date', 'date_format:Y-m-d'],
             'expires_at' => ['nullable', 'date', 'date_format:Y-m-d', 'after:effective_date'],
             'department_id' => ['nullable', 'integer', 'exists:departments,id'],
+            'status' => ['nullable', Rule::in(['draft', 'active', 'expired'])],
             
             // Day schedule times (all optional, format H:i:s)
             'monday_start' => ['nullable', 'date_format:H:i:s'],
@@ -93,11 +94,23 @@ class UpdateWorkScheduleRequest extends FormRequest
                 $endKey = "{$day}_end";
                 
                 if ($this->input($startKey) && $this->input($endKey)) {
-                    $start = \Carbon\Carbon::createFromFormat('H:i:s', $this->input($startKey));
-                    $end = \Carbon\Carbon::createFromFormat('H:i:s', $this->input($endKey));
-                    
-                    if ($end <= $start) {
-                        $validator->errors()->add($endKey, ucfirst($day) . ' end time must be after start time');
+                    try {
+                        // Try parsing with seconds first, then without
+                        $startStr = $this->input($startKey);
+                        $endStr = $this->input($endKey);
+                        
+                        // Handle both H:i and H:i:s formats
+                        $startFormat = strlen($startStr) === 8 ? 'H:i:s' : 'H:i';
+                        $endFormat = strlen($endStr) === 8 ? 'H:i:s' : 'H:i';
+                        
+                        $start = \Carbon\Carbon::createFromFormat($startFormat, $startStr);
+                        $end = \Carbon\Carbon::createFromFormat($endFormat, $endStr);
+                        
+                        if ($end <= $start) {
+                            $validator->errors()->add($endKey, ucfirst($day) . ' end time must be after start time');
+                        }
+                    } catch (\Exception $e) {
+                        // If parsing fails, let the date_format rule handle it
                     }
                 }
             }

@@ -18,7 +18,7 @@ class ShiftAssignmentService
     public function createAssignment(array $data, User $createdBy): ShiftAssignment
     {
         $data['created_by'] = $createdBy->id;
-        $data['status'] = $data['status'] ?? 'scheduled';
+        $data['status'] = $data['status'] ?? 'scheduled'; 
 
         // Detect conflicts
         $conflicts = $this->detectConflicts(

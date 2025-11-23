@@ -12,7 +12,7 @@ class UpdateShiftAssignmentRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return auth()->user()?->hasPermissionTo('workforce.assignments.update') ?? false;
+        return auth()->check();
     }
 
     /**

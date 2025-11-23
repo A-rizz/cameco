@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Head, usePage } from '@inertiajs/react';
+import { Head, usePage, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -49,34 +49,30 @@ export default function SchedulesIndex() {
 
     const handleDeleteClick = (id: number) => {
         if (confirm('Are you sure you want to delete this schedule?')) {
-            setSchedules(schedules.filter(s => s.id !== id));
-            // TODO: Call delete endpoint
+            router.delete(`/hr/workforce/schedules/${id}`, {
+                onSuccess: () => {
+                    // Refresh the page to update the list
+                    window.location.reload();
+                },
+            });
         }
     };
 
     const handleDuplicateClick = (schedule: WorkSchedule) => {
-        setSelectedSchedule({ ...schedule, id: 0, name: `${schedule.name} (Copy)` });
-        setIsCreateModalOpen(true);
+        router.post(`/hr/workforce/schedules/${schedule.id}/duplicate`, {
+            name: `${schedule.name} (Copy)`,
+        }, {
+            onSuccess: () => {
+                // Full page reload to get fresh data from server
+                window.location.reload();
+            },
+        });
     };
 
     const handleSaveSchedule = (data: Partial<WorkSchedule> & { save_as_template?: boolean }) => {
-        if (selectedSchedule?.id) {
-            // Update existing
-            setSchedules(schedules.map(s => s.id === selectedSchedule.id ? { ...s, ...data } : s));
-            setIsEditModalOpen(false);
-        } else {
-            // Create new
-            const newSchedule: WorkSchedule = {
-                ...data,
-                id: Math.max(...schedules.map(s => s.id), 0) + 1,
-                created_by: 1,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-            } as WorkSchedule;
-            setSchedules([...schedules, newSchedule]);
-            setIsCreateModalOpen(false);
-        }
-        setSelectedSchedule(null);
+        // This is now handled by the modal's direct router.post calls
+        // Just refresh the page after successful save
+        router.visit(window.location.href);
     };
 
     const getStatusColor = (status: string | undefined) => {
@@ -213,7 +209,9 @@ export default function SchedulesIndex() {
                                         {filteredSchedules.map((schedule) => (
                                             <tr key={schedule.id} className="border-b hover:bg-gray-50">
                                                 <td className="py-3 px-4 font-medium">{schedule.name}</td>
-                                                <td className="py-3 px-4">{schedule.department_name || 'N/A'}</td>
+                                                <td className="py-3 px-4">
+                                                    {schedule.department_name || (schedule.department as any)?.name || 'N/A'}
+                                                </td>
                                                 <td className="py-3 px-4">{new Date(schedule.effective_date).toLocaleDateString()}</td>
                                                 <td className="py-3 px-4">
                                                     <span className={`px-2 py-1 rounded text-xs font-semibold ${getStatusColor(schedule.status)}`}>
