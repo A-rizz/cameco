@@ -11,6 +11,7 @@ import {
     ClipboardList,
     BarChart3,
     ChevronRight,
+    Landmark,
 } from 'lucide-react';
 import {
     Collapsible,
@@ -69,6 +70,18 @@ export function NavPayroll() {
             title: 'Allowances & Deductions',
             icon: ClipboardList,
             href: '/payroll/allowances-deductions',
+            enabled: true,
+        },
+        {
+            title: 'Loans',
+            icon: Landmark,
+            href: '/payroll/loans',
+            enabled: true,
+        },
+        {
+            title: 'Advances',
+            icon: Landmark,
+            href: '/payroll/advances',
             enabled: true,
         },
     ];
@@ -152,10 +165,16 @@ export function NavPayroll() {
             href: '/payroll/reports/analytics',
             enabled: true,
         },
+        {
+            title: 'Audit Trail',
+            icon: BarChart3,
+            href: '/payroll/reports/audit',
+            enabled: true,
+        },
     ];
 
     const isPayrollPeriodsActive = page.url.startsWith('/payroll/periods') || page.url.startsWith('/payroll/calculations') || page.url.startsWith('/payroll/adjustments') || page.url.startsWith('/payroll/review');
-    const isEmployeePayrollActive = page.url.startsWith('/payroll/employee-payroll-info') || page.url.startsWith('/payroll/components') || page.url.startsWith('/payroll/allowances');
+    const isEmployeePayrollActive = page.url.startsWith('/payroll/employee-payroll-info') || page.url.startsWith('/payroll/components') || page.url.startsWith('/payroll/allowances') || page.url.startsWith('/payroll/loans') || page.url.startsWith('/payroll/advances');
     const isGovernmentComplianceActive = page.url.startsWith('/payroll/government');
     const isPaymentsActive = page.url.startsWith('/payroll/bank-files') || page.url.startsWith('/payroll/payslips') || page.url.startsWith('/payroll/payments');
     const isReportsActive = page.url.startsWith('/payroll/reports');

@@ -24,6 +24,9 @@ use App\Http\Controllers\Payroll\Payments\CashPaymentController;
 use App\Http\Controllers\Payroll\Reports\PayrollRegisterController;
 use App\Http\Controllers\Payroll\Reports\PayrollGovernmentReportsController;
 use App\Http\Controllers\Payroll\Reports\PayrollAnalyticsController;
+use App\Http\Controllers\Payroll\Reports\PayrollAuditController;
+use App\Http\Controllers\Payroll\EmployeePayroll\LoansController;
+use App\Http\Controllers\Payroll\AdvancesController;
 
 Route::prefix('payroll')->middleware(['auth', 'verified', EnsurePayrollOfficer::class])->group(function () {
     Route::name('payroll.')->group(function () {
@@ -87,6 +90,13 @@ Route::prefix('payroll')->middleware(['auth', 'verified', EnsurePayrollOfficer::
         Route::put('/allowances-deductions/{id}', [AllowancesDeductionsController::class, 'update'])->name('allowances-deductions.update');
         Route::delete('/allowances-deductions/{id}', [AllowancesDeductionsController::class, 'destroy'])->name('allowances-deductions.destroy');
         Route::get('/allowances-deductions/{employeeId}/history', [AllowancesDeductionsController::class, 'history'])->name('allowances-deductions.history');
+
+        // Loans & Advances - Phase 1.5 & 1.5b
+        Route::get('/loans', [LoansController::class, 'index'])->name('loans.index');
+        Route::get('/advances', [AdvancesController::class, 'index'])->name('advances.index');
+        Route::post('/advances', [AdvancesController::class, 'store'])->name('advances.store');
+        Route::post('/advances/{id}/approve', [AdvancesController::class, 'approve'])->name('advances.approve');
+        Route::post('/advances/{id}/reject', [AdvancesController::class, 'reject'])->name('advances.reject');
 
         // Payroll Review & Approval - Phase 2.4
         Route::get('/review', [PayrollReviewController::class, 'index'])->name('review.index');
@@ -177,5 +187,8 @@ Route::prefix('payroll')->middleware(['auth', 'verified', EnsurePayrollOfficer::
         // Government Reports Summary - Phase 5.2
         Route::get('/reports/government', [PayrollGovernmentReportsController::class, 'index'])->name('reports.government.index');
         Route::get('/reports/analytics', [PayrollAnalyticsController::class, 'index'])->name('reports.analytics.index');
+
+        // Audit Trail & History - Phase 5.4
+        Route::get('/reports/audit', [PayrollAuditController::class, 'index'])->name('reports.audit.index');
     });
 });
