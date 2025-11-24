@@ -72,7 +72,6 @@ interface ApproveAdjustmentModalProps {
     onClose: () => void;
     adjustment: PayrollAdjustment | null;
     onConfirm: () => void;
-    isLoading?: boolean;
 }
 
 export function ApproveAdjustmentModal({
@@ -80,7 +79,6 @@ export function ApproveAdjustmentModal({
     onClose,
     adjustment,
     onConfirm,
-    isLoading: _isLoading,
 }: ApproveAdjustmentModalProps) {
     const [isLoading, setIsLoading] = useState(false);
 
@@ -206,7 +204,6 @@ export function ApproveAdjustmentModal({
 // ============================================================================
 // Reject Adjustment Modal
 // ============================================================================
-
 interface RejectAdjustmentModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -220,34 +217,22 @@ export function RejectAdjustmentModal({
     onClose,
     adjustment,
     onConfirm,
-    isLoading: _isLoading,
 }: RejectAdjustmentModalProps) {
     const [isLoading, setIsLoading] = useState(false);
-    const [rejectionNotes, setRejectionNotes] = useState('');
-    const [error, setError] = useState('');
+    const [rejectReason, setRejectReason] = useState('');
 
     if (!adjustment) return null;
 
-    const typeInfo = getAdjustmentTypeInfo(adjustment.adjustment_type);
-
     const handleReject = () => {
-        if (!rejectionNotes.trim()) {
-            setError('Rejection notes are required');
-            return;
-        }
-
-        setError('');
         setIsLoading(true);
-
         router.post(
             `/payroll/adjustments/${adjustment.id}/reject`,
-            { rejection_notes: rejectionNotes },
+            { reason: rejectReason },
             {
                 preserveScroll: true,
                 onSuccess: () => {
                     onConfirm();
                     onClose();
-                    setRejectionNotes('');
                 },
                 onFinish: () => {
                     setIsLoading(false);
@@ -256,16 +241,8 @@ export function RejectAdjustmentModal({
         );
     };
 
-    const handleClose = () => {
-        if (!isLoading) {
-            setRejectionNotes('');
-            setError('');
-            onClose();
-        }
-    };
-
     return (
-        <AlertDialog open={isOpen} onOpenChange={handleClose}>
+        <AlertDialog open={isOpen} onOpenChange={onClose}>
             <AlertDialogContent className="max-w-lg">
                 <AlertDialogHeader>
                     <AlertDialogTitle className="flex items-center gap-2 text-red-700">
@@ -273,15 +250,13 @@ export function RejectAdjustmentModal({
                         Reject Payroll Adjustment
                     </AlertDialogTitle>
                     <AlertDialogDescription className="text-left space-y-4 pt-4">
-                        {/* Warning Alert */}
-                        <Alert variant="destructive">
-                            <AlertCircle className="h-4 w-4" />
-                            <AlertDescription>
-                                This adjustment will be rejected and cannot be applied. Please provide a clear reason.
+                        <Alert className="border-red-200 bg-red-50">
+                            <AlertCircle className="h-4 w-4 text-red-600" />
+                            <AlertDescription className="text-red-800">
+                                This adjustment will be rejected and returned to the requester.
                             </AlertDescription>
                         </Alert>
 
-                        {/* Adjustment Details */}
                         <div className="space-y-3 text-sm">
                             <div className="flex justify-between items-center py-2 border-b">
                                 <span className="text-gray-600">Employee:</span>
@@ -291,54 +266,21 @@ export function RejectAdjustmentModal({
                             </div>
 
                             <div className="flex justify-between items-center py-2 border-b">
-                                <span className="text-gray-600">Period:</span>
-                                <span className="font-medium">{adjustment.payroll_period.name}</span>
-                            </div>
-
-                            <div className="flex justify-between items-center py-2 border-b">
-                                <span className="text-gray-600">Type:</span>
-                                <div className={`flex items-center gap-1 ${typeInfo.color}`}>
-                                    {typeInfo.icon}
-                                    <span className="font-medium">{typeInfo.label}</span>
-                                </div>
-                            </div>
-
-                            <div className="flex justify-between items-center py-2 border-b">
-                                <span className="text-gray-600">Category:</span>
-                                <span className="font-medium">{adjustment.adjustment_category}</span>
-                            </div>
-
-                            <div className="flex justify-between items-center py-2 border-b">
                                 <span className="text-gray-600">Amount:</span>
                                 <span className="font-bold text-lg text-red-700">
                                     {formatCurrency(adjustment.amount)}
                                 </span>
                             </div>
-
-                            <div className="py-2 border-b">
-                                <span className="text-gray-600 block mb-1">Original Reason:</span>
-                                <p className="text-gray-900 text-sm bg-gray-50 p-2 rounded">
-                                    {adjustment.reason}
-                                </p>
-                            </div>
                         </div>
 
-                        {/* Rejection Notes */}
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-900">
-                                Rejection Notes <span className="text-red-500">*</span>
-                            </label>
+                            <label className="text-sm font-medium text-gray-700">Rejection Reason</label>
                             <Textarea
-                                value={rejectionNotes}
-                                onChange={(e) => setRejectionNotes(e.target.value)}
                                 placeholder="Explain why this adjustment is being rejected..."
-                                rows={4}
-                                disabled={isLoading}
-                                className={error ? 'border-red-500' : ''}
+                                value={rejectReason}
+                                onChange={(e) => setRejectReason(e.target.value)}
+                                className="min-h-24"
                             />
-                            {error && (
-                                <p className="text-sm text-red-600">{error}</p>
-                            )}
                         </div>
                     </AlertDialogDescription>
                 </AlertDialogHeader>
@@ -346,7 +288,7 @@ export function RejectAdjustmentModal({
                     <AlertDialogCancel disabled={isLoading}>Cancel</AlertDialogCancel>
                     <AlertDialogAction
                         onClick={handleReject}
-                        disabled={isLoading}
+                        disabled={isLoading || !rejectReason.trim()}
                         className="bg-red-600 hover:bg-red-700"
                     >
                         {isLoading ? (
