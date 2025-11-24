@@ -32,16 +32,54 @@ class AssignmentController extends Controller
     public function index(Request $request): Response
     {
         $assignments = $this->shiftAssignmentService->getAssignments();
+        
+        // Transform assignments to include formatted data
+        $transformedAssignments = $assignments->map(fn ($assignment) => [
+            'id' => $assignment->id,
+            'employee_id' => $assignment->employee_id,
+            'employee_name' => "{$assignment->employee?->profile?->first_name} {$assignment->employee?->profile?->last_name}",
+            'employee_number' => $assignment->employee?->employee_number,
+            'schedule_id' => $assignment->schedule_id,
+            'schedule_name' => $assignment->schedule?->name,
+            'date' => $assignment->date?->format('Y-m-d'),
+            'shift_start' => $assignment->shift_start,
+            'shift_end' => $assignment->shift_end,
+            'shift_type' => $assignment->shift_type,
+            'location' => $assignment->location,
+            'department_id' => $assignment->department_id,
+            'department_name' => $assignment->department?->name,
+            'is_overtime' => $assignment->is_overtime,
+            'overtime_hours' => $assignment->overtime_hours,
+            'status' => $assignment->status,
+            'has_conflict' => $assignment->has_conflict,
+            'conflict_reason' => $assignment->conflict_reason,
+            'created_at' => $assignment->created_at?->format('Y-m-d H:i:s'),
+        ])->toArray();
+
+        // Calculate summary stats
+        $todayAssignments = $assignments->filter(fn ($a) => $a->date->isToday());
         $summary = [
             'total_assignments' => $assignments->count(),
-            'scheduled_assignments' => $assignments->where('status', 'scheduled')->count(),
-            'completed_assignments' => $assignments->where('status', 'completed')->count(),
-            'cancelled_assignments' => $assignments->where('status', 'cancelled')->count(),
-            'assignments_with_conflicts' => $assignments->where('has_conflict', true)->count(),
-            'overtime_assignments' => $assignments->where('is_overtime', true)->count(),
+            'todays_shifts' => $todayAssignments->count(),
+            'coverage_percentage' => $assignments->count() > 0 ? round(($todayAssignments->count() / 5) * 100) : 0, // Assuming 5 is required staff
+            'overtime_hours' => $assignments->sum('overtime_hours'),
+            'conflicts_count' => $assignments->where('has_conflict', true)->count(),
+            'understaffed_days' => 0, // Calculate if needed
         ];
 
         $departments = \App\Models\Department::all(['id', 'name', 'code'])->toArray();
+        $employees = \App\Models\Employee::with('profile:id,first_name,last_name', 'department:id,name')
+            ->select('id', 'employee_number', 'department_id', 'profile_id')
+            ->get()
+            ->map(fn ($emp) => [
+                'id' => $emp->id,
+                'employee_number' => $emp->employee_number,
+                'full_name' => "{$emp->profile?->first_name} {$emp->profile?->last_name}",
+                'department_id' => $emp->department_id,
+                'department_name' => $emp->department?->name,
+            ])
+            ->toArray();
+        $schedules = \App\Models\WorkSchedule::where('status', 'active')->get(['id', 'name', 'monday_start', 'monday_end'])->toArray();
 
         $filters = [
             'search' => $request->input('search', ''),
@@ -53,9 +91,11 @@ class AssignmentController extends Controller
         ];
 
         return Inertia::render('HR/Workforce/Assignments/Index', [
-            'assignments' => $assignments,
+            'assignments' => $transformedAssignments,
             'summary' => $summary,
             'departments' => $departments,
+            'employees' => $employees,
+            'schedules' => $schedules,
             'filters' => $filters,
         ]);
     }
@@ -66,8 +106,21 @@ class AssignmentController extends Controller
     public function create(): Response
     {
         $departments = \App\Models\Department::all(['id', 'name', 'code'])->toArray();
-        $employees = \App\Models\Employee::all(['id', 'employee_number', 'first_name', 'last_name', 'department_id'])->toArray();
-        $schedules = \App\Models\WorkSchedule::where('status', 'active')->get(['id', 'name'])->toArray();
+        $employees = \App\Models\Employee::with('profile:id,first_name,last_name', 'department:id,name')
+            ->select('id', 'employee_number', 'department_id', 'profile_id')
+            ->get()
+            ->map(fn ($emp) => [
+                'id' => $emp->id,
+                'employee_number' => $emp->employee_number,
+                'full_name' => "{$emp->profile?->first_name} {$emp->profile?->last_name}",
+                'department_id' => $emp->department_id,
+                'department_name' => $emp->department?->name,
+            ])
+            ->toArray();
+        $schedules = \App\Models\WorkSchedule::where('status', 'active')->get(['id', 'name'])->map(fn ($s) => [
+            'id' => $s->id,
+            'name' => $s->name,
+        ])->toArray();
         $shiftTypes = ['morning', 'afternoon', 'evening', 'night', 'custom'];
 
         return Inertia::render('HR/Workforce/Assignments/Create', [
@@ -110,8 +163,21 @@ class AssignmentController extends Controller
     public function edit(string $id): Response
     {
         $assignment = ShiftAssignment::findOrFail($id);
-        $employees = \App\Models\Employee::all(['id', 'employee_number', 'first_name', 'last_name', 'department_id'])->toArray();
-        $schedules = \App\Models\WorkSchedule::where('status', 'active')->get(['id', 'name'])->toArray();
+        $employees = \App\Models\Employee::with('profile:id,first_name,last_name', 'department:id,name')
+            ->select('id', 'employee_number', 'department_id', 'profile_id')
+            ->get()
+            ->map(fn ($emp) => [
+                'id' => $emp->id,
+                'employee_number' => $emp->employee_number,
+                'full_name' => "{$emp->profile?->first_name} {$emp->profile?->last_name}",
+                'department_id' => $emp->department_id,
+                'department_name' => $emp->department?->name,
+            ])
+            ->toArray();
+        $schedules = \App\Models\WorkSchedule::where('status', 'active')->get(['id', 'name'])->map(fn ($s) => [
+            'id' => $s->id,
+            'name' => $s->name,
+        ])->toArray();
         $shiftTypes = ['morning', 'afternoon', 'evening', 'night', 'custom'];
 
         return Inertia::render('HR/Workforce/Assignments/Edit', [
@@ -147,6 +213,32 @@ class AssignmentController extends Controller
     }
 
     /**
+     * Show the bulk assignment page.
+     */
+    public function bulkAssign(): Response
+    {
+        $departments = \App\Models\Department::all(['id', 'name', 'code'])->toArray();
+        $employees = \App\Models\Employee::with('profile:id,first_name,last_name', 'department:id,name')
+            ->select('id', 'employee_number', 'department_id', 'profile_id')
+            ->get()
+            ->map(fn ($emp) => [
+                'id' => $emp->id,
+                'employee_number' => $emp->employee_number,
+                'full_name' => "{$emp->profile?->first_name} {$emp->profile?->last_name}",
+                'department_id' => $emp->department_id,
+                'department_name' => $emp->department?->name,
+            ])
+            ->toArray();
+        $schedules = \App\Models\WorkSchedule::where('status', 'active')->get(['id', 'name'])->toArray();
+
+        return Inertia::render('HR/Workforce/Assignments/BulkAssign', [
+            'departments' => $departments,
+            'employees' => $employees,
+            'schedules' => $schedules,
+        ]);
+    }
+
+    /**
      * Bulk create shift assignments.
      */
     public function bulkStore(BulkAssignShiftsRequest $request)
@@ -155,17 +247,39 @@ class AssignmentController extends Controller
         $dateFrom = $request->input('date_from');
         $dateTo = $request->input('date_to');
         $scheduleId = $request->input('schedule_id');
+        $shiftStart = $request->input('shift_start');
+        $shiftEnd = $request->input('shift_end');
 
-        $createdCount = $this->shiftAssignmentService->bulkCreateAssignments(
-            $employeeIds,
-            $scheduleId,
-            $dateFrom,
-            $dateTo,
+        // Build assignments array for each employee and date in range
+        $assignmentsData = [];
+        $currentDate = \Carbon\Carbon::parse($dateFrom);
+        $endDate = \Carbon\Carbon::parse($dateTo);
+
+        while ($currentDate <= $endDate) {
+            foreach ($employeeIds as $employeeId) {
+                $assignmentsData[] = [
+                    'employee_id' => $employeeId,
+                    'schedule_id' => $scheduleId,
+                    'date' => $currentDate->format('Y-m-d'),
+                    'shift_start' => $shiftStart,
+                    'shift_end' => $shiftEnd,
+                    'shift_type' => $request->input('shift_type', 'standard'),
+                    'status' => 'scheduled',
+                    'is_overtime' => $request->input('is_overtime', false),
+                    'department_id' => $request->input('department_id'),
+                    'location' => $request->input('location'),
+                ];
+            }
+            $currentDate->addDay();
+        }
+
+        $created = $this->shiftAssignmentService->bulkCreateAssignments(
+            $assignmentsData,
             auth()->user()
         );
 
         return redirect()->route('hr.workforce.assignments.index')
-            ->with('success', "{$createdCount} shift assignment(s) created successfully.");
+            ->with('success', "{$created->count()} shift assignment(s) created successfully.");
     }
 
     /**

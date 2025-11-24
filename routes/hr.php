@@ -372,10 +372,13 @@ Route::middleware(['auth', 'verified' , EnsureHRManager::class])
             Route::get('/assignments/create', [AssignmentController::class, 'create'])
                 ->middleware('permission:workforce.assignments.create')
                 ->name('assignments.create');
+            Route::get('/assignments/bulk-assign', [AssignmentController::class, 'bulkAssign'])
+                ->middleware('permission:workforce.assignments.create')
+                ->name('assignments.bulk-assign');
             Route::post('/assignments', [AssignmentController::class, 'store'])
                 ->middleware('permission:workforce.assignments.create')
                 ->name('assignments.store');
-            Route::post('/assignments/bulk', [AssignmentController::class, 'bulkAssign'])
+            Route::post('/assignments/bulk', [AssignmentController::class, 'bulkStore'])
                 ->middleware('permission:workforce.assignments.create')
                 ->name('assignments.bulk');
             Route::get('/assignments/coverage', [AssignmentController::class, 'coverage'])
