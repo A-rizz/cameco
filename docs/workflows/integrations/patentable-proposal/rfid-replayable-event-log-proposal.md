@@ -32,14 +32,17 @@ graph LR
 
 ```mermaid
 graph LR
-  Employee([Employee]) -->|Tap| Edge
+  Employee(["Employee"]) -->|Tap| Edge
   Edge -->|Signed Event| EventBus
-  EventBus -->|Fan-out| VerificationCore[Replayable Event-Log\nVerification Layer]
-  VerificationCore -->|Append-only Entry| ImmutableLog[(PostgreSQL Ledger\nHash-Chained Store)]
+  EventBus -->|Fan-out| VerificationCore["Replayable Event-Log
+Verification Layer"]
+  VerificationCore -->|Append-only Entry| ImmutableLog(("PostgreSQL Ledger
+Hash-Chained Store"))
   VerificationCore --> AttendanceService
   VerificationCore --> PayrollService
   VerificationCore --> NotificationService
-  MDTR[Manual Daily Time Record\n(Paper Submission)] -->|Cross-check| VerificationCore
+  MDTR["Manual Daily Time Record
+(Paper Submission)"] -->|Cross-check| VerificationCore
 
   style VerificationCore fill:#673ab7,color:#fff
   style ImmutableLog fill:#455a64,color:#fff
