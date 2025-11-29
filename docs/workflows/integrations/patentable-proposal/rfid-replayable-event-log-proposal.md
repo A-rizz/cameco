@@ -116,6 +116,38 @@ graph LR
 
 ---
 
+## Deterministic Orchestration & Gating Logic
+
+The potentially patentable control plane is the deterministic orchestration that merges heterogeneous records and **prevents** business workflows from progressing unless integrity is mathematically proven.
+
+### Orchestration Steps
+
+1. **Ingest & Classify**
+  - Accept RFID events, offline cache drains, MDTR scans, and manual corrections.
+  - Tag each input with provenance metadata (device, operator, document hash).
+2. **Order & Validate**
+  - Linearize events by `sequence_id`; stalled IDs trigger automated replay jobs before downstream data is released.
+  - Hash mismatch immediately quarantines the affected window and emits a `ledger.health.blocked` control event.
+3. **Reconcile Sources**
+  - Deterministic replay compares ledger entries against MDTR rows, applying a finite-state machine:
+    - `pending_mdtr` → `matched` when ledger + paper align.
+    - `pending_mdtr` → `contested` when ledger shows divergent tap times.
+  - Duplicate taps collapse via configurable windows but retain provenance for audit.
+4. **Gate Business Actions**
+  - Payroll/timekeeping consumers subscribe to `verification.decisions` rather than raw events.
+  - Only `decision=integrity_passed` releases cumulative hours, overtime, or notifications.
+  - `decision=integrity_blocked` carries machine-readable reasons (gap, hash, backlog, MDTR mismatch) so workflows pause automatically.
+
+### Control Logic Highlights
+
+- **Integrity-as-a-Service**: Downstream services never implement their own checks; they trust the verification core’s signed verdicts.
+- **Replay-before-pay**: Any anomaly spawns a replay job scoped to the offending range; payroll stays blocked until the job emits `replay_complete` with a signed checksum.
+- **MDTR Enforcement Loop**: Paper submissions referencing a ledger window cannot close until the replay engine produces a matching digest, guaranteeing deterministic reconciliation rather than best-effort alerts.
+
+This closed-loop control system—tying deterministic replay, MDTR reconciliation, and automated gating—forms the heart of the inventive concept.
+
+---
+
 ## Event Flow (Patent Focus)
 
 ```mermaid
@@ -139,10 +171,12 @@ sequenceDiagram
 
 ## Why This Could Be Patentable
 
-1. Combining a cryptographic replay ledger with **automatic business workflow gating** is not standard practice.
-2. Deterministic MDTR reconciliation atop a tamper-evident ledger introduces a non-obvious compliance workflow.
-3. Automated anomaly detection that halts payroll actions provides a concrete technical safeguard beyond generic logging.
-4. Immutable checkpoints plus replay orchestration deliver a verifiable, enforceable audit mechanism suitable for labor disputes.
+1. **Process Claim Target**: “A method for enforcing payroll actions using cryptographically verified event streams” that includes ingesting multi-source records, hash validating them, deterministically replaying them, and emitting a blocking decision signal prior to business execution.
+2. **Automated MDTR Reconciliation Loop**: The closed-loop replay that compares ledger entries with manual documents, forces resolution, and only then releases downstream data goes beyond obvious discrepancy flagging.
+3. **Workflow Gating Logic**: Binding machine-readable integrity verdicts to payroll/timekeeping approvals ensures no human can bypass the control path, differentiating it from traditional logging plus manual review.
+4. **Immutable Checkpoint Evidence**: Daily checkpoints tied to gating decisions produce a verifiable audit trail that substantiates the enforcement mechanism, supporting a systems-level claim rather than a storage claim.
+
+Taken together, the deterministic orchestration, MDTR reconciliation, and automated gating workflow describe an enforceable control layer that is more specific than “hash + ledger + replay,” giving a sharper patent narrative.
 
 ---
 
