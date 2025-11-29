@@ -34,14 +34,16 @@ graph LR
 graph LR
   Employee([Employee]) -->|Tap| Edge
   Edge -->|Signed Event| EventBus
-  EventBus -->|Fan-out| VerificationCore[Replayable Event-Log<br/>Verification Layer]
-  VerificationCore -->|Append-only Entry| ImmutableLog[(PostgreSQL Ledger<br/>Hash-Chained Store)]
+  EventBus -->|Fan-out| VerificationCore[Replayable Event-Log\nVerification Layer]
+  VerificationCore -->|Append-only Entry| ImmutableLog[(PostgreSQL Ledger\nHash-Chained Store)]
   VerificationCore --> AttendanceService
   VerificationCore --> PayrollService
   VerificationCore --> NotificationService
-  MDTR[Manual Daily Time Record<br/>(Paper Submission)] -->|Cross-check| VerificationCore
+  MDTR[Manual Daily Time Record\n(Paper Submission)] -->|Cross-check| VerificationCore
+
   style VerificationCore fill:#673ab7,color:#fff
   style ImmutableLog fill:#455a64,color:#fff
+
 ```
 
 Key capabilities:
