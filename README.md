@@ -15,7 +15,6 @@ This directory contains comprehensive workflow documentation for all user roles 
 4. **[HR Staff Workflow](./04-hr-staff-workflow.md)** - Day-to-day HR operations and data entry
 5. **[Payroll Officer Workflow](./05-payroll-officer-workflow.md)** - Payroll processing and government compliance
 
-### **Process Workflows**
 - **[Hiring & Interview](./processes/hiring-interview-process.md)** - ATS pipeline from posting to job offer
 - **[Employee Onboarding](./processes/employee-onboarding.md)** - From hire to active employee and probation monitoring
 - **[Leave Request Approval](./processes/leave-request-approval.md)** - Multi-level leave approval process
@@ -24,6 +23,7 @@ This directory contains comprehensive workflow documentation for all user roles 
 - **[Workforce Scheduling](./processes/workforce-scheduling.md)** - Schedule templates, rotations, conflict resolution
 - **[Payroll Processing](./processes/payroll-processing.md)** - Complete payroll cycle
 - **[Cash Salary Distribution](./processes/cash-salary-distribution.md)** - Envelope preparation, release, and reconciliation
+- **[Digital Salary Distribution](./processes/digital-salary-distribution.md)** - Bank transfer & e-wallet payouts (future-ready)
 - **[Government Remittances](./processes/government-remittances.md)** - SSS, PhilHealth, Pag-IBIG, BIR filings and payments
 - **[Performance Appraisal](./processes/performance-appraisal.md)** - Review cycles and decision workflow
 
@@ -50,6 +50,7 @@ This directory contains comprehensive workflow documentation for all user roles 
 - **Managing schedules** → [HR Staff Workflow](./04-hr-staff-workflow.md#workforce-management) | [Workforce Scheduling Process](./processes/workforce-scheduling.md)
 - **Processing payroll** → [Payroll Officer Workflow](./05-payroll-officer-workflow.md) | [Payroll Process](./processes/payroll-processing.md)
 - **Distributing cash salaries** → [Payroll Officer Workflow](./05-payroll-officer-workflow.md#payments) | [Cash Salary Distribution](./processes/cash-salary-distribution.md)
+- **Running bank/e-wallet payouts** → [Payroll Officer Workflow](./05-payroll-officer-workflow.md#payments) | [Digital Salary Distribution](./processes/digital-salary-distribution.md)
 - **Filing government remittances** → [Payroll Officer Workflow](./05-payroll-officer-workflow.md#government-compliance) | [Government Remittances Process](./processes/government-remittances.md)
 
 ## 📊 Viewing Diagrams
@@ -109,6 +110,11 @@ mmdc -i 01-superadmin-workflow.md -o superadmin-workflow.png
 | Payments | Emergency | View | ❌ | ❌ | Full |
 
 **Legend**: Full = Full Access | View = View Only | Approve = Approval Rights | Emergency = Emergency Access Only
+
+## Immutable Ledger & Replay Monitoring
+
+- RFID/timekeeping signals referenced across these workflows live in the PostgreSQL ledger (`rfid_ledger`) enforced by the Replayable Event-Log Verification Layer.
+- That layer emits its own alerting/metrics (ledger commit latency, sequence gaps, hash mismatches, replay backlog) and every role doc in this directory inherits the expectation to monitor/respond before executing dependent tasks.
 
 ## 🔗 Related Documentation
 - [System Architecture Plan](../SYNCINGSTEEL_ARCHITECTURE_PLAN.md)
