@@ -18,10 +18,10 @@ graph TD
     DefineCriteria --> PublishCycle[Publish Cycle\nOpen for Reviews]
 
     PublishCycle --> AssignEmployees[Assign Employees\nBy Dept/Team/All]
-    AssignEmployees --> NotifyStakeholders[Notify HR Staff & Supervisors]
+    AssignEmployees --> NotifyStakeholders[Notify HR Staff and Supervisors]
 
     NotifyStakeholders --> CollectInputs[Collect Inputs\nSupervisor Feedback, HR Notes]
-    CollectInputs --> TimekeepingImport[Import Attendance Data\nLates/Absences/Violations]
+    CollectInputs --> TimekeepingImport[Import Attendance Data\nLates, Absences, Violations]
     TimekeepingImport --> ScoreEntries[Enter Scores Per Criterion]
     ScoreEntries --> ComputeWeighted[Compute Weighted Score]
 
@@ -29,7 +29,7 @@ graph TD
     PreliminaryReview --> HMReview[HR Manager Final Review]
     HMReview --> Decision{Overall Decision}
 
-    Decision -->|Outstanding| RecommendPromotion[Recommend Promotion/Increase]
+    Decision -->|Outstanding| RecommendPromotion[Recommend Promotion or Increase]
     Decision -->|Meets| ConfirmStatus[Confirm Current Status]
     Decision -->|Below| CreatePIP[Create Performance Improvement Plan]
     Decision -->|Unsatisfactory| RecommendSeparation[Recommend Termination]
@@ -38,16 +38,17 @@ graph TD
     RecommendSeparation --> OfficeAdminApproval
     CreatePIP --> ScheduleReviews[Schedule PIP Reviews]
 
-    OfficeAdminApproval --> UpdateHRIS[Update HRIS Employment/Salary]
+    OfficeAdminApproval --> UpdateHRIS[Update HRIS Employment or Salary]
     ConfirmStatus --> UpdateHRIS
     ScheduleReviews --> TrackPIP[Track PIP Progress]
     TrackPIP --> FinalizePIP{PIP Outcome}
     FinalizePIP -->|Improved| ConfirmStatus
     FinalizePIP -->|No Improvement| RecommendSeparation
 
-    UpdateHRIS --> EmployeeAcknowledge[Employee Acknowledgment\n(via HR Proxy)]
+    UpdateHRIS --> EmployeeAcknowledge[Employee Acknowledgment via HR Proxy]
     EmployeeAcknowledge --> Archive[Archive Appraisal\nLock Results]
     Archive --> End([Process Complete])
+
 ```
 
 ---
@@ -141,4 +142,5 @@ Weighted score per criterion: $w_i \times s_i$; Final score: $\sum_i w_i s_i$
 **Last Updated**: November 29, 2025  
 **Process Owner**: HR Department  
 **Cadence**: Semi-annual/Annual
+
 
