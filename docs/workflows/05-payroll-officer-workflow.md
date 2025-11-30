@@ -790,6 +790,11 @@ graph TD
 - Explain calculation to employee
 - Create adjustment if error confirmed
 
+## Immutable Ledger & Replay Monitoring
+
+- Payroll runs must only consume attendance sourced from the PostgreSQL ledger (`rfid_ledger`) persisted by the Replayable Event-Log Verification Layer.
+- Payroll Officers monitor the replay layer's alerting/metrics (ledger commit latency, sequence gaps, hash mismatches, replay backlog) and pause payroll approvals whenever anomalies are raised.
+
 ---
 
 ## Related Documentation

@@ -477,6 +477,11 @@ graph TB
 - [RFID Integration](./integrations/rfid-integration.md)
 - [ATS Integration](./integrations/ats-integration.md)
 
+## Immutable Ledger & Replay Monitoring
+
+- All RFID/timekeeping events feeding these workflows persist first in the PostgreSQL ledger (`rfid_ledger`) governed by the Replayable Event-Log Verification Layer.
+- That layer owns dedicated alerting and metrics (ledger commit latency, sequence gaps, hash verification failures, replay backlog) that platform owners must monitor before approving downstream actions.
+
 ---
 
 **Document Version**: 2.0  

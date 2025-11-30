@@ -715,6 +715,11 @@ graph TD
 - Test RFID card registration
 - Review integration logs
 
+## Immutable Ledger & Replay Monitoring
+
+- Attendance/timekeeping data that drive these configurations must originate from the PostgreSQL ledger (`rfid_ledger`) controlled by the Replayable Event-Log Verification Layer.
+- Office Admin should subscribe to the replay layer's alerting/metrics (ledger commit latency, sequence gaps, hash mismatches, replay backlog) to pause rule changes whenever integrity warnings exist.
+
 ---
 
 ## Related Documentation

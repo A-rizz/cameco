@@ -83,6 +83,11 @@ Security:
 - HR Manager: Approvals for posting (optional), hiring decisions
 - Office Admin: Final approval for offers (non-standard packages)
 
+## Immutable Ledger & Replay Monitoring
+
+- Hires entering HRIS must ultimately rely on the PostgreSQL ledger (`rfid_ledger`) maintained by the Replayable Event-Log Verification Layer for attendance and payroll eligibility.
+- Recruiters should flag replay-layer alerting/metrics (ledger commit latency, sequence gaps, hash mismatches, replay backlog) when coordinating start dates that depend on verified timekeeping readiness.
+
 ---
 
 ## Related Documentation

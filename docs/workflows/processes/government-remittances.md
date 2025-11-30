@@ -118,6 +118,11 @@ graph TD
 - **Payment reference missing** → Re-download confirmation from portal; attach PDF to tracker
 - **Late submission risk** → escalate to Office Admin for rush payment; compute penalty automatically
 
+## Immutable Ledger & Replay Monitoring
+
+- Contribution totals originate from payroll runs that depend on the PostgreSQL ledger (`rfid_ledger`) recorded by the Replayable Event-Log Verification Layer; remittance prep must confirm ledger-aligned attendance data.
+- Payroll Officers and reviewers should watch the replay layer's alerting/metrics (ledger commit latency, sequence gaps, hash mismatches, replay backlog) before filing to avoid propagating unverified hours into government reports.
+
 ---
 
 ## Related Documentation

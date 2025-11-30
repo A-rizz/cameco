@@ -206,6 +206,11 @@ graph TD
 - Approve or reject with reason
 - Receives notifications for all approvals (audit trail)
 
+## Immutable Ledger & Replay Monitoring
+
+- Approved leave blocks must reconcile with attendance captured in the PostgreSQL ledger (`rfid_ledger`) via the Replayable Event-Log Verification Layer so payroll doesn't see conflicting punches.
+- HR Staff, HR Managers, and Office Admins should monitor replay-layer alerting/metrics (ledger commit latency, sequence gaps, hash mismatches, replay backlog) before finalizing leave that overlaps with flagged days.
+
 ---
 
 ## Metrics & Reporting

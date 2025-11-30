@@ -13,15 +13,15 @@ End-to-end performance review workflow from cycle creation to final decision (re
 
 ```mermaid
 graph TD
-    Start([Open Appraisal Cycle]) --> CreateCycle[HR Manager Creates\nAppraisal Cycle]
-    CreateCycle --> DefineCriteria[Define Criteria & Weights\nTechnical, Behavior, Attendance]
-    DefineCriteria --> PublishCycle[Publish Cycle\nOpen for Reviews]
+    Start([Open Appraisal Cycle]) --> CreateCycle[HR Manager Creates<br/>Appraisal Cycle]
+    CreateCycle --> DefineCriteria[Define Criteria & Weights<br/>Technical, Behavior, Attendance]
+    DefineCriteria --> PublishCycle[Publish Cycle<br/>Open for Reviews]
 
-    PublishCycle --> AssignEmployees[Assign Employees\nBy Dept/Team/All]
-    AssignEmployees --> NotifyStakeholders[Notify HR Staff and Supervisors]
+    PublishCycle --> AssignEmployees[Assign Employees<br/>By Dept/Team/All]
+    AssignEmployees --> NotifyStakeholders[Notify HR Staff & Supervisors]
 
-    NotifyStakeholders --> CollectInputs[Collect Inputs\nSupervisor Feedback, HR Notes]
-    CollectInputs --> TimekeepingImport[Import Attendance Data\nLates, Absences, Violations]
+    NotifyStakeholders --> CollectInputs[Collect Inputs<br/>Supervisor Feedback, HR Notes]
+    CollectInputs --> TimekeepingImport[Import Attendance Data<br/>Lates/Absences/Violations]
     TimekeepingImport --> ScoreEntries[Enter Scores Per Criterion]
     ScoreEntries --> ComputeWeighted[Compute Weighted Score]
 
@@ -29,7 +29,7 @@ graph TD
     PreliminaryReview --> HMReview[HR Manager Final Review]
     HMReview --> Decision{Overall Decision}
 
-    Decision -->|Outstanding| RecommendPromotion[Recommend Promotion or Increase]
+    Decision -->|Outstanding| RecommendPromotion[Recommend Promotion/Increase]
     Decision -->|Meets| ConfirmStatus[Confirm Current Status]
     Decision -->|Below| CreatePIP[Create Performance Improvement Plan]
     Decision -->|Unsatisfactory| RecommendSeparation[Recommend Termination]
@@ -38,17 +38,16 @@ graph TD
     RecommendSeparation --> OfficeAdminApproval
     CreatePIP --> ScheduleReviews[Schedule PIP Reviews]
 
-    OfficeAdminApproval --> UpdateHRIS[Update HRIS Employment or Salary]
+    OfficeAdminApproval --> UpdateHRIS[Update HRIS Employment/Salary]
     ConfirmStatus --> UpdateHRIS
     ScheduleReviews --> TrackPIP[Track PIP Progress]
     TrackPIP --> FinalizePIP{PIP Outcome}
     FinalizePIP -->|Improved| ConfirmStatus
     FinalizePIP -->|No Improvement| RecommendSeparation
 
-    UpdateHRIS --> EmployeeAcknowledge[Employee Acknowledgment via HR Proxy]
-    EmployeeAcknowledge --> Archive[Archive Appraisal\nLock Results]
+    UpdateHRIS --> EmployeeAcknowledge[Employee Acknowledgment<br/>(via HR Proxy)]
+    EmployeeAcknowledge --> Archive[Archive Appraisal<br/>Lock Results]
     Archive --> End([Process Complete])
-
 ```
 
 ---
@@ -129,6 +128,11 @@ Weighted score per criterion: $w_i \times s_i$; Final score: $\sum_i w_i s_i$
 - Supervisor input delayed → Escalate to HR Manager; proceed with available data
 - Disputed ratings → Record appeal note; set re-review window
 
+## Immutable Ledger & Replay Monitoring
+
+- Attendance KPIs feeding the appraisal criteria must originate from the PostgreSQL ledger (`rfid_ledger`) curated by the Replayable Event-Log Verification Layer; HR should reference ledger sequence reports when discussing punctuality.
+- HR Manager and HR Staff should monitor replay-layer alerting/metrics (ledger commit latency, sequence gaps, hash mismatches, replay backlog) before finalizing ratings tied to attendance infractions.
+
 ---
 
 ## Related Documentation
@@ -142,5 +146,3 @@ Weighted score per criterion: $w_i \times s_i$; Final score: $\sum_i w_i s_i$
 **Last Updated**: November 29, 2025  
 **Process Owner**: HR Department  
 **Cadence**: Semi-annual/Annual
-
-

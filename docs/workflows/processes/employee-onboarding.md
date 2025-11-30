@@ -425,6 +425,11 @@ graph TD
 - Probation pass rate: > 90%
 - Onboarding satisfaction: > 4.0/5.0
 
+## Immutable Ledger & Replay Monitoring
+
+- Once an employee is activated, their attendance flows through the PostgreSQL ledger (`rfid_ledger`) administered by the Replayable Event-Log Verification Layer; onboarding checklists must confirm RFID provisioning against ledger entries.
+- HR Staff should verify the replay layer's alerting/metrics (ledger commit latency, sequence gaps, hash mismatches, replay backlog) before marking timekeeping-ready to ensure Day 1 taps are trusted.
+
 ---
 
 ## Related Documentation

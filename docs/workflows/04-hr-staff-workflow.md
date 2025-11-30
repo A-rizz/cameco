@@ -867,6 +867,11 @@ graph TD
 - Remind employee to bring card tomorrow
 - Issue temporary card if repeated offense
 
+## Immutable Ledger & Replay Monitoring
+
+- HR Staff must reconcile manual entries against the PostgreSQL ledger (`rfid_ledger`) maintained by the Replayable Event-Log Verification Layer to ensure attendance integrity.
+- Subscribe to the replay layer's alerting/metrics (ledger commit latency, sequence gaps, hash mismatches, replay backlog) so adjustments halt until underlying anomalies are cleared.
+
 ---
 
 ## Related Documentation

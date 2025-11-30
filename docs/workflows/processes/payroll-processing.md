@@ -361,6 +361,11 @@ graph TD
 - BIR forms submitted on time
 - Payroll audit findings (target: 0)
 
+## Immutable Ledger & Replay Monitoring
+
+- Payroll calculations must consume attendance sourced exclusively from the PostgreSQL ledger (`rfid_ledger`) controlled by the Replayable Event-Log Verification Layer; ledger sequence references should be part of review artifacts.
+- Payroll Officer, HR Manager, and Office Admin reviews must include the replay layer's alerting/metrics (ledger commit latency, sequence gaps, hash mismatches, replay backlog) to prevent approving payouts on questionable data.
+
 ---
 
 ## Related Documentation

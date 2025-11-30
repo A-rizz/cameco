@@ -13,45 +13,44 @@ Future-ready workflow for non-cash salary disbursement once Office Admin enables
 
 ```mermaid
 graph TD
-    Start([Payroll Approved]) --> CheckConfig{Bank or Ewallet Enabled?}
+    Start([Payroll Approved]) --> CheckConfig{Bank/E-wallet Enabled?}
     CheckConfig -->|No| FallbackCash[Use Cash Salary Distribution]
     FallbackCash --> End
     CheckConfig -->|Yes| SelectMethod{Payment Method}
     SelectMethod --> Bank[Bank Transfer]
-    SelectMethod --> Ewallet[Ewallet]
+    SelectMethod --> Ewallet[E-wallet]
 
     Bank --> ValidateAccounts[Validate Employee Bank Details]
-    ValidateAccounts --> GenerateBankFile[Generate Bank File ACH or CSV]
-    GenerateBankFile --> QAReview[QA Review and Digital Signature]
+    ValidateAccounts --> GenerateBankFile[Generate Bank File (ACH/CSV)]
+    GenerateBankFile --> QAReview[QA Review + Digital Signature]
     QAReview --> OAApproval[Office Admin Approval]
     OAApproval --> UploadPortal[Upload to Bank Portal]
-    UploadPortal --> BankAuth[Dual Authorization Bank]
+    UploadPortal --> BankAuth[Dual Authorization (Bank)]
     BankAuth --> AwaitStatus[Await Bank Confirmation]
     AwaitStatus --> HandleFailures{Failures?}
-    HandleFailures -->|Yes| ResolveBankIssues[Resolve Issues\nAccount Closed or Invalid]
-    ResolveBankIssues --> RequeuePayment[Requeue or Fallback Cash]
-    HandleFailures -->|No| PostBankPayments[Mark as Paid and Archive]
+    HandleFailures -->|Yes| ResolveBankIssues[Resolve (account closed, invalid)]
+    ResolveBankIssues --> RequeuePayment[Requeue or fallback cash]
+    HandleFailures -->|No| PostBankPayments[Mark as Paid + Archive]
 
-    Ewallet --> ValidateWallets[Validate Ewallet IDs]
-    ValidateWallets --> GenerateBatch[Generate Ewallet Batch File or API Payload]
-    GenerateBatch --> FundWalletPool[Fund Corporate Wallet or Settlement]
+    Ewallet --> ValidateWallets[Validate E-wallet IDs]
+    ValidateWallets --> GenerateBatch[Generate E-wallet Batch File/API Payload]
+    GenerateBatch --> FundWalletPool[Fund Corporate Wallet or Settle]
     FundWalletPool --> OAApproval2[Office Admin Approval]
-    OAApproval2 --> SubmitEwallet[Submit via API or Portal]
+    OAApproval2 --> SubmitEwallet[Submit via API/Portal]
     SubmitEwallet --> ProviderAck[Provider Acknowledgment]
     ProviderAck --> ReconStatus{All Paid?}
     ReconStatus -->|No| InvestigateWallet[Investigate Failed Wallets]
-    InvestigateWallet --> ReprocessOrCash[Reprocess or Fallback Cash]
-    ReconStatus -->|Yes| PostWalletPayments[Mark as Paid and Archive]
+    InvestigateWallet --> ReprocessOrCash[Reprocess or fallback cash]
+    ReconStatus -->|Yes| PostWalletPayments[Mark as Paid + Archive]
 
     PostBankPayments --> NotifyEmployees[Send Payment Notifications]
     PostWalletPayments --> NotifyEmployees
     RequeuePayment --> NotifyEmployees
     ReprocessOrCash --> NotifyEmployees
 
-    NotifyEmployees --> BankReconciliation[Daily Bank or Ewallet Reconciliation]
+    NotifyEmployees --> BankReconciliation[Daily Bank/E-wallet Reconciliation]
     BankReconciliation --> ArchiveArtifacts[Archive Files, Receipts, Audit Logs]
     ArchiveArtifacts --> End([Digital Distribution Complete])
-
 ```
 
 ---
@@ -134,6 +133,11 @@ graph TD
 - **Notifications**: email/SMS to employees upon successful payout or failure.
 - **Accounting**: ledger entries for bank debits, wallet funding, and reversals.
 
+## Immutable Ledger & Replay Monitoring
+
+- Digital payouts use payroll totals derived from attendance stored in the PostgreSQL ledger (`rfid_ledger`) via the Replayable Event-Log Verification Layer; batches must not be generated while ledger anomalies exist.
+- Payment operators rely on the replay layer's alerting/metrics (ledger commit latency, sequence gaps, hash mismatches, replay backlog) to gate submissions and document that attendance data was clean when funds were released.
+
 ---
 
 ## Related Documentation
@@ -148,4 +152,3 @@ graph TD
 **Last Updated**: November 29, 2025  
 **Process Owner**: Payroll Department  
 **Status**: Future feature (configuration-ready)
-

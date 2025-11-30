@@ -13,43 +13,42 @@ Workflow for requesting, validating, approving, and recording overtime (OT) befo
 
 ```mermaid
 graph TD
-    Start([Supervisor Submits OT Form]) --> HRStaffIntake[HR Staff Encodes\nOvertime Request]
-    HRStaffIntake --> ValidateInputs[Validate Details\nDate, Time, Reason]
-    ValidateInputs --> CheckSchedule[Check Assigned Schedule\nand Conflicts]
+    Start([Supervisor Submits OT Form]) --> HRStaffIntake[HR Staff Encodes<br/>Overtime Request]
+    HRStaffIntake --> ValidateInputs[Validate Details<br/>Date, Time, Reason]
+    ValidateInputs --> CheckSchedule[Check Assigned Schedule<br/>& Conflicts]
     CheckSchedule --> Conflict{Conflict or Rule Violation?}
-    Conflict -->|Yes| ResolveConflict[Adjust Request\nor Reject]
+    Conflict -->|Yes| ResolveConflict[Adjust Request<br/>or Reject]
     ResolveConflict --> ValidateInputs
-    Conflict -->|No| DetermineApproval[Determine Approval Path\nBased on Duration or Config]
-
+    Conflict -->|No| DetermineApproval[Determine Approval Path<br/>Based on Duration/Config]
+    
     DetermineApproval --> ShortOT{Planned Hours ≤ Threshold?}
     ShortOT -->|Yes| HRManagerQueue[Queue for HR Manager Approval]
-    ShortOT -->|No| EscalateOfficeAdmin[Send to Office Admin\nafter HR Manager]
-
-    HRManagerQueue --> HRManagerReview[HR Manager Reviews\nReason and Coverage]
+    ShortOT -->|No| EscalateOfficeAdmin[Send to Office Admin<br/>after HR Manager]
+    
+    HRManagerQueue --> HRManagerReview[HR Manager Reviews<br/>Reason & Coverage]
     HRManagerReview --> ManagerDecision{HR Manager Decision}
-    ManagerDecision -->|Rejected| NotifyReject[Notify Supervisor\nand Log]
+    ManagerDecision -->|Rejected| NotifyReject[Notify Supervisor<br/>& Log]
     ManagerDecision -->|Approved| AwaitNextStep
-
+    
     AwaitNextStep --> EscalationNeeded{Escalation Required?}
-    EscalationNeeded -->|Yes| OfficeAdminReview[Office Admin Reviews\nHigh OT or Special Cases]
+    EscalationNeeded -->|Yes| OfficeAdminReview[Office Admin Reviews<br/>High OT or Special Cases]
     EscalationNeeded -->|No| ApprovedOT
     OfficeAdminReview --> OAdecision{Office Admin Decision}
     OAdecision -->|Rejected| NotifyReject
     OAdecision -->|Approved| ApprovedOT[Mark Request Approved]
-
-    ApprovedOT --> NotifyTimekeeping[Notify Timekeeping\nand Update Schedule]
-    NotifyTimekeeping --> LockPlanned[Lock Planned OT\nHours and Cost Center]
-    LockPlanned --> ActualWork[Capture Actual Time\nRFID plus Manual]
+    
+    ApprovedOT --> NotifyTimekeeping[Notify Timekeeping<br/>& Update Schedule]
+    NotifyTimekeeping --> LockPlanned[Lock Planned OT<br/>(# hours, cost center)]
+    LockPlanned --> ActualWork[Capture Actual Time<br/>via RFID + Manual]
     ActualWork --> CompareActual[Compare Actual vs Planned]
     CompareActual --> Variance{Variance Detected?}
-    Variance -->|Yes| AdjustRecord[Adjust OT Record\nLog Reason]
+    Variance -->|Yes| AdjustRecord[Adjust OT Record<br/>Log Reason]
     Variance -->|No| FinalizeRecord
     AdjustRecord --> FinalizeRecord[Finalize OT Record]
-
-    FinalizeRecord --> NotifyPayroll[Notify Payroll\nInclude OT Hours]
-    NotifyPayroll --> ArchiveDocs[Archive OT Form\nand Approval Trail]
+    
+    FinalizeRecord --> NotifyPayroll[Notify Payroll<br/>Include OT Hours]
+    NotifyPayroll --> ArchiveDocs[Archive OT Form<br/>and Approval Trail]
     ArchiveDocs --> End([Process Complete])
-
 ```
 
 ---
@@ -114,6 +113,11 @@ graph TD
 - **Duplicate requests** → Conflict detection prevents; HR Staff merges or cancels
 - **Payroll mismatch** → Re-run OT summary, ensure finalized status before payroll cut-off
 
+## Immutable Ledger & Replay Monitoring
+
+- Planned vs actual OT comparisons rely on RFID events captured in the PostgreSQL ledger (`rfid_ledger`) by the Replayable Event-Log Verification Layer; approvals should reference ledger sequence IDs.
+- HR Staff, HR Managers, and Office Admins monitor the replay layer's alerting/metrics (ledger commit latency, sequence gaps, hash mismatches, replay backlog) to stop payouts when OT data integrity is in question.
+
 ---
 
 ## Related Documentation
@@ -128,4 +132,3 @@ graph TD
 **Last Updated**: November 29, 2025  
 **Process Owner**: HR Department  
 **Thresholds & Rates**: Configurable per company policy
-

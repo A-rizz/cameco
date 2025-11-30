@@ -13,35 +13,40 @@ Detailed steps for preparing, verifying, and releasing salary envelopes for cash
 
 ```mermaid
 graph TD
-    Start([Payroll Approved]) --> WithdrawCash[Withdraw Total Cash\nFrom Company Vault or Bank]
-    WithdrawCash --> CountVault[Initial Count and Verification\nPayroll Officer and Office Admin]
+    Start([Payroll Approved]) --> WithdrawCash[Withdraw Total Cash
+From Company Vault/Bank]
+    WithdrawCash --> CountVault[Initial Count & Verification
+(Payroll Officer + Office Admin)]
     CountVault --> PrepareDenoms[Prepare Denomination Breakdown]
     PrepareDenoms --> EnvelopePrep[Prepare Labeled Envelopes]
-    EnvelopePrep --> StuffEnvelopes[Insert Cash and Payslip]
-    StuffEnvelopes --> DoubleCheck[Second Person Verification\nHR Manager]
-    DoubleCheck --> SecureStorage[Seal Envelopes and Store in Safe]
+    EnvelopePrep --> StuffEnvelopes[Insert Cash + Payslip]
+    StuffEnvelopes --> DoubleCheck[Second Person Verification
+(HR Manager)]
+    DoubleCheck --> SecureStorage[Seal Envelopes + Store in Safe]
 
     SecureStorage --> DistributionDay{Distribution Day}
-    DistributionDay --> SetupDesk[Setup Disbursement Desk\nLog Sheet and Queue]
-    SetupDesk --> IdentityCheck[Verify Employee Identity\nID and Signature]
+    DistributionDay --> SetupDesk[Setup Disbursement Desk
+Log Sheet, Queue]
+    SetupDesk --> IdentityCheck[Verify Employee Identity
+ID + Signature]
     IdentityCheck --> ReleaseCash[Hand Over Envelope]
-    ReleaseCash --> EmployeeSign[Employee Signs Payroll Log\nPayslip Acknowledgment]
+    ReleaseCash --> EmployeeSign[Employee Signs Payroll Log
+(plus payslip acknowledgment)]
     EmployeeSign --> UpdateTracker[Update Cash Tracker]
 
-    DistributionDay -->|Employee Absent| HoldEnvelope[Hold Envelope in Safe]
+    DistributionDay --> |Employee Absent|HoldEnvelope[Hold Envelope in Safe]
     HoldEnvelope --> SchedulePickup[Schedule Catch-up Release]
     SchedulePickup --> IdentityCheck
 
-    UpdateTracker --> EndShiftRecount[End-of-Day Recount\nRemaining Cash]
-    EndShiftRecount --> Reconcile[Reconcile with Payroll Register]
+    UpdateTracker --> EndShiftRecount[End-of-Day Recount
++ Remaining Cash]
+    EndShiftRecount --> Reconcile[Reconcile vs Payroll Register]
     Reconcile --> DepositsExcess{Excess or Variance?}
-
-    DepositsExcess -->|Yes| ReturnExcess[Return or Deposit Excess]
-    DepositsExcess -->|No| Archive[Archive Documents\nLog, Receipts, CCTV References]
-
-    ReturnExcess --> Archive
+    DepositsExcess -->|Yes| ReturnExcess[Return/Deposit Excess]
+    DepositsExcess -->|No| Archive
+    ReturnExcess --> Archive[Archive Docs
+(Log, Receipts, CCTV references)]
     Archive --> End([Process Complete])
-
 ```
 
 ---
@@ -115,6 +120,11 @@ graph TD
 - **Accounting**: records cash movement and reconciles with vault balance
 - **Future Payment Methods**: Office Admin may switch to bank/e-wallet, but cash process remains fallback
 
+## Immutable Ledger & Replay Monitoring
+
+- Cash release values come from payroll runs that rely on the PostgreSQL ledger (`rfid_ledger`) managed by the Replayable Event-Log Verification Layer; no envelope should be prepared until ledger-aligned attendance is confirmed.
+- Payroll and HR must monitor replay-layer alerting/metrics (ledger commit latency, sequence gaps, hash mismatches, replay backlog) so payout preparation pauses whenever integrity issues exist.
+
 ---
 
 ## Related Documentation
@@ -128,4 +138,3 @@ graph TD
 **Last Updated**: November 29, 2025  
 **Process Owner**: Payroll Department  
 **Payment Method**: Cash only (bank/e-wallet configurable for future)
-

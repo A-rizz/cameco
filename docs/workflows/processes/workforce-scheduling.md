@@ -13,30 +13,29 @@ Operational workflow for defining schedules, planning rotations, creating daily 
 
 ```mermaid
 graph TD
-    Start([Scheduling Window Opens]) --> DefineSchedules[HR Manager Defines or Approves\nWork Schedules]
-    DefineSchedules --> CreateRotations[Create Rotation Patterns\nExamples: 4x2, Day or Night]
-    CreateRotations --> PlanWeek[HR Staff Plans Weekly\nAssignments by Team]
+    Start([Scheduling Window Opens]) --> DefineSchedules[HR Manager Defines/Approves<br/>Work Schedules]
+    DefineSchedules --> CreateRotations[Create Rotation Patterns<br/>e.g., 4x2, Day/Night]
+    CreateRotations --> PlanWeek[HR Staff Plans Weekly<br/>Assignments by Team]
 
-    PlanWeek --> ImportSupervisor[Import Supervisor Inputs\nPaper to HR Entry]
+    PlanWeek --> ImportSupervisor[Import Supervisor Inputs<br/>(Paper → HR Entry)]
     ImportSupervisor --> GenerateAssignments[Generate Daily Assignments]
-    GenerateAssignments --> DetectConflicts[Detect Conflicts\nOverlaps, Overtime, Coverage]
+    GenerateAssignments --> DetectConflicts[Detect Conflicts<br/>(Overlaps, OT, Coverage)]
 
     DetectConflicts --> ConflictFound{Conflicts Found?}
-    ConflictFound -->|Yes| ResolveConflicts[Resolve via Reassignment\nor Adjustments]
-    ConflictFound -->|No| ManagerReview[HR Manager Review and Approve]
+    ConflictFound -->|Yes| ResolveConflicts[Resolve via Reassignment<br/>or Adjustments]
+    ConflictFound -->|No| ManagerReview[HR Manager Review & Approve]
 
     ResolveConflicts --> ManagerReview
     ManagerReview --> PublishAssignments[Publish Assignments]
 
-    PublishAssignments --> EmitToTimekeeping[Emit to Timekeeping\nfor Validation]
+    PublishAssignments --> EmitToTimekeeping[Emit to Timekeeping<br/>for Validation]
     EmitToTimekeeping --> NotifyPayroll[Notify Payroll for Premiums]
-    NotifyPayroll --> UpdateDashboards[Update Coverage and Overtime Dashboards]
+    NotifyPayroll --> UpdateDashboards[Update Coverage/OT Dashboards]
 
     UpdateDashboards --> DayChanges{Daily Changes?}
-    DayChanges -->|Yes| SameDayAdjust[Same Day Adjustments\nand Reapproval]
+    DayChanges -->|Yes| SameDayAdjust[Same-Day Adjustments<br/>and Re-approval]
     DayChanges -->|No| End([Process Complete])
     SameDayAdjust --> DetectConflicts
-
 ```
 
 ---
@@ -109,6 +108,11 @@ graph TD
 - Missing posts due to absence → Pull from floaters; mark OT if needed
 - Rotation drift → Reset rotation anchor date; realign assignments
 
+## Immutable Ledger & Replay Monitoring
+
+- Attendance validation for scheduled shifts depends on the PostgreSQL ledger (`rfid_ledger`) stewarded by the Replayable Event-Log Verification Layer; shift IDs must map to ledger sequence data.
+- HR Staff/Managers need to monitor the replay layer's alerting/metrics (ledger commit latency, sequence gaps, hash mismatches, replay backlog) to freeze schedule approvals when ledger health is degraded.
+
 ---
 
 ## Related Documentation
@@ -123,4 +127,3 @@ graph TD
 **Last Updated**: November 29, 2025  
 **Process Owner**: HR Department  
 **Cadence**: Weekly + daily adjustments
-

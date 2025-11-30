@@ -481,6 +481,11 @@ graph TD
 - Approve salary offers (if non-standard)
 - Budget and headcount oversight
 
+## Immutable Ledger & Replay Monitoring
+
+- Hires transition to operations that rely on the PostgreSQL ledger (`rfid_ledger`) upheld by the Replayable Event-Log Verification Layer, so ATS closures must confirm RFID provisioning readiness.
+- HR stakeholders should keep an eye on replay-layer alerting/metrics (ledger commit latency, sequence gaps, hash mismatches, replay backlog) when planning start dates tied to timekeeping compliance.
+
 ---
 
 ## Related Documentation

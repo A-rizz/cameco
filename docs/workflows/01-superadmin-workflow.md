@@ -337,6 +337,11 @@ graph TD
 - ✅ Secure backup storage
 - ✅ Compliance with data regulations
 
+## Immutable Ledger & Replay Monitoring
+
+- RFID/timekeeping events are persisted to the PostgreSQL ledger (`rfid_ledger`) before any workflow consumes them, and Superadmin maintains the underlying database hardening.
+- The Replayable Event-Log Verification Layer publishes dedicated alerting/metrics (ledger commit latency, sequence gaps, hash mismatches, replay backlog) that Superadmin must wire into the core observability stack.
+
 ---
 
 ## Related Documentation

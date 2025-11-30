@@ -13,32 +13,31 @@ Procedure for receiving paper-based attendance corrections (missed RFID taps, wr
 
 ```mermaid
 graph TD
-    Start([Correction Slip Received]) --> LogRequest[Log Request in Tracker\nReference Number]
-    LogRequest --> EncodeDetails[Encode Details in System\nEmployee, Date, Time, Reason]
-    EncodeDetails --> PullData[Pull Original Attendance Data\nRFID Events, Schedule, Overtime]
+    Start([Correction Slip Received]) --> LogRequest[Log Request in Tracker
+(Reference No.)]
+    LogRequest --> EncodeDetails[Encode Details in System<br/>Employee, Date, Time, Reason]
+    EncodeDetails --> PullData[Pull Original Attendance Data<br/>RFID events, schedule, OT]
     PullData --> CompareRecords[Compare Requested vs Actual]
     CompareRecords --> EvidenceCheck{Supporting Evidence Complete?}
-
-    EvidenceCheck -->|No| RequestDocs[Request Missing Documents\nSupervisor Note, CCTV]
+    EvidenceCheck -->|No| RequestDocs[Request Missing Docs<br/>Supervisor Note, CCTV]
     RequestDocs --> EncodeDetails
-
-    EvidenceCheck -->|Yes| PolicyCheck[Policy Validation\nMax Edits, Submission Window]
+    EvidenceCheck -->|Yes| PolicyCheck[Policy Validation
+(Max edits, submission window)]
     PolicyCheck --> PolicyResult{Within Policy?}
-
-    PolicyResult -->|No| RejectCorrection[Reject and Notify Supervisor]
-    PolicyResult -->|Yes| HRManagerReview[HR Manager Review and Approval]
+    PolicyResult -->|No| RejectCorrection[Reject & Notify Supervisor]
+    PolicyResult -->|Yes| HRManagerReview[HR Manager Review & Approval]
 
     HRManagerReview --> Decision{Approve?}
     Decision -->|No| RejectCorrection
-    Decision -->|Yes| ApplyChange[Apply Correction\nUpdate Attendance Summary]
-
-    ApplyChange --> UpdateAuditTrail[Record Before and After\nApprover and Reason]
-    UpdateAuditTrail --> NotifyPayroll[Notify Payroll and Workforce Modules]
-    NotifyPayroll --> ArchiveDocs[Archive Signed Slip and Evidence]
+    Decision -->|Yes| ApplyChange[Apply Correction
+Update Attendance Summary]
+    ApplyChange --> UpdateAuditTrail[Record Before/After
++ Approver + Reason]
+    UpdateAuditTrail --> NotifyPayroll[Notify Payroll & Workforce Modules]
+    NotifyPayroll --> ArchiveDocs[Archive Signed Slip & Evidence]
     ArchiveDocs --> End([Correction Completed])
 
     RejectCorrection --> ArchiveDocs
-
 ```
 
 ---
@@ -93,6 +92,11 @@ graph TD
 - **Multiple corrections same day** → verify with security logs; possible discipline
 - **Payroll already processed** → apply adjustment in next cut-off; release memo to employee
 
+## Immutable Ledger & Replay Monitoring
+
+- All original RFID events and replays originate from the PostgreSQL ledger (`rfid_ledger`); every correction must cite the ledger sequence ID for traceability.
+- HR teams must acknowledge replay-layer alerting/metrics (ledger commit latency, sequence gaps, hash mismatches, replay backlog) before making edits to avoid masking unresolved integrity issues.
+
 ---
 
 ## Related Documentation
@@ -107,4 +111,3 @@ graph TD
 **Last Updated**: November 29, 2025  
 **Process Owner**: HR Department  
 **Submission Window**: 3 working days (configurable)
-

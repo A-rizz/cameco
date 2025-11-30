@@ -660,6 +660,11 @@ graph TD
 - Escalate to Office Admin if critical
 - Follow up until resolved
 
+## Immutable Ledger & Replay Monitoring
+
+- Attendance, overtime, and MDTR comparisons used in HR approvals must align with the PostgreSQL ledger (`rfid_ledger`) captured by the Replayable Event-Log Verification Layer.
+- HR Managers should review the replay layer's alerting/metrics (ledger commit latency, sequence gaps, hash mismatches, replay backlog) before granting approvals tied to attendance or payroll-impacting actions.
+
 ---
 
 ## Related Documentation
