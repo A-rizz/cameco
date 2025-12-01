@@ -166,12 +166,21 @@ export function AssignEmployeesModal({ isOpen, onClose, rotation }: AssignEmploy
         setIsLoading(true);
         setError(null);
         try {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            
+            if (!csrfToken) {
+                throw new Error('CSRF token not found');
+            }
+
             const response = await fetch(`/hr/workforce/rotations/${rotation.id}/check-conflicts`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
                 },
+                credentials: 'same-origin',
                 body: JSON.stringify({
                     employee_ids: selectedEmployees,
                     work_schedule_id: selectedScheduleId,
@@ -181,7 +190,8 @@ export function AssignEmployeesModal({ isOpen, onClose, rotation }: AssignEmploy
             });
 
             if (!response.ok) {
-                throw new Error('Failed to check conflicts');
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || 'Failed to check conflicts');
             }
 
             const data: ConflictCheckResponse = await response.json();
@@ -189,6 +199,7 @@ export function AssignEmployeesModal({ isOpen, onClose, rotation }: AssignEmploy
             setCurrentStep(Step.REVIEW_CONFLICTS);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to check conflicts');
+            console.error('Conflict check error:', err);
         } finally {
             setIsLoading(false);
         }
