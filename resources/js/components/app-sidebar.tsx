@@ -47,7 +47,9 @@ export function AppSidebar() {
     // Check user roles
     const isSuperadmin = userRoles.includes('Superadmin');
     const isHRManager = userRoles.includes('HR Manager');
+    const isHRStaff = userRoles.includes('HR Staff');
     const isPayrollOfficer = userRoles.includes('Payroll Officer');
+    const hasHRAccess = isHRManager || isHRStaff;
     
     return (
         <Sidebar collapsible="icon" variant="inset">
@@ -66,8 +68,8 @@ export function AppSidebar() {
             <SidebarContent>
                 <NavMain items={mainNavItems} />
                 
-                {/* HR Manager Navigation - Show only for HR Manager (not Superadmin unless they also have HR Manager role) */}
-                {isHRManager && <NavHR />}
+                {/* HR Navigation - Show for HR Manager and HR Staff */}
+                {hasHRAccess && <NavHR />}
                 
                 {/* Payroll Officer Navigation - Show only for Payroll Officer */}
                 {isPayrollOfficer && <NavPayroll />}

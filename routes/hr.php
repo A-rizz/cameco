@@ -27,10 +27,10 @@ use App\Http\Controllers\HR\Appraisal\AppraisalCycleController;
 use App\Http\Controllers\HR\Appraisal\AppraisalController;
 use App\Http\Controllers\HR\Appraisal\PerformanceMetricsController;
 use App\Http\Controllers\HR\Appraisal\RehireRecommendationController;
-use App\Http\Middleware\EnsureHRManager;
+use App\Http\Middleware\EnsureHRAccess;
 // use App\Http\Middleware\EnsureProfileComplete; for future useronboarding workflow
 
-Route::middleware(['auth', 'verified' , EnsureHRManager::class])
+Route::middleware(['auth', 'verified' , EnsureHRAccess::class])
     ->prefix('hr')
     ->name('hr.')
     ->group(function () {

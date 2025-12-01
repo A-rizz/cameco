@@ -7,6 +7,7 @@ import { EmployeeFiltersComponent, type EmployeeFilters } from '@/components/hr/
 import { UserPlus, Download, Upload } from 'lucide-react';
 import { useState } from 'react';
 import { useDebouncedCallback } from 'use-debounce';
+import { PermissionGate } from '@/components/permission-gate';
 
 // ============================================================================
 // Type Definitions
@@ -112,28 +113,32 @@ export default function EmployeeIndex({
                         </p>
                     </div>
                     <div className="flex items-center gap-2">
-                        <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => router.visit('/hr/employees/import')}
-                        >
-                            <Upload className="h-4 w-4 mr-2" />
-                            Import
-                        </Button>
-                        <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => window.location.href = '/hr/employees/export/csv'}
-                        >
-                            <Download className="h-4 w-4 mr-2" />
-                            Export
-                        </Button>
-                        <Link href="/hr/employees/create">
-                            <Button>
-                                <UserPlus className="h-4 w-4 mr-2" />
-                                Add Employee
+                        <PermissionGate permission="hr.employees.view">
+                            <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => router.visit('/hr/employees/import')}
+                            >
+                                <Upload className="h-4 w-4 mr-2" />
+                                Import
                             </Button>
-                        </Link>
+                            <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => window.location.href = '/hr/employees/export/csv'}
+                            >
+                                <Download className="h-4 w-4 mr-2" />
+                                Export
+                            </Button>
+                        </PermissionGate>
+                        <PermissionGate permission="hr.employees.create">
+                            <Link href="/hr/employees/create">
+                                <Button>
+                                    <UserPlus className="h-4 w-4 mr-2" />
+                                    Add Employee
+                                </Button>
+                            </Link>
+                        </PermissionGate>
                     </div>
                 </div>
 

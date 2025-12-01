@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Calendar, CheckCircle2, XCircle, Clock, Search } from 'lucide-react';
 import { LeaveRequestActionModal } from '@/components/hr/leave-request-action-modal';
+import { PermissionGate, usePermission } from '@/components/permission-gate';
 
 interface LeaveRequest {
     id: number;
@@ -115,10 +116,9 @@ export default function LeaveRequests({ requests, meta }: LeaveRequestsProps) {
         { key: 'rejected', label: 'Rejected' },
     ];
 
-    // access auth shared data to show create button to HR roles
-    const { auth } = usePage().props as any;
-    const userRoles: string[] = auth?.roles || [];
-    const canCreate = userRoles.includes('HR Staff') || userRoles.includes('HR Manager');
+    // Check permission for creating leave requests
+    const canCreate = usePermission('hr.leave-requests.create');
+    const canApprove = usePermission('hr.leave-requests.approve');
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -130,11 +130,11 @@ export default function LeaveRequests({ requests, meta }: LeaveRequestsProps) {
                     <div className="flex items-center justify-between">
                         <h1 className="text-3xl font-bold tracking-tight">Leave Requests</h1>
                         <div className="flex gap-2">
-                            {canCreate && (
+                            <PermissionGate permission="hr.leave-requests.create">
                                 <Link href="/hr/leave/requests/create">
                                     <Button className="gap-2">Create Request</Button>
                                 </Link>
-                            )}
+                            </PermissionGate>
                             <Link href="/hr/leave/requests" className="hidden">
                                 <Button variant="outline">Refresh</Button>
                             </Link>
@@ -236,7 +236,7 @@ export default function LeaveRequests({ requests, meta }: LeaveRequestsProps) {
                                                         </td>
                                                     <td className="py-2 px-2">
                                                         <div className="flex gap-2">
-                                                            {selectedStatus === 'pending' && (
+                                                            {selectedStatus === 'pending' && canApprove && (
                                                                 <>
                                                                     <Button size="sm" variant="outline" className="text-xs" onClick={() => handleApprove(request)}>Approve</Button>
                                                                     <Button size="sm" variant="outline" className="text-xs text-red-600" onClick={() => handleReject(request)}>Reject</Button>
