@@ -141,8 +141,8 @@ class RolesAndPermissionsSeeder extends Seeder
         $superadmin->givePermissionTo(Permission::all()); // Always retains all permissions
 
         $hrManager = Role::firstOrCreate(['name' => 'HR Manager', 'guard_name' => 'web']);
-        // Grant HR Manager all HR permissions (do not revoke existing)
-        $hrManager->givePermissionTo($hrPermissions);
+        // Grant HR Manager all HR permissions plus timekeeping and ATS permissions
+        $hrManager->givePermissionTo(array_merge($hrPermissions, $timekeepingPermissions, $atsPermissions));
 
         // HR Staff - Operational Support Level
         $hrStaffPermissions = [
@@ -163,12 +163,24 @@ class RolesAndPermissionsSeeder extends Seeder
             'hr.leave-policies.view', // Read-only access to policies
             'hr.leave-balances.view', // View leave balances
 
-            // Timekeeping
+            // Timekeeping (hr.* prefixed)
             'hr.timekeeping.view',
             'hr.timekeeping.manage',
             'hr.timekeeping.attendance.create',
             'hr.timekeeping.attendance.update',
             'hr.timekeeping.overtime.view',
+            
+            // Timekeeping (route permissions)
+            'timekeeping.attendance.view',
+            'timekeeping.attendance.create',
+            'timekeeping.attendance.update',
+            'timekeeping.attendance.correct',
+            'timekeeping.overtime.view',
+            'timekeeping.overtime.create',
+            'timekeeping.overtime.update',
+            'timekeeping.import.view',
+            'timekeeping.import.create',
+            'timekeeping.analytics.view',
 
             // ATS (Applicant Tracking)
             'hr.ats.view',
