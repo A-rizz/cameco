@@ -7,6 +7,7 @@ import { Plus, Edit, Trash2, Copy, Calendar, Grid, List } from 'lucide-react';
 import ScheduleFilters from '@/components/workforce/schedule-filters';
 import ScheduleCard from '@/components/workforce/schedule-card';
 import CreateEditScheduleModal from './CreateEditScheduleModal';
+import { PermissionGate } from '@/components/permission-gate';
 import { SchedulesIndexProps, WorkSchedule } from '@/types/workforce-pages';
 
 export default function SchedulesIndex() {
@@ -98,12 +99,14 @@ export default function SchedulesIndex() {
                     <div>
                         <h1 className="text-3xl font-bold">Work Schedules</h1>
                         <p className="text-gray-600">Manage employee work schedules and shift templates</p>
+                <PermissionGate permission="hr.workforce.schedules.create">
+                    <div>
+                        <Button onClick={() => setIsCreateModalOpen(true)} className="gap-2">
+                            <Plus className="h-4 w-4" />
+                            Create Schedule
+                        </Button>
                     </div>
-                    <Button onClick={() => setIsCreateModalOpen(true)} className="gap-2">
-                        <Plus className="h-4 w-4" />
-                        Create Schedule
-                    </Button>
-                </div>
+                </PermissionGate>
 
                 {/* Summary Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -262,10 +265,14 @@ export default function SchedulesIndex() {
                         <Calendar className="h-12 w-12 mx-auto text-gray-400 mb-4" />
                         <h3 className="text-lg font-semibold text-gray-900">No schedules found</h3>
                         <p className="text-gray-600 mt-2">Create your first schedule to get started</p>
-                        <Button onClick={() => setIsCreateModalOpen(true)} className="mt-4 gap-2">
-                            <Plus className="h-4 w-4" />
-                            Create Schedule
-                        </Button>
+                        <PermissionGate permission="hr.workforce.schedules.create">
+                            <div>
+                                <Button onClick={() => setIsCreateModalOpen(true)} className="mt-4 gap-2">
+                                    <Plus className="h-4 w-4" />
+                                    Create Schedule
+                                </Button>
+                            </div>
+                        </PermissionGate>
                     </div>
                 )}
             </div>

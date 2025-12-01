@@ -51,10 +51,20 @@ Route::middleware(['auth', 'verified' , EnsureHRAccess::class])
         Route::post('/employees/{id}/restore', [EmployeeController::class, 'restore'])->name('employees.restore');
 
         // Department Management
-        Route::resource('departments', DepartmentController::class)->only(['index','store','update','destroy']);
+        Route::get('/departments', [DepartmentController::class, 'index'])->name('departments.index');
+        Route::middleware('permission:hr.departments.manage')->group(function () {
+            Route::post('/departments', [DepartmentController::class, 'store'])->name('departments.store');
+            Route::put('/departments/{department}', [DepartmentController::class, 'update'])->name('departments.update');
+            Route::delete('/departments/{department}', [DepartmentController::class, 'destroy'])->name('departments.destroy');
+        });
 
         // Position Management
-        Route::resource('positions', PositionController::class)->only(['index','store','update','destroy']);
+        Route::get('/positions', [PositionController::class, 'index'])->name('positions.index');
+        Route::middleware('permission:hr.positions.manage')->group(function () {
+            Route::post('/positions', [PositionController::class, 'store'])->name('positions.store');
+            Route::put('/positions/{position}', [PositionController::class, 'update'])->name('positions.update');
+            Route::delete('/positions/{position}', [PositionController::class, 'destroy'])->name('positions.destroy');
+        });
 
         // Leave Management
         Route::prefix('leave')->name('leave.')->group(function () {

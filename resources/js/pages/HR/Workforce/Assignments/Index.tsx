@@ -13,6 +13,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
+import { PermissionGate } from '@/components/permission-gate';
 import { Plus, Clock, AlertTriangle, Filter, Calendar, Download, BarChart3 } from 'lucide-react';
 import AssignmentFilters, { AssignmentFiltersState } from '@/components/workforce/assignment-filters';
 import AssignmentCalendar from '@/components/workforce/assignment-calendar';
@@ -186,18 +187,22 @@ export default function AssignmentsIndex() {
                             <Download className="h-4 w-4" />
                             Export
                         </Button>
-                        <Button 
-                            variant="outline"
-                            onClick={() => setIsBulkModalOpen(true)}
-                            className="gap-2"
-                        >
-                            <Plus className="h-4 w-4" />
-                            Bulk Assign
-                        </Button>
-                        <Button onClick={() => setIsCreateModalOpen(true)} className="gap-2">
-                            <Plus className="h-4 w-4" />
-                            New Assignment
-                        </Button>
+                        <PermissionGate permission="hr.workforce.assignments.create">
+                            <div className="flex gap-2">
+                                <Button 
+                                    variant="outline"
+                                    onClick={() => setIsBulkModalOpen(true)}
+                                    className="gap-2"
+                                >
+                                    <Plus className="h-4 w-4" />
+                                    Bulk Assign
+                                </Button>
+                                <Button onClick={() => setIsCreateModalOpen(true)} className="gap-2">
+                                    <Plus className="h-4 w-4" />
+                                    New Assignment
+                                </Button>
+                            </div>
+                        </PermissionGate>
                     </div>
                 </div>
 

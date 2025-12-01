@@ -39,12 +39,14 @@ class RolesAndPermissionsSeeder extends Seeder
             'hr.departments.create',
             'hr.departments.update',
             'hr.departments.delete',
+            'hr.departments.manage', // HR Manager only - full department management
 
             // Position Management
             'hr.positions.view',
             'hr.positions.create',
             'hr.positions.update',
             'hr.positions.delete',
+            'hr.positions.manage', // HR Manager only - full position management
 
             // Leave Management
             'hr.leave-requests.view',
@@ -81,7 +83,10 @@ class RolesAndPermissionsSeeder extends Seeder
             'hr.workforce.schedules.update',
             'hr.workforce.rotations.view',
             'hr.workforce.rotations.create',
+            'hr.workforce.rotations.update',
             'hr.workforce.assignments.view',
+            'hr.workforce.assignments.create',
+            'hr.workforce.assignments.update',
             'hr.workforce.assignments.manage',
 
             // Appraisals
@@ -144,11 +149,16 @@ class RolesAndPermissionsSeeder extends Seeder
             'hr.ats.applications.view',
             'hr.ats.interviews.schedule',
 
-            // Workforce Management
+            // Workforce Management (Full operational access)
             'hr.workforce.schedules.view',
             'hr.workforce.schedules.create',
+            'hr.workforce.schedules.update',
             'hr.workforce.rotations.view',
+            'hr.workforce.rotations.create',
+            'hr.workforce.rotations.update',
             'hr.workforce.assignments.view',
+            'hr.workforce.assignments.create',
+            'hr.workforce.assignments.update',
 
             // Appraisals
             'hr.appraisals.view',

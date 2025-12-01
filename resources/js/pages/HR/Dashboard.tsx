@@ -121,7 +121,7 @@ export default function Dashboard({ metrics, userRole }: HRDashboardProps) {
                                     Welcome to your HR Dashboard. Access employee information, manage daily HR tasks, and support HR operations.
                                 </p>
                                 <ul className="list-disc list-inside space-y-2 text-muted-foreground">
-                                    <li>View and update <strong>Employee</strong> information for your company</li>
+                                    <li>View and update <strong>Employee</strong> information for the company</li>
                                     <li>Process <strong>Leave Requests</strong> and manage attendance records</li>
                                     <li>Track <strong>Timekeeping</strong> and handle overtime approvals</li>
                                     <li>Manage <strong>ATS Candidates</strong> and schedule interviews</li>

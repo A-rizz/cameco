@@ -7,6 +7,7 @@ import AppLayout from '@/layouts/app-layout';
 import { RotationCard } from '@/components/workforce/rotation-card';
 import { RotationFilters } from '@/components/workforce/rotation-filters';
 import { CreateEditRotationModal } from './CreateEditRotationModal';
+import { PermissionGate } from '@/components/permission-gate';
 import { EmployeeRotation, RotationsIndexProps } from '@/types/workforce-pages';
 import { Plus, Filter } from 'lucide-react';
 
@@ -103,7 +104,7 @@ export default function RotationsIndex({ rotations, summary, departments, patter
                     </div>
                     <Button onClick={() => setIsCreateModalOpen(true)} className="gap-2">
                         <Plus className="h-4 w-4" />
-                        New Rotation
+                        Create Rotation
                     </Button>
                 </div>
 

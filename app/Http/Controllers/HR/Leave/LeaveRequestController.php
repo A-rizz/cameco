@@ -534,10 +534,10 @@ class LeaveRequestController extends Controller
      */
     public function processApproval(Request $request, int $id): RedirectResponse
     {
-        // Verify only HR staff with proper permissions can process approvals
-        $this->authorize('delete', Employee::class); // Using delete as proxy for "process" permission
-
         $leaveRequest = LeaveRequest::findOrFail($id);
+        
+        // Verify user has permission to approve leave requests
+        $this->authorize('approve', $leaveRequest);
 
         // mark processed by HR
         $leaveRequest->hr_processed_by = auth()->id();
@@ -566,15 +566,17 @@ class LeaveRequestController extends Controller
      */
     public function destroy(Request $request, int $id): RedirectResponse
     {
-        // Verify HR staff has permission
-        $this->authorize('delete', Employee::class);
+        $leaveRequest = LeaveRequest::findOrFail($id);
+        
+        // Verify user has permission to delete/cancel leave requests
+        $this->authorize('delete', $leaveRequest);
 
         // Validate cancellation
         $validated = $request->validate([
             'cancellation_reason' => 'nullable|string|max:1000',
         ]);
 
-        // In production:
+        // In production (uncommented):
         // $leaveRequest = LeaveRequest::findOrFail($id);
         // 
         // if (in_array($leaveRequest->status, ['Completed', 'Processed'])) {
