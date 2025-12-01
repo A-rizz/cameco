@@ -4,6 +4,7 @@ import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus } from 'lucide-react';
+import { PermissionGate, usePermission } from '@/components/permission-gate';
 import { AttendanceRecordsTable } from '@/components/timekeeping/attendance-records-table';
 import { AttendanceEntryModal, type AttendanceFormData } from '@/components/timekeeping/attendance-entry-modal';
 import { AttendanceDetailModal } from '@/components/timekeeping/attendance-detail-modal';
@@ -25,6 +26,7 @@ interface AttendanceIndexProps {
 
 export default function AttendanceIndex() {
     const { attendance = [], employees = [], summary = { total_records: 0, present_count: 0, present_rate: 0, late_count: 0, absent_count: 0 } } = usePage().props as unknown as AttendanceIndexProps;
+    const { hasPermission } = usePermission();
 
     // Modal states
     const [isEntryModalOpen, setIsEntryModalOpen] = useState(false);
@@ -101,12 +103,14 @@ export default function AttendanceIndex() {
                         <p className="text-gray-600">Track and manage attendance records</p>
                         
                     </div>
-                    <div>
-                        <Button onClick={() => setIsEntryModalOpen(true)} className="gap-2">
-                            <Plus className="h-4 w-4" />
-                            Add Manual Entry
-                        </Button>
-                    </div>
+                    <PermissionGate permission="hr.timekeeping.attendance.create">
+                        <div>
+                            <Button onClick={() => setIsEntryModalOpen(true)} className="gap-2">
+                                <Plus className="h-4 w-4" />
+                                Add Manual Entry
+                            </Button>
+                        </div>
+                    </PermissionGate>
                 </div>
 
                 {/* Summary Cards */}

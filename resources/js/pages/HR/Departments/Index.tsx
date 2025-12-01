@@ -8,7 +8,8 @@ import {
     type Department,
 } from '@/components/hr/department-form-modal';
 import { Building2, Plus, Edit, Archive, ChevronRight, Users } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { usePermission } from '@/components/permission-gate';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -88,10 +89,17 @@ export default function DepartmentIndex({
     departments,
     statistics = {}
 }: DepartmentIndexProps) {
+    const { hasPermission } = usePermission();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
     const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
     const [expandedDepts, setExpandedDepts] = useState<Set<number>>(new Set());
+
+    useEffect(() => {
+        if (!hasPermission('hr.departments.manage')) {
+            router.visit('/hr/dashboard');
+        }
+    }, [hasPermission]);
 
     const departmentTree = useMemo(() => buildDepartmentTree(departments), [departments]);
 

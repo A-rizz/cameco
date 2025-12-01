@@ -3,6 +3,7 @@ import { Head, router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { usePermission } from '@/components/permission-gate';
 import {
     Table,
     TableBody,
@@ -25,7 +26,7 @@ import {
     type Department,
 } from '@/components/hr/position-form-modal';
 import { Briefcase, Plus, Edit, Archive, MoreHorizontal } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 
 // ============================================================================
 // Type Definitions
@@ -50,10 +51,17 @@ export default function PositionIndex({
     departments,
     statistics = {}
 }: PositionIndexProps) {
+    const { hasPermission } = usePermission();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedPosition, setSelectedPosition] = useState<Position | null>(null);
     const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
     const [selectedDepartmentFilter, setSelectedDepartmentFilter] = useState<number | null>(null);
+
+    useEffect(() => {
+        if (!hasPermission('hr.positions.manage')) {
+            router.visit('/hr/dashboard');
+        }
+    }, [hasPermission]);
 
     // Group positions by department
     const positionsByDepartment = useMemo(() => {

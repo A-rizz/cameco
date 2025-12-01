@@ -7,33 +7,47 @@ use App\Models\User;
 
 class PositionPolicy
 {
-    protected function isHrManager(User $user): bool
-    {
-        return method_exists($user, 'hasRole') && $user->hasRole('HR Manager');
-    }
-
+    /**
+     * Determine if the user can view any positions.
+     * Note: All HR users can VIEW positions, but only HR Manager can MANAGE them.
+     */
     public function viewAny(User $user): bool
     {
-        return $this->isHrManager($user) || $user->can('hr.positions.view');
+        return $user->can('hr.positions.view') || $user->can('hr.dashboard.view');
     }
 
+    /**
+     * Determine if the user can view a specific position.
+     */
     public function view(User $user, Position $position): bool
     {
-        return $this->isHrManager($user) || $user->can('hr.positions.view');
+        return $user->can('hr.positions.view') || $user->can('hr.dashboard.view');
     }
 
+    /**
+     * Determine if the user can create positions.
+     * Only HR Manager can manage positions.
+     */
     public function create(User $user): bool
     {
-        return $this->isHrManager($user) || $user->can('hr.positions.create');
+        return $user->can('hr.positions.manage');
     }
 
+    /**
+     * Determine if the user can update a position.
+     * Only HR Manager can manage positions.
+     */
     public function update(User $user, Position $position): bool
     {
-        return $this->isHrManager($user) || $user->can('hr.positions.update');
+        return $user->can('hr.positions.manage');
     }
 
+    /**
+     * Determine if the user can delete a position.
+     * Only HR Manager can manage positions.
+     */
     public function delete(User $user, Position $position): bool
     {
-        return $this->isHrManager($user) || $user->can('hr.positions.delete');
+        return $user->can('hr.positions.manage');
     }
 }
