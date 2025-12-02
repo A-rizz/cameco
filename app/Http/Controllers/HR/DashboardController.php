@@ -17,18 +17,27 @@ class DashboardController extends Controller
     }
 
     /**
-     * Display the HR Manager Dashboard.
+     * Display the HR Dashboard.
      * 
      * Shows key HR metrics, recent activity, and quick access to HR functions.
-     * Requires HR Manager or Superadmin role (enforced by middleware).
+     * Adapts content based on user role (HR Manager vs HR Staff).
+     * Requires HR access (enforced by EnsureHRAccess middleware).
      */
     public function index(Request $request)
     {
+        $user = $request->user();
+        
         // Get real metrics from EmployeeService
         $metrics = $this->employeeService->getDashboardMetrics();
 
+        // Determine user's primary HR role
+        $userRole = $user->hasRole('HR Manager') ? 'HR Manager' 
+                  : ($user->hasRole('Superadmin') ? 'Superadmin' 
+                  : 'HR Staff');
+
         return Inertia::render('HR/Dashboard', [
             'metrics' => $metrics,
+            'userRole' => $userRole,
         ]);
     }
 }

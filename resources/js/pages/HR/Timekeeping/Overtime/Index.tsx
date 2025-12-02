@@ -7,6 +7,7 @@ import { Plus, Eye, Edit } from 'lucide-react';
 import { OvertimeFormModal } from '@/components/timekeeping/overtime-form-modal';
 import { OvertimeDetailModal } from '@/components/timekeeping/overtime-detail-modal';
 import { OvertimeRecord, EmployeeBasic } from '@/types/timekeeping-pages';
+import { PermissionGate, usePermission } from '@/components/permission-gate';
 
 interface OvertimeRequestsIndexProps {
     overtime: OvertimeRecord[];
@@ -22,6 +23,7 @@ interface OvertimeRequestsIndexProps {
 
 export default function OvertimeIndex() {
     const { overtime = [], employees = [], summary } = usePage().props as unknown as OvertimeRequestsIndexProps;
+    const { hasPermission } = usePermission();
 
     // Modal states
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
@@ -44,6 +46,11 @@ export default function OvertimeIndex() {
         setIsFormModalOpen(true);
     };
 
+    const handleApproveRecord = (record: OvertimeRecord) => {
+        console.log('Approve overtime record:', record);
+        // API call would go here to update status to 'in_progress'
+    };
+
     const handleSaveForm = (data: any) => {
         console.log('Save overtime record:', data);
         setIsFormModalOpen(false);
@@ -63,10 +70,14 @@ export default function OvertimeIndex() {
                         <p className="text-gray-600">Track and manage overtime records</p>
                     </div>
 
-                    <Button onClick={() => setIsFormModalOpen(true)} className="gap-2">
-                        <Plus className="h-4 w-4" />
-                        Create Overtime Record
-                    </Button>
+                    <PermissionGate permission="hr.timekeeping.overtime.create">
+                        <div>
+                            <Button onClick={() => setIsFormModalOpen(true)} className="gap-2">
+                                <Plus className="h-4 w-4" />
+                                Create Overtime Record
+                            </Button>
+                        </div>
+                    </PermissionGate>
                 </div>
 
                 {/* Summary Cards */}
@@ -189,7 +200,8 @@ export default function OvertimeIndex() {
                                 setSelectedRecord(null);
                             }}
                             record={selectedRecord}
-                            onEdit={() => handleEditRecord(selectedRecord)}
+                            onEdit={hasPermission('hr.timekeeping.overtime.update') ? () => handleEditRecord(selectedRecord) : undefined}
+                            onApprove={hasPermission('hr.timekeeping.overtime.approve') ? () => handleApproveRecord(selectedRecord) : undefined}
                         />
 
                         <OvertimeFormModal

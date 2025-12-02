@@ -11,6 +11,7 @@ import { RemarksSection } from '@/components/hr/forms/remarks-section';
 import { DependentsSection } from '@/components/hr/forms/dependents-section';
 import { ArrowLeft, Edit, Archive, FileText, History, User, Briefcase, MessageSquare, Users } from 'lucide-react';
 import { useState } from 'react';
+import { PermissionGate } from '@/components/permission-gate';
 
 // ============================================================================
 // Type Definitions
@@ -359,7 +360,15 @@ function OverviewTab({ employee }: { employee: Employee }) {
             {/* Government IDs Card */}
             <div className="bg-card rounded-lg border p-6">
                 <h3 className="text-lg font-semibold mb-4">Government IDs</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <PermissionGate 
+                    permission="hr.employees.view_government_ids"
+                    fallback={
+                        <p className="text-sm text-muted-foreground italic">
+                            You do not have permission to view government IDs. Contact HR Manager for access.
+                        </p>
+                    }
+                >
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label className="text-sm font-medium text-muted-foreground">SSS Number</label>
                         <div className="flex items-center gap-2 mt-1">
@@ -432,7 +441,8 @@ function OverviewTab({ employee }: { employee: Employee }) {
                             )}
                         </div>
                     </div>
-                </div>
+                    </div>
+                </PermissionGate>
             </div>
         </div>
     );
@@ -604,19 +614,23 @@ export default function ShowEmployee({ employee }: ShowEmployeeProps) {
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
-                        <Link href={`/hr/employees/${employee.id}/edit`}>
-                            <Button variant="outline">
-                                <Edit className="h-4 w-4 mr-2" />
-                                Edit
+                        <PermissionGate permission="hr.employees.update">
+                            <Link href={`/hr/employees/${employee.id}/edit`}>
+                                <Button variant="outline">
+                                    <Edit className="h-4 w-4 mr-2" />
+                                    Edit
+                                </Button>
+                            </Link>
+                        </PermissionGate>
+                        <PermissionGate permission="hr.employees.delete">
+                            <Button 
+                                variant="outline"
+                                onClick={() => setArchiveDialogOpen(true)}
+                            >
+                                <Archive className="h-4 w-4 mr-2" />
+                                Archive
                             </Button>
-                        </Link>
-                        <Button 
-                            variant="outline"
-                            onClick={() => setArchiveDialogOpen(true)}
-                        >
-                            <Archive className="h-4 w-4 mr-2" />
-                            Archive
-                        </Button>
+                        </PermissionGate>
                     </div>
                 </div>
 

@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Calendar, Edit2, Shield, Plus } from 'lucide-react';
 import { LeavePolicyFormModal } from '@/components/hr/leave-policy-form-modal';
 import { LeavePolicyDetailsModal } from '@/components/hr/leave-policy-details-modal';
+import { PermissionGate } from '@/components/permission-gate';
 
 interface LeavePolicy {
     id: number;
@@ -93,10 +94,12 @@ export default function LeavePolicies({ policies }: LeavePoliciesProps) {
                 <div className="space-y-2">
                     <div className="flex items-center justify-between">
                         <h1 className="text-3xl font-bold tracking-tight">Leave Policies</h1>
-                        <Button onClick={handleCreatePolicy}>
-                            <Plus className="h-4 w-4 mr-2" />
-                            Create Policy
-                        </Button>
+                        <PermissionGate permission="hr.leave-policies.create">
+                            <Button onClick={handleCreatePolicy}>
+                                <Plus className="h-4 w-4 mr-2" />
+                                Create Policy
+                            </Button>
+                        </PermissionGate>
                     </div>
                     <p className="text-muted-foreground">
                         Configure and manage organization-wide leave policies
@@ -153,15 +156,17 @@ export default function LeavePolicies({ policies }: LeavePoliciesProps) {
 
                                     {/* Actions */}
                                     <div className="flex gap-2 pt-2">
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            className="flex-1"
-                                            onClick={() => handleEditPolicy(policy)}
-                                        >
-                                            <Edit2 className="h-4 w-4 mr-1" />
-                                            Edit
-                                        </Button>
+                                        <PermissionGate permission="hr.leave-policies.update">
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="flex-1"
+                                                onClick={() => handleEditPolicy(policy)}
+                                            >
+                                                <Edit2 className="h-4 w-4 mr-1" />
+                                                Edit
+                                            </Button>
+                                        </PermissionGate>
                                         <Button
                                             size="sm"
                                             variant="ghost"

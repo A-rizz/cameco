@@ -35,6 +35,11 @@ class DatabaseSeeder extends Seeder
             ]
         );
         
+        // Seed Leave policies first
+        if (class_exists(\Database\Seeders\LeavePolicySeeder::class)) {
+            $this->call(\Database\Seeders\LeavePolicySeeder::class);
+        }
+
         // Seed roles and permissions (Spatie) and assign roles to users
         if (class_exists(\Database\Seeders\RolesAndPermissionsSeeder::class)) {
             $this->call(\Database\Seeders\RolesAndPermissionsSeeder::class);
@@ -83,6 +88,10 @@ class DatabaseSeeder extends Seeder
         // Seed Payroll Officer account
         if (class_exists(\Database\Seeders\PayrollOfficerAccountSeeder::class)) {
             $this->call(\Database\Seeders\PayrollOfficerAccountSeeder::class);
+        }
+
+        if (class_exists(\Database\Seeders\HRStaffAccountSeeder::class)) {
+            $this->call(\Database\Seeders\HRStaffAccountSeeder::class);
         }
 
         if (class_exists(\Database\Seeders\SLASeeder::class)) {
@@ -141,6 +150,11 @@ class DatabaseSeeder extends Seeder
         
         if (class_exists(\Database\Seeders\EmployeeSeeder::class)) {
             $this->call(\Database\Seeders\EmployeeSeeder::class);
+        }
+
+        // Seed Workforce Management data
+        if (class_exists(\Database\Seeders\WorkforceSeeder::class)) {
+            $this->call(\Database\Seeders\WorkforceSeeder::class);
         }
 
     }
