@@ -165,11 +165,18 @@ export function AssignEmployeesModal({ isOpen, onClose, rotation }: AssignEmploy
 
         setIsLoading(true);
         setError(null);
+        
         try {
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            // Use window.Laravel if available, otherwise fallback to meta tag
+            let csrfToken = (window as any).Laravel?.csrfToken;
             
             if (!csrfToken) {
-                throw new Error('CSRF token not found');
+                const csrfTokenMeta = document.head.querySelector<HTMLMetaElement>('meta[name="csrf-token"]');
+                csrfToken = csrfTokenMeta?.content;
+            }
+            
+            if (!csrfToken) {
+                throw new Error('CSRF token not found. Please refresh the page.');
             }
 
             const response = await fetch(`/hr/workforce/rotations/${rotation.id}/check-conflicts`, {
@@ -180,7 +187,7 @@ export function AssignEmployeesModal({ isOpen, onClose, rotation }: AssignEmploy
                     'X-CSRF-TOKEN': csrfToken,
                     'X-Requested-With': 'XMLHttpRequest',
                 },
-                credentials: 'same-origin',
+                credentials: 'include', // Changed from 'same-origin' to 'include'
                 body: JSON.stringify({
                     employee_ids: selectedEmployees,
                     work_schedule_id: selectedScheduleId,
@@ -190,15 +197,29 @@ export function AssignEmployeesModal({ isOpen, onClose, rotation }: AssignEmploy
             });
 
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.message || 'Failed to check conflicts');
+                if (response.status === 419) {
+                    throw new Error('Your session has expired. Please refresh the page and try again.');
+                }
+                
+                let errorMessage = 'Failed to check conflicts';
+                try {
+                    const errorData = await response.json();
+                    errorMessage = errorData.message || errorData.error || errorMessage;
+                    if (errorData.errors) {
+                        errorMessage = Object.values(errorData.errors).flat().join(', ');
+                    }
+                } catch {
+                    errorMessage = `Server error: ${response.status} ${response.statusText}`;
+                }
+                throw new Error(errorMessage);
             }
 
             const data: ConflictCheckResponse = await response.json();
             setConflictData(data);
             setCurrentStep(Step.REVIEW_CONFLICTS);
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to check conflicts');
+            const errorMessage = err instanceof Error ? err.message : 'Failed to check conflicts';
+            setError(errorMessage);
             console.error('Conflict check error:', err);
         } finally {
             setIsLoading(false);
