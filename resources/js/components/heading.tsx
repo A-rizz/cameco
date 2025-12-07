@@ -1,3 +1,8 @@
+<<<<<<< HEAD
+export default function Heading({ children }) {
+  return <h2 className="text-lg font-bold">{children}</h2>;
+}
+=======
 import React from 'react'
 
 interface HeadingProps {
@@ -21,3 +26,4 @@ export const HeadingSmall: React.FC<HeadingSmallProps> = ({ title, description }
 )
 
 export default Heading
+>>>>>>> 95c9da2028ce93e96ed13a2ac81b38c56c93b331
