@@ -168,7 +168,7 @@ export default function AttendanceIndex({
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Attendance" />
 
-            <div className="mb-6">
+            <div className="mb-6 space-y-6 p-6">
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
                     Attendance & Time Logs
                 </h1>
@@ -177,7 +177,7 @@ export default function AttendanceIndex({
                 </p>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-6 p-6">
                 {/* Error Message */}
                 {error && (
                     <Card className="border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-900/10">

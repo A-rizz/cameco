@@ -60,7 +60,7 @@ class AttendanceController extends Controller
             $attendanceSummary = $this->calculateAttendanceSummary($attendanceRecords);
             $rfidPunchHistory = $this->getMockRFIDPunchHistory($employee->id, $startDate, $endDate);
 
-            return Inertia::render('Employee/Attendance', [
+            return Inertia::render('Employee/Attendance/Index', [
                 'employee' => [
                     'id' => $employee->id,
                     'employee_number' => $employee->employee_number,
@@ -83,7 +83,7 @@ class AttendanceController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return Inertia::render('Employee/Attendance', [
+            return Inertia::render('Employee/Attendance/Index', [
                 'employee' => [
                     'id' => $employee->id,
                     'employee_number' => $employee->employee_number,

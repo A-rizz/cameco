@@ -58,7 +58,7 @@ class ProfileController extends Controller
 
         $profile = $employee->profile;
 
-        return Inertia::render('Employee/Profile', [
+        return Inertia::render('Employee/Profile/Index', [
             'employee' => [
                 // Employment Information
                 'employee_number' => $employee->employee_number,

@@ -105,7 +105,7 @@ class LeaveController extends Controller
                 'year' => $currentYear,
             ]);
 
-            return Inertia::render('Employee/LeaveBalances', [
+            return Inertia::render('Employee/Leave/Balances', [
                 'employee' => [
                     'id' => $employee->id,
                     'employee_number' => $employee->employee_number,
@@ -123,7 +123,7 @@ class LeaveController extends Controller
                 'error' => $e->getMessage(),
             ]);
 
-            return Inertia::render('Employee/LeaveBalances', [
+            return Inertia::render('Employee/Leave/Balances', [
                 'employee' => [
                     'id' => $employee->id,
                     'employee_number' => $employee->employee_number,
@@ -210,7 +210,7 @@ class LeaveController extends Controller
                 'filters' => compact('status', 'leaveType', 'year'),
             ]);
 
-            return Inertia::render('Employee/LeaveHistory', [
+            return Inertia::render('Employee/Leave/History', [
                 'employee' => [
                     'id' => $employee->id,
                     'employee_number' => $employee->employee_number,
@@ -232,7 +232,7 @@ class LeaveController extends Controller
                 'error' => $e->getMessage(),
             ]);
 
-            return Inertia::render('Employee/LeaveHistory', [
+            return Inertia::render('Employee/Leave/History', [
                 'employee' => [
                     'id' => $employee->id,
                     'employee_number' => $employee->employee_number,
@@ -302,7 +302,7 @@ class LeaveController extends Controller
                 'employee_id' => $employee->id,
             ]);
 
-            return Inertia::render('Employee/LeaveRequestForm', [
+            return Inertia::render('Employee/Leave/CreateRequest', [
                 'employee' => [
                     'id' => $employee->id,
                     'employee_number' => $employee->employee_number,
@@ -319,7 +319,7 @@ class LeaveController extends Controller
                 'error' => $e->getMessage(),
             ]);
 
-            return Inertia::render('Employee/LeaveRequestForm', [
+            return Inertia::render('Employee/Leave/CreateRequest', [
                 'employee' => [
                     'id' => $employee->id,
                     'employee_number' => $employee->employee_number,

@@ -93,7 +93,7 @@ class NotificationController extends Controller
                 'filters' => compact('type', 'status'),
             ]);
 
-            return Inertia::render('Employee/Notifications', [
+            return Inertia::render('Employee/Notifications/Index', [
                 'employee' => [
                     'id' => $employee->id,
                     'employee_number' => $employee->employee_number,
@@ -114,7 +114,7 @@ class NotificationController extends Controller
                 'error' => $e->getMessage(),
             ]);
 
-            return Inertia::render('Employee/Notifications', [
+            return Inertia::render('Employee/Notifications/Index', [
                 'employee' => [
                     'id' => $employee->id,
                     'employee_number' => $employee->employee_number,

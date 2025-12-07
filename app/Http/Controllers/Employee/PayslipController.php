@@ -53,7 +53,7 @@ class PayslipController extends Controller
             $payslips = $this->getMockPayslips($employee->id, $year);
             $availableYears = $this->getAvailableYears();
 
-            return Inertia::render('Employee/Payslips', [
+            return Inertia::render('Employee/Payslips/Index', [
                 'employee' => [
                     'id' => $employee->id,
                     'employee_number' => $employee->employee_number,
@@ -73,7 +73,7 @@ class PayslipController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return Inertia::render('Employee/Payslips', [
+            return Inertia::render('Employee/Payslips/Index', [
                 'employee' => [
                     'id' => $employee->id,
                     'employee_number' => $employee->employee_number,

@@ -139,7 +139,7 @@ export default function LeaveHistory({
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Leave History" />
 
-            <div className="mb-6">
+            <div className="mb-6 space-y-6 p-6">
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -158,7 +158,7 @@ export default function LeaveHistory({
                 </div>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-6 p-6">
                 {/* Error Message */}
                 {error && (
                     <Card className="border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-900/10">

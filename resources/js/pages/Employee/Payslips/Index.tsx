@@ -121,13 +121,13 @@ export default function PayslipsIndex({
 
     // Calculate year-to-date totals
     const ytdStats = {
-        totalGross: payslips.reduce((sum, p) => sum + p.gross_pay, 0),
-        totalNet: payslips.reduce((sum, p) => sum + p.net_pay, 0),
-        totalDeductions: payslips.reduce((sum, p) => {
-            const deductionsSum = p.deductions.reduce((ds, d) => ds + d.amount, 0);
+        totalGross: payslips?.reduce((sum, p) => sum + (p.gross_pay || 0), 0) || 0,
+        totalNet: payslips?.reduce((sum, p) => sum + (p.net_pay || 0), 0) || 0,
+        totalDeductions: payslips?.reduce((sum, p) => {
+            const deductionsSum = p.deductions?.reduce((ds, d) => ds + (d.amount || 0), 0) || 0;
             return sum + deductionsSum;
-        }, 0),
-        payslipsReleased: payslips.filter(p => p.status === 'released').length,
+        }, 0) || 0,
+        payslipsReleased: payslips?.filter(p => p.status === 'released').length || 0,
     };
 
     const handleViewDetails = (payslip: PayslipRecord) => {
@@ -182,7 +182,7 @@ export default function PayslipsIndex({
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Payslips" />
 
-            <div className="mb-6">
+            <div className="mb-6 space-y-6 p-6">
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
                     Payslips
                 </h1>
@@ -191,7 +191,7 @@ export default function PayslipsIndex({
                 </p>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-6 p-6">
                 {/* Error Message */}
                 {error && (
                     <Card className="border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-900/10">
@@ -282,7 +282,7 @@ export default function PayslipsIndex({
                         </div>
                     </CardHeader>
                     <CardContent>
-                        {payslips.length === 0 ? (
+                        {!payslips || payslips.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-12 text-center">
                                 <DollarSign className="h-12 w-12 text-gray-400" />
                                 <p className="mt-4 text-sm text-gray-600 dark:text-gray-400">
@@ -318,9 +318,9 @@ export default function PayslipsIndex({
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {payslips.map((payslip) => {
-                                            const deductionsTotal = payslip.deductions.reduce((sum, d) => sum + d.amount, 0);
-                                            const StatusIcon = statusConfig[payslip.status].icon;
+                                        {payslips?.map((payslip) => {
+                                            const deductionsTotal = payslip.deductions?.reduce((sum, d) => sum + (d.amount || 0), 0) || 0;
+                                            const StatusIcon = payslip.status && statusConfig[payslip.status] ? statusConfig[payslip.status].icon : TrendingUp;
 
                                             return (
                                                 <tr 
@@ -328,10 +328,16 @@ export default function PayslipsIndex({
                                                     className="border-b border-gray-200 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800/50"
                                                 >
                                                     <td className="px-4 py-3 text-gray-900 dark:text-white">
-                                                        {format(parseISO(payslip.pay_period_start), 'MMM dd')} - {format(parseISO(payslip.pay_period_end), 'MMM dd, yyyy')}
+                                                        {payslip.pay_period_start && payslip.pay_period_end ? (
+                                                            <>
+                                                                {format(parseISO(payslip.pay_period_start), 'MMM dd')} - {format(parseISO(payslip.pay_period_end), 'MMM dd, yyyy')}
+                                                            </>
+                                                        ) : (
+                                                            'N/A'
+                                                        )}
                                                     </td>
                                                     <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
-                                                        {format(parseISO(payslip.pay_date), 'MMM dd, yyyy')}
+                                                        {payslip.pay_date ? format(parseISO(payslip.pay_date), 'MMM dd, yyyy') : 'N/A'}
                                                     </td>
                                                     <td className="px-4 py-3 text-right font-medium text-gray-900 dark:text-white">
                                                         ₱{payslip.gross_pay.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -345,9 +351,11 @@ export default function PayslipsIndex({
                                                     <td className="px-4 py-3 text-center">
                                                         <div className="flex items-center justify-center gap-1">
                                                             <StatusIcon className="h-4 w-4" />
-                                                            <Badge className={statusConfig[payslip.status].color}>
-                                                                {statusConfig[payslip.status].label}
-                                                            </Badge>
+                                                            {payslip.status && statusConfig[payslip.status] && (
+                                                                <Badge className={statusConfig[payslip.status].color}>
+                                                                    {statusConfig[payslip.status].label}
+                                                                </Badge>
+                                                            )}
                                                         </div>
                                                     </td>
                                                     <td className="px-4 py-3">

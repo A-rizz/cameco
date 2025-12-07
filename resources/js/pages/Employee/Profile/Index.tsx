@@ -130,7 +130,7 @@ export default function ProfileIndex({ employee }: ProfileIndexProps) {
         { label: 'Last Name', value: employee.personal_info.last_name },
         { label: 'Suffix', value: employee.personal_info.suffix || 'N/A' },
         { label: 'Date of Birth', value: employee.personal_info.birthdate },
-        { label: 'Age', value: employee.personal_info.age.toString() },
+        { label: 'Age', value: employee.personal_info.age?.toString() || 'N/A' },
         { label: 'Gender', value: employee.personal_info.gender },
         { label: 'Civil Status', value: employee.personal_info.civil_status },
         { label: 'Nationality', value: employee.personal_info.nationality },
@@ -167,7 +167,7 @@ export default function ProfileIndex({ employee }: ProfileIndexProps) {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="My Profile" />
 
-            <div className="space-y-6">
+            <div className="space-y-6 p-6">
                 {/* Page Header */}
                 <div className="flex items-center justify-between">
                     <div>

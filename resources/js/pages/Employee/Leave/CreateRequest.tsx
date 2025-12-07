@@ -97,7 +97,7 @@ export default function CreateRequest({
     const [submitting, setSubmitting] = useState<boolean>(false);
 
     // Selected leave type details
-    const selectedLeaveTypeData = leaveTypes.find(
+    const selectedLeaveTypeData = leaveTypes?.find(
         (lt) => lt.id.toString() === selectedLeaveType
     );
 
@@ -347,7 +347,7 @@ export default function CreateRequest({
                                             <SelectValue placeholder="Select leave type" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {leaveTypes.map((lt) => (
+                                            {leaveTypes?.map((lt) => (
                                                 <SelectItem key={lt.id} value={lt.id.toString()}>
                                                     {lt.name} ({lt.available_balance} days available)
                                                 </SelectItem>
