@@ -24,6 +24,9 @@ class RolesAndPermissionsSeeder extends Seeder
 
         // Phase 8: HR permissions
         $hrPermissions = [
+            // Dashboard
+            'hr.dashboard.view',
+
             // Employee Management
             'hr.employees.view',
             'hr.employees.create',
@@ -36,12 +39,68 @@ class RolesAndPermissionsSeeder extends Seeder
             'hr.departments.create',
             'hr.departments.update',
             'hr.departments.delete',
+            'hr.departments.manage', // HR Manager only - full department management
 
             // Position Management
             'hr.positions.view',
             'hr.positions.create',
             'hr.positions.update',
             'hr.positions.delete',
+            'hr.positions.manage', // HR Manager only - full position management
+
+            // Leave Management
+            'hr.leave-requests.view',
+            'hr.leave-requests.create',
+            'hr.leave-requests.approve',
+            'hr.leave-requests.reject',
+            'hr.leave-policies.view',
+            'hr.leave-policies.create',
+            'hr.leave-policies.update',
+            'hr.leave-policies.manage',
+            'hr.leave-balances.view',
+
+            // Timekeeping
+            'hr.timekeeping.view',
+            'hr.timekeeping.manage',
+            'hr.timekeeping.attendance.view',
+            'hr.timekeeping.attendance.create',
+            'hr.timekeeping.attendance.update',
+            'hr.timekeeping.attendance.delete',
+            'hr.timekeeping.attendance.correct',
+            'hr.timekeeping.overtime.view',
+            'hr.timekeeping.overtime.create',
+            'hr.timekeeping.overtime.update',
+            'hr.timekeeping.overtime.delete',
+            'hr.timekeeping.overtime.approve',
+            'hr.timekeeping.import.view',
+            'hr.timekeeping.import.create',
+            'hr.timekeeping.analytics.view',
+
+            // ATS (Applicant Tracking)
+            'hr.ats.view',
+            'hr.ats.candidates.view',
+            'hr.ats.candidates.create',
+            'hr.ats.candidates.update',
+            'hr.ats.candidates.delete',
+            'hr.ats.applications.view',
+            'hr.ats.applications.update',
+            'hr.ats.interviews.schedule',
+
+            // Workforce Management
+            'hr.workforce.schedules.view',
+            'hr.workforce.schedules.create',
+            'hr.workforce.schedules.update',
+            'hr.workforce.rotations.view',
+            'hr.workforce.rotations.create',
+            'hr.workforce.rotations.update',
+            'hr.workforce.assignments.view',
+            'hr.workforce.assignments.create',
+            'hr.workforce.assignments.update',
+            'hr.workforce.assignments.manage',
+
+            // Appraisals
+            'hr.appraisals.view',
+            'hr.appraisals.conduct',
 
             // Sensitive Data Access
             'hr.employees.view_salary',
@@ -52,7 +111,35 @@ class RolesAndPermissionsSeeder extends Seeder
             'hr.reports.export',
         ];
 
-        $perms = array_values(array_unique(array_merge($basePerms, $hrPermissions)));
+        $timekeepingPermissions = [
+            // Attendance
+            'timekeeping.attendance.view',
+            'timekeeping.attendance.create',
+            'timekeeping.attendance.update',
+            'timekeeping.attendance.delete',
+            'timekeeping.attendance.correct',
+
+            // Overtime
+            'timekeeping.overtime.view',
+            'timekeeping.overtime.create',
+            'timekeeping.overtime.update',
+            'timekeeping.overtime.delete',
+
+            // Import
+            'timekeeping.import.view',
+            'timekeeping.import.create',
+
+            // Analytics
+            'timekeeping.analytics.view',
+        ];
+
+        $atsPermissions = ATSPermissionsSeeder::PERMISSIONS;
+
+        $perms = array_values(
+            array_unique(
+                array_merge($basePerms, $hrPermissions, $timekeepingPermissions, $atsPermissions)
+            )
+        );
 
         foreach ($perms as $p) {
             Permission::firstOrCreate(['name' => $p, 'guard_name' => 'web']);
@@ -63,7 +150,83 @@ class RolesAndPermissionsSeeder extends Seeder
         $superadmin->givePermissionTo(Permission::all()); // Always retains all permissions
 
         $hrManager = Role::firstOrCreate(['name' => 'HR Manager', 'guard_name' => 'web']);
-        // Grant HR Manager all HR permissions (do not revoke existing)
-        $hrManager->givePermissionTo($hrPermissions);
+        // Grant HR Manager all HR permissions plus timekeeping and ATS permissions
+        $hrManager->givePermissionTo(array_merge($hrPermissions, $timekeepingPermissions, $atsPermissions));
+
+        // HR Staff - Operational Support Level
+        $hrStaffPermissions = [
+            // Dashboard
+            'hr.dashboard.view',
+
+            // Employee Management (Full access for production/rolling mill management)
+            'hr.employees.view',
+            'hr.employees.create',
+            'hr.employees.update',
+            'hr.employees.delete', // Can archive employees
+            'hr.employees.view_government_ids', // Can view sensitive government IDs
+
+            // Leave Management
+            'hr.leave-requests.view',
+            'hr.leave-requests.create',
+            'hr.leave-requests.approve', // Initial approval, requires manager confirmation
+            'hr.leave-policies.view', // Read-only access to policies
+            'hr.leave-balances.view', // View leave balances
+
+            // Timekeeping (hr.* prefixed - full access for HR Staff)
+            'hr.timekeeping.view',
+            'hr.timekeeping.manage',
+            'hr.timekeeping.attendance.view',
+            'hr.timekeeping.attendance.create',
+            'hr.timekeeping.attendance.update',
+            'hr.timekeeping.attendance.delete',
+            'hr.timekeeping.attendance.correct',
+            'hr.timekeeping.overtime.view',
+            'hr.timekeeping.overtime.create',
+            'hr.timekeeping.overtime.update',
+            'hr.timekeeping.overtime.delete',
+            'hr.timekeeping.import.view',
+            'hr.timekeeping.import.create',
+            'hr.timekeeping.analytics.view',
+            
+            // Timekeeping (route permissions - backward compatibility)
+            'timekeeping.attendance.view',
+            'timekeeping.attendance.create',
+            'timekeeping.attendance.update',
+            'timekeeping.attendance.correct',
+            'timekeeping.overtime.view',
+            'timekeeping.overtime.create',
+            'timekeeping.overtime.update',
+            'timekeeping.import.view',
+            'timekeeping.import.create',
+            'timekeeping.analytics.view',
+
+            // ATS (Applicant Tracking)
+            'hr.ats.view',
+            'hr.ats.candidates.view',
+            'hr.ats.candidates.create',
+            'hr.ats.applications.view',
+            'hr.ats.interviews.schedule',
+
+            // Workforce Management (Full operational access)
+            'hr.workforce.schedules.view',
+            'hr.workforce.schedules.create',
+            'hr.workforce.schedules.update',
+            'hr.workforce.rotations.view',
+            'hr.workforce.rotations.create',
+            'hr.workforce.rotations.update',
+            'hr.workforce.assignments.view',
+            'hr.workforce.assignments.create',
+            'hr.workforce.assignments.update',
+
+            // Appraisals
+            'hr.appraisals.view',
+            'hr.appraisals.conduct',
+
+            // Reports (Read-only)
+            'hr.reports.view',
+        ];
+
+        $hrStaff = Role::firstOrCreate(['name' => 'HR Staff', 'guard_name' => 'web']);
+        $hrStaff->givePermissionTo($hrStaffPermissions);
     }
 }

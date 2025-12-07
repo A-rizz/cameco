@@ -5,7 +5,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Download, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { LeaveReportsPageProps } from '@/types/hr-pages';
-import Heading, { HeadingSmall } from '@/components/heading';
 
 const breadcrumbs = [
     { title: 'Dashboard', href: '/dashboard' },
@@ -25,8 +24,8 @@ export default function LeaveReports({ summary, by_type, by_status }: LeaveRepor
                 <div className="space-y-2">
                     <div className="flex items-center justify-between">
                         <div>
-                        <Heading title="Leave Reports" />
-                        <HeadingSmall title="Analyze leave request trends and statistics" />
+                            <h1 className="text-3xl font-bold tracking-tight">Leave Reports</h1>
+                            <p className="text-muted-foreground mt-1">Analyze leave request trends and statistics</p>
                         </div>
                         <Button variant="outline">
                             <Download className="h-4 w-4 mr-2" />

@@ -6,6 +6,7 @@ use App\Models\Department;
 use App\Models\Employee;
 use App\Models\Position;
 use App\Models\Profile;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 
 class EmployeeSeeder extends Seeder
@@ -373,12 +374,24 @@ class EmployeeSeeder extends Seeder
 
         $createdEmployees = [];
 
+        // Ensure we have a valid created_by user id (prefer superadmin)
+        $superadminUser = User::where('email', 'superadmin@cameco.com')->first();
+        $createdBy = $superadminUser ? $superadminUser->id : 1;
+
         foreach ($employees as $data) {
+            // Check if employee already exists
+            $existingEmployee = Employee::where('employee_number', $data['employee']['employee_number'])->first();
+            
+            if ($existingEmployee) {
+                $createdEmployees[$data['employee']['employee_number']] = $existingEmployee;
+                continue;
+            }
+
             // Create profile
             $profile = Profile::create($data['profile']);
 
             // Create employee
-            $employeeData = array_merge($data['employee'], ['profile_id' => $profile->id]);
+            $employeeData = array_merge($data['employee'], ['profile_id' => $profile->id, 'created_by' => $createdBy, 'updated_by' => $createdBy]);
             $employee = Employee::create($employeeData);
 
             $createdEmployees[$data['employee']['employee_number']] = $employee;

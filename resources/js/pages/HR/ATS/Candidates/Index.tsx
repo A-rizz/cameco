@@ -15,6 +15,7 @@ import { CandidateTable } from '@/components/ats/candidate-table';
 import { AddCandidateModal, type CandidateFormData } from '@/components/ats/add-candidate-modal';
 import { AddNoteModal } from '@/components/ats/add-note-modal';
 import { CandidateFilters } from '@/components/ats/candidate-filters';
+import { PermissionGate } from '@/components/permission-gate';
 import type { PageProps } from '@inertiajs/core';
 import type { Candidate, CandidateSummary, CandidateFilters as CandidateFiltersType } from '@/types/ats-pages';
 import axios from 'axios';
@@ -195,10 +196,14 @@ const handleAddNoteSubmit = async (noteData: { note: string; is_private: boolean
               Manage your candidates and track their application progress
             </p>
           </div>
-          <Button className="gap-2" onClick={handleAddCandidateClick}>
-            <Plus className="h-4 w-4" />
-            Add Candidate
-          </Button>
+          <PermissionGate permission="hr.ats.candidates.create">
+            <div>
+              <Button className="gap-2" onClick={handleAddCandidateClick}>
+                <Plus className="h-4 w-4" />
+                Add Candidate
+              </Button>
+            </div>
+          </PermissionGate>
         </div>
 
         {/* Statistics Cards */}

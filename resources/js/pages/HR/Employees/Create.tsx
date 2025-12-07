@@ -2,7 +2,8 @@ import AppLayout from '@/layouts/app-layout';
 import { Head, Link, router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Save } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { usePermission } from '@/components/permission-gate';
 import axios from 'axios';
 import { 
     PersonalInfoSection, 
@@ -59,6 +60,19 @@ type EmployeeFormData = PersonalInfoData & EmploymentInfoData & EmergencyContact
 // ============================================================================
 
 export default function CreateEmployee({ departments = [], positions = [], supervisors = [] }: CreateEmployeeProps) {
+    const { hasPermission } = usePermission();
+    
+    // Redirect if user doesn't have create permission
+    useEffect(() => {
+        if (!hasPermission('hr.employees.create')) {
+            router.visit('/hr/employees', {
+                onError: () => {
+                    console.error('Access denied: Missing hr.employees.create permission');
+                }
+            });
+        }
+    }, [hasPermission]);
+    
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errors, setErrors] = useState<Partial<Record<keyof EmployeeFormData, string>>>({});
 

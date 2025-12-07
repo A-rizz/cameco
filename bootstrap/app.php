@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureHRAccess;
 use App\Http\Middleware\EnsureHRManager;
 use App\Http\Middleware\EnsureSuperadmin;
 use App\Http\Middleware\HandleAppearance;
@@ -34,6 +35,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'superadmin' => EnsureSuperadmin::class,
             'hr.manager' => EnsureHRManager::class,
+            'hr.access' => EnsureHRAccess::class,
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
         ]);
