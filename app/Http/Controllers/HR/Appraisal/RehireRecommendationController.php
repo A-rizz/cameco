@@ -109,6 +109,12 @@ class RehireRecommendationController extends Controller
             'violation_count' => $recommendation['violation_count'],
         ];
 
+        // Mock violation logs based on violation count
+        $violations = $this->getMockViolations($recommendation['violation_count'], $recommendation['employee_name']);
+
+        // Add violations to recommendation
+        $recommendation['violations'] = $violations;
+
         // Mock override history
         $overrideHistory = $recommendation['is_overridden'] ? [[
             'id' => 1,
@@ -154,6 +160,76 @@ class RehireRecommendationController extends Controller
         if ($attendanceRate >= 90) return rand(2, 5);
         if ($attendanceRate >= 85) return rand(5, 10);
         return rand(10, 20);
+    }
+
+    /**
+     * Generate mock violations based on count
+     */
+    private function getMockViolations($count, $employeeName)
+    {
+        if ($count === 0) {
+            return [];
+        }
+
+        $violationTypes = [
+            [
+                'type' => 'Unauthorized Absence',
+                'description' => 'Employee failed to report to work without prior notice or approval for 2 consecutive days.',
+                'severity' => 'high',
+            ],
+            [
+                'type' => 'Late Clock-in',
+                'description' => 'Employee clocked in 45 minutes late without valid reason or prior notification.',
+                'severity' => 'medium',
+            ],
+            [
+                'type' => 'Early Departure',
+                'description' => 'Left workplace 30 minutes before scheduled end time without supervisor approval.',
+                'severity' => 'medium',
+            ],
+            [
+                'type' => 'Dress Code Violation',
+                'description' => 'Failed to comply with company dress code policy during client meeting.',
+                'severity' => 'low',
+            ],
+            [
+                'type' => 'Insubordination',
+                'description' => 'Refused to follow direct instructions from immediate supervisor regarding project deadline.',
+                'severity' => 'high',
+            ],
+            [
+                'type' => 'Policy Non-Compliance',
+                'description' => 'Did not follow proper documentation procedures as outlined in company handbook.',
+                'severity' => 'medium',
+            ],
+            [
+                'type' => 'Workplace Misconduct',
+                'description' => 'Engaged in unprofessional behavior during team meeting, creating hostile work environment.',
+                'severity' => 'high',
+            ],
+        ];
+
+        $violations = [];
+        $dates = [
+            '2025-10-15 09:30:00',
+            '2025-09-22 14:15:00',
+            '2025-08-10 11:00:00',
+            '2025-07-05 16:45:00',
+            '2025-06-18 08:20:00',
+        ];
+
+        for ($i = 0; $i < min($count, 5); $i++) {
+            $violation = $violationTypes[$i % count($violationTypes)];
+            $violations[] = [
+                'id' => $i + 1,
+                'type' => $violation['type'],
+                'description' => $violation['description'],
+                'severity' => $violation['severity'],
+                'occurred_at' => $dates[$i] ?? date('Y-m-d H:i:s', strtotime("-{$i} months")),
+            ];
+        }
+
+        return $violations;
     }
 
     /**
