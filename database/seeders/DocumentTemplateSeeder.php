@@ -16,9 +16,9 @@ class DocumentTemplateSeeder extends Seeder
     public function run()
     {
         // Get or create a system admin user for document templates
-        $adminUser = User::where('role', 'admin')
-            ->orWhere('email', 'admin@syncingsteel.com')
-            ->first() ?? User::where('email', 'like', '%@%')->first();
+        $adminUser = User::whereHas('roles', function ($q) {
+            $q->where('name', 'admin');
+        })->first() ?? User::where('email', 'admin@syncingsteel.com')->first() ?? User::first();
 
         if (!$adminUser) {
             $this->command->warn('No admin user found. Seeders will fail. Create an admin user first.');
