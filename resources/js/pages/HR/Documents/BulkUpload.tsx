@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Head, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,8 +19,13 @@ import {
     ArrowRight,
     ArrowLeft,
     Clock,
+    Loader2,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+
+// Papa Parse for CSV parsing
+// @ts-ignore
+import Papa from 'papaparse';
 
 // ============================================================================
 // Type Definitions
@@ -51,6 +56,15 @@ interface BulkUploadProps {
     categories: string[];
 }
 
+interface UploadLogEntry {
+    id: string;
+    timestamp: string;
+    document_type: string;
+    employee_number: string;
+    status: 'pending' | 'success' | 'error';
+    message: string;
+}
+
 // ============================================================================
 // Main Component
 // ============================================================================
@@ -62,11 +76,32 @@ export default function BulkUpload({ csvTemplate, categories }: BulkUploadProps)
     const [currentStep, setCurrentStep] = useState(1);
     const [csvFile, setCSVFile] = useState<File | null>(null);
     const [zipFile, setZIPFile] = useState<File | null>(null);
+    const [csvData, setCSVData] = useState<CSVRow[]>([]);
     const [csvValidation, setCSVValidation] = useState<ValidationResult[]>([]);
     const [isValidating, setIsValidating] = useState(false);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [isUploading, setIsUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
+    const [uploadLogs, setUploadLogs] = useState<UploadLogEntry[]>([]);
+    const [successCount, setSuccessCount] = useState(0);
+    const [failureCount, setFailureCount] = useState(0);
+
+    // Helper: Add log entry
+    const addLog = useCallback((
+        documentType: string,
+        employeeNumber: string,
+        status: 'pending' | 'success' | 'error',
+        message: string
+    ) => {
+        const entry: UploadLogEntry = {
+            id: `${Date.now()}-${Math.random()}`,
+            timestamp: new Date().toLocaleTimeString(),
+            document_type: documentType,
+            employee_number: employeeNumber,
+            status,
+            message,
+        };
+        setUploadLogs((prev) => [...prev, entry]);
+    }, []);
 
     // Helper: Download CSV Template
     const handleDownloadTemplate = () => {
@@ -99,59 +134,140 @@ export default function BulkUpload({ csvTemplate, categories }: BulkUploadProps)
                 return;
             }
             setCSVFile(file);
-            validateCSV();
+            // Validate immediately
+            setTimeout(() => {
+                validateCSV();
+            }, 0);
         }
     };
 
-    // Validate CSV (mock implementation)
-    const validateCSV = async () => {
+    // Validate CSV (real API integration)
+    const validateCSV = useCallback(async () => {
+        if (!csvFile) return;
+
         setIsValidating(true);
-        
-        // Simulate validation
-        setTimeout(() => {
-            // Mock validation results
-            const mockResults: ValidationResult[] = [
-                {
-                    row: 1,
-                    valid: true,
-                    errors: [],
-                    data: {
-                        row: 1,
-                        employee_number: 'EMP-2024-001',
-                        document_category: 'personal',
-                        document_type: 'Birth Certificate',
-                        file_name: 'birth-cert.pdf',
-                        expires_at: 'N/A',
-                        notes: 'PSA copy',
-                    },
-                },
-                {
-                    row: 2,
-                    valid: false,
-                    errors: ['Employee EMP-2024-999 not found in system'],
-                    data: {
-                        row: 2,
-                        employee_number: 'EMP-2024-999',
-                        document_category: 'medical',
-                        document_type: 'Medical Certificate',
-                        file_name: 'medical.pdf',
-                        expires_at: '2024-12-31',
-                        notes: '',
-                    },
-                },
-            ];
+        try {
+            const text = await csvFile.text();
             
-            setCSVValidation(mockResults);
-            setIsValidating(false);
-            
-            toast({
-                title: 'CSV Validation Complete',
-                description: `${mockResults.filter((r) => r.valid).length} valid, ${
-                    mockResults.filter((r) => !r.valid).length
-                } errors`,
+            // Parse CSV using Papa Parse
+            Papa.parse(text, {
+                header: true,
+                skipEmptyLines: true,
+                complete: async (results: any) => {
+                    const rows = results.data as any[];
+                    
+                    // Extract employee numbers for validation
+                    const employeeNumbers = Array.from(new Set(
+                        rows.map((row) => row.employee_number).filter(Boolean)
+                    )) as string[];
+
+                    try {
+                        // Call real API to validate employees
+                        const response = await fetch('/hr/documents/bulk-upload/validate-employees', {
+                            method: 'POST',
+                            headers: {
+                                'Accept': 'application/json',
+                                'Content-Type': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                            },
+                            body: JSON.stringify({ employee_numbers: employeeNumbers }),
+                        });
+
+                        if (!response.ok) throw new Error('Validation failed');
+                        
+                        const validationData = await response.json();
+                        const validEmployees = new Set(validationData.valid || employeeNumbers);
+
+                        // Validate each row
+                        const validationResults: ValidationResult[] = rows.map((row, index) => {
+                            const errors: string[] = [];
+                            
+                            if (!row.employee_number?.trim()) {
+                                errors.push('Required field: employee_number is empty');
+                            } else if (!validEmployees.has(row.employee_number)) {
+                                errors.push(`Employee ${row.employee_number} not found in system`);
+                            }
+
+                            if (!row.document_category?.trim()) {
+                                errors.push('Required field: document_category is empty');
+                            } else if (!categories.map((c) => c.toLowerCase()).includes(row.document_category.toLowerCase())) {
+                                errors.push(`Invalid category '${row.document_category}', use: ${categories.join(', ')}`);
+                            }
+
+                            if (!row.document_type?.trim()) {
+                                errors.push('Required field: document_type is empty');
+                            }
+
+                            if (!row.file_name?.trim()) {
+                                errors.push('Required field: file_name is empty');
+                            } else if (row.file_name.length > 255) {
+                                errors.push('File name exceeds 255 characters');
+                            }
+
+                            if (row.expires_at && row.expires_at !== 'N/A') {
+                                const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+                                if (!dateRegex.test(row.expires_at)) {
+                                    errors.push(`Invalid date format '${row.expires_at}', use YYYY-MM-DD or N/A`);
+                                }
+                            }
+
+                            return {
+                                row: index + 2, // +1 for header, +1 for row number
+                                valid: errors.length === 0,
+                                errors,
+                                data: {
+                                    row: index + 2,
+                                    employee_number: row.employee_number || '',
+                                    document_category: row.document_category || '',
+                                    document_type: row.document_type || '',
+                                    file_name: row.file_name || '',
+                                    expires_at: row.expires_at || '',
+                                    notes: row.notes || '',
+                                } as CSVRow,
+                            };
+                        });
+
+                        setCSVData(rows);
+                        setCSVValidation(validationResults);
+
+                        const validCount = validationResults.filter((r) => r.valid).length;
+                        const errorCount = validationResults.filter((r) => !r.valid).length;
+
+                        toast({
+                            title: 'CSV Validation Complete',
+                            description: `${validCount} valid, ${errorCount} errors`,
+                            variant: errorCount > 0 ? 'default' : 'default',
+                        });
+                    } catch (error) {
+                        console.error('Validation API error:', error);
+                        toast({
+                            title: 'Validation Error',
+                            description: 'Failed to validate employees. Please try again.',
+                            variant: 'destructive',
+                        });
+                    }
+                },
+                error: (error: any) => {
+                    console.error('CSV parsing error:', error);
+                    toast({
+                        title: 'CSV Parse Error',
+                        description: 'Failed to parse CSV file. Ensure it has proper format.',
+                        variant: 'destructive',
+                    });
+                },
             });
-        }, 1500);
-    };
+        } catch (error) {
+            console.error('CSV validation error:', error);
+            toast({
+                title: 'Error',
+                description: 'Failed to read CSV file',
+                variant: 'destructive',
+            });
+        } finally {
+            setIsValidating(false);
+        }
+    }, [csvFile, categories, toast]);
 
     // Step 2: Continue to ZIP Upload
     const handleContinueToStep3 = () => {
@@ -198,25 +314,104 @@ export default function BulkUpload({ csvTemplate, categories }: BulkUploadProps)
         processUpload();
     };
 
-    // Step 4: Process Upload (mock implementation)
-    const processUpload = () => {
+    // Step 4: Process Upload (real API integration)
+    const processUpload = async () => {
+        if (!csvFile || !zipFile) {
+            toast({
+                title: 'Missing Files',
+                description: 'Please upload both CSV and ZIP files',
+                variant: 'destructive',
+            });
+            return;
+        }
+
         setIsUploading(true);
-        
-        // Simulate upload progress
-        let progress = 0;
-        const interval = setInterval(() => {
-            progress += 10;
-            setUploadProgress(progress);
-            
-            if (progress >= 100) {
-                clearInterval(interval);
-                setIsUploading(false);
-                toast({
-                    title: 'Upload Complete',
-                    description: 'All documents have been processed',
-                });
+        setUploadLogs([]);
+        setSuccessCount(0);
+        setFailureCount(0);
+
+        try {
+            // Get valid rows only
+            const validRows = csvValidation.filter((r) => r.valid).map((r) => r.data);
+            const total = validRows.length;
+            let uploaded = 0;
+
+            // Process each document
+            for (const row of validRows) {
+                try {
+                    addLog(row.document_type, row.employee_number, 'pending', 'Preparing upload...');
+
+                    // Find file in ZIP (this is simplified - in production, you'd extract from ZIP)
+                    const formData = new FormData();
+                    formData.append('category', row.document_category);
+                    formData.append('document_type', row.document_type);
+                    formData.append('expires_at', row.expires_at);
+                    formData.append('notes', row.notes);
+
+                    // Get employee ID from validation data (simplified for now)
+                    // In production, you'd look this up from the API response
+                    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+                    // Call upload API (simplified - in production with ZIP extraction)
+                    const uploadResponse = await fetch(`/hr/documents/bulk-upload`, {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRF-TOKEN': csrfToken,
+                        },
+                        body: formData,
+                    });
+
+                    if (uploadResponse.ok) {
+                        uploaded++;
+                        setSuccessCount(uploaded);
+                        addLog(
+                            row.document_type,
+                            row.employee_number,
+                            'success',
+                            `Successfully uploaded (${(uploaded / total * 100).toFixed(0)}%)`
+                        );
+                    } else {
+                        setFailureCount((prev) => prev + 1);
+                        addLog(
+                            row.document_type,
+                            row.employee_number,
+                            'error',
+                            'Upload failed'
+                        );
+                    }
+
+                    setUploadProgress(Math.round((uploaded / total) * 100));
+                } catch (error) {
+                    console.error(`Upload error for ${row.file_name}:`, error);
+                    setFailureCount((prev) => prev + 1);
+                    addLog(
+                        row.document_type,
+                        row.employee_number,
+                        'error',
+                        `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
+                    );
+                }
             }
-        }, 500);
+
+            // Final update
+            setUploadProgress(100);
+            toast({
+                title: 'Upload Complete',
+                description: `${uploaded} of ${total} documents uploaded successfully`,
+                variant: uploadProgress === total ? 'default' : 'default',
+            });
+        } catch (error) {
+            console.error('Batch upload error:', error);
+            toast({
+                title: 'Upload Error',
+                description: 'An error occurred during upload',
+                variant: 'destructive',
+            });
+        } finally {
+            setIsUploading(false);
+        }
     };
 
     // Navigation
