@@ -27,6 +27,7 @@ use App\Http\Controllers\HR\Appraisal\AppraisalCycleController;
 use App\Http\Controllers\HR\Appraisal\AppraisalController;
 use App\Http\Controllers\HR\Appraisal\PerformanceMetricsController;
 use App\Http\Controllers\HR\Appraisal\RehireRecommendationController;
+use App\Http\Controllers\HR\Employee\EmployeeDocumentController;
 use App\Http\Middleware\EnsureHRAccess;
 // use App\Http\Middleware\EnsureProfileComplete; for future useronboarding workflow
 
@@ -49,6 +50,38 @@ Route::middleware(['auth', 'verified' , EnsureHRAccess::class])
         // Employee Management
         Route::resource('employees', EmployeeController::class);
         Route::post('/employees/{id}/restore', [EmployeeController::class, 'restore'])->name('employees.restore');
+
+        // Employee-Specific Document API Routes (for Employee Profile → Documents Tab)
+        // These routes are scoped to a single employee context
+        Route::prefix('api/hr/employees/{employeeId}/documents')->name('api.employees.documents.')->group(function () {
+            Route::get('/', [EmployeeDocumentController::class, 'index'])
+                ->middleware('permission:hr.documents.view')
+                ->name('index');
+            
+            Route::post('/', [EmployeeDocumentController::class, 'store'])
+                ->middleware('permission:hr.documents.upload')
+                ->name('store');
+            
+            Route::get('/{documentId}', [EmployeeDocumentController::class, 'show'])
+                ->middleware('permission:hr.documents.view')
+                ->name('show');
+            
+            Route::put('/{documentId}/approve', [EmployeeDocumentController::class, 'approve'])
+                ->middleware('permission:hr.documents.approve')
+                ->name('approve');
+            
+            Route::put('/{documentId}/reject', [EmployeeDocumentController::class, 'reject'])
+                ->middleware('permission:hr.documents.reject')
+                ->name('reject');
+            
+            Route::delete('/{documentId}', [EmployeeDocumentController::class, 'destroy'])
+                ->middleware('permission:hr.documents.delete')
+                ->name('destroy');
+            
+            Route::get('/{documentId}/download', [EmployeeDocumentController::class, 'download'])
+                ->middleware('permission:hr.documents.download')
+                ->name('download');
+        });
 
         // Department Management
         Route::get('/departments', [DepartmentController::class, 'index'])->name('departments.index');
