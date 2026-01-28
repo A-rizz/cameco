@@ -542,39 +542,100 @@ class DocumentTemplateController extends Controller
         $escapedTitle = str_replace(['(', ')', '\\'], ['\\(', '\\)', '\\\\'], $title);
         $escapedContent = str_replace(['(', ')', '\\', "\r"], ['\\(', '\\)', '\\\\', ''], $content);
         
-        // Split content into lines that fit on the page (approximately 80 chars per line)
-        $lines = explode("\n", wordwrap($escapedContent, 80, "\n", true));
+        // Parse content for better formatting
+        $lines = explode("\n", $escapedContent);
         
-        // Build the text drawing commands
-        $textCommands = "BT\n/F1 16 Tf\n50 750 Td\n($escapedTitle) Tj\n";
-        $textCommands .= "0 -30 TD\n"; // Move down from title
-        $textCommands .= "/F1 10 Tf\n";
+        // Build the text drawing commands with professional layout
+        $textCommands = "BT\n";
         
-        foreach ($lines as $index => $line) {
-            if ($index > 60) break; // Limit to ~60 lines per page for simplicity
+        // Title - Centered and Bold (using larger font)
+        $textCommands .= "/F2 18 Tf\n";  // Bold font, 18pt
+        $titleWidth = strlen($escapedTitle) * 5.5; // Approximate width
+        $titleX = (612 - $titleWidth) / 2; // Center on page (612 = page width)
+        $textCommands .= "$titleX 750 Td\n($escapedTitle) Tj\n";
+        
+        // Horizontal line under title
+        $textCommands .= "ET\n";
+        $textCommands .= "0.5 w\n50 735 m 562 735 l S\n"; // Draw line
+        $textCommands .= "BT\n";
+        
+        // Content area - start below the line
+        $textCommands .= "70 710 Td\n";  // Left margin 70, start at 710
+        $textCommands .= "/F1 10 Tf\n";  // Regular font, 10pt
+        
+        $currentLine = 0;
+        $maxLines = 55; // Limit lines per page
+        
+        foreach ($lines as $line) {
+            if ($currentLine >= $maxLines) break;
+            
             $line = trim($line);
-            if (!empty($line)) {
-                $textCommands .= "($line) Tj\n0 -14 TD\n"; // Print line and move down
+            
+            // Skip the template header lines (=== ... ===)
+            if (strpos($line, '===') !== false) {
+                continue;
+            }
+            
+            // Check for section headers (lines ending with colon or all caps)
+            $isHeader = (substr($line, -1) === ':' && strlen($line) < 50) || 
+                        (strtoupper($line) === $line && strlen($line) > 0 && strlen($line) < 50 && !is_numeric($line));
+            
+            if ($isHeader && !empty($line)) {
+                // Section header - Bold and slightly larger
+                $textCommands .= "ET\nBT\n70 " . (710 - ($currentLine * 14)) . " Td\n/F2 11 Tf\n($line) Tj\n";
+                $currentLine++;
+                $textCommands .= "0 -18 TD\n"; // Extra space after header
+                $currentLine++;
+            } elseif (!empty($line)) {
+                // Regular content
+                // Add indentation for numbered items
+                if (preg_match('/^\d+\./', $line)) {
+                    $textCommands .= "ET\nBT\n85 " . (710 - ($currentLine * 14)) . " Td\n/F1 10 Tf\n($line) Tj\n";
+                } else {
+                    $textCommands .= "ET\nBT\n70 " . (710 - ($currentLine * 14)) . " Td\n/F1 10 Tf\n($line) Tj\n";
+                }
+                $currentLine++;
+                $textCommands .= "0 -14 TD\n";
             } else {
-                $textCommands .= "0 -14 TD\n"; // Empty line spacing
+                // Empty line - add spacing
+                $textCommands .= "0 -10 TD\n";
+                $currentLine += 0.7;
             }
         }
+        
+        // Add signature section at the bottom if space available
+        if ($currentLine < $maxLines - 8) {
+            $signatureY = 710 - ($currentLine * 14) - 30;
+            $textCommands .= "ET\nBT\n70 $signatureY Td\n/F1 10 Tf\n";
+            $textCommands .= "(___________________________) Tj\n0 -14 TD\n";
+            $textCommands .= "(Employee Signature over Printed Name) Tj\n0 -30 TD\n";
+            $textCommands .= "(___________________________) Tj\n0 -14 TD\n";
+            $textCommands .= "(Date) Tj\n";
+            
+            $textCommands .= "ET\nBT\n350 $signatureY Td\n/F1 10 Tf\n";
+            $textCommands .= "(___________________________) Tj\n0 -14 TD\n";
+            $textCommands .= "(Employer Representative) Tj\n0 -30 TD\n";
+            $textCommands .= "(___________________________) Tj\n0 -14 TD\n";
+            $textCommands .= "(Date) Tj\n";
+        }
+        
         $textCommands .= "ET\n";
         
         // Calculate content stream length
         $streamLength = strlen($textCommands);
         
-        // Build PDF structure
+        // Build PDF structure with both regular and bold fonts
         $pdf = "%PDF-1.4\n";
         $pdf .= "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n";
         $pdf .= "2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n";
-        $pdf .= "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R >> >> /MediaBox [0 0 612 792] /Contents 5 0 R >>\nendobj\n";
+        $pdf .= "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /MediaBox [0 0 612 792] /Contents 6 0 R >>\nendobj\n";
         $pdf .= "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n";
-        $pdf .= "5 0 obj\n<< /Length $streamLength >>\nstream\n";
+        $pdf .= "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>\nendobj\n";
+        $pdf .= "6 0 obj\n<< /Length $streamLength >>\nstream\n";
         $pdf .= $textCommands;
         $pdf .= "endstream\nendobj\n";
-        $pdf .= "xref\n0 6\n0000000000 65535 f \n0000000009 00000 n \n0000000058 00000 n \n0000000115 00000 n \n0000000247 00000 n \n0000000333 00000 n \n";
-        $pdf .= "trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n" . (strlen($pdf) + 100) . "\n%%EOF\n";
+        $pdf .= "xref\n0 7\n0000000000 65535 f \n0000000009 00000 n \n0000000058 00000 n \n0000000115 00000 n \n0000000270 00000 n \n0000000356 00000 n \n0000000447 00000 n \n";
+        $pdf .= "trailer\n<< /Size 7 /Root 1 0 R >>\nstartxref\n" . (strlen($pdf) + 100) . "\n%%EOF\n";
 
         return $pdf;
     }
