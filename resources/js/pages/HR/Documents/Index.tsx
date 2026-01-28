@@ -43,12 +43,7 @@ import { DocumentUploadModal } from '@/components/hr/document-upload-modal';
 import { DocumentViewModal } from '@/components/hr/document-view-modal';
 import { DocumentApprovalModal } from '@/components/hr/document-approval-modal';
 import { DocumentRejectionModal } from '@/components/hr/document-rejection-modal';
-
-// Helper function to get CSRF token
-function getCsrfToken(): string {
-    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-    return token || '';
-}
+import { DocumentDeleteModal } from '@/components/hr/document-delete-modal';
 
 // ============================================================================
 // Type Definitions
@@ -205,6 +200,7 @@ export default function DocumentsIndex({
     const [selectedDocumentName, setSelectedDocumentName] = useState<string>('');
     const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
     const [isRejectionModalOpen, setIsRejectionModalOpen] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
     // Hooks
     const { toast } = useToast();
@@ -351,44 +347,10 @@ export default function DocumentsIndex({
         setIsRejectionModalOpen(true);
     };
 
-    const handleDelete = async (documentId: number) => {
-        if (!confirm('Are you sure you want to delete this document? This action cannot be undone.')) {
-            return;
-        }
-
-        try {
-            const response = await fetch(`/hr/documents/${documentId}`, {
-                method: 'DELETE',
-                headers: {
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': getCsrfToken(),
-                },
-            });
-
-            if (response.ok) {
-                toast({
-                    title: 'Success',
-                    description: 'Document deleted successfully.',
-                });
-                // Refresh the documents list
-                router.get(window.location.href, {}, { preserveState: false });
-            } else {
-                const data = await response.json();
-                toast({
-                    title: 'Error',
-                    description: data.message || 'Failed to delete document.',
-                    variant: 'destructive',
-                });
-            }
-        } catch (error) {
-            console.error('Error deleting document:', error);
-            toast({
-                title: 'Error',
-                description: 'An unexpected error occurred.',
-                variant: 'destructive',
-            });
-        }
+    const handleDelete = (documentId: number, documentName: string) => {
+        setSelectedDocumentId(documentId);
+        setSelectedDocumentName(documentName);
+        setIsDeleteModalOpen(true);
     };
 
     const handleActionSuccess = () => {
@@ -766,7 +728,7 @@ export default function DocumentsIndex({
                                                                 <>
                                                                     <DropdownMenuSeparator />
                                                                     <DropdownMenuItem
-                                                                        onClick={() => handleDelete(doc.id)}
+                                                                        onClick={() => handleDelete(doc.id, doc.file_name)}
                                                                         className="text-red-600"
                                                                     >
                                                                         <Trash2 className="h-4 w-4 mr-2" />
@@ -818,6 +780,15 @@ export default function DocumentsIndex({
             <DocumentRejectionModal
                 open={isRejectionModalOpen}
                 onClose={() => setIsRejectionModalOpen(false)}
+                documentId={selectedDocumentId}
+                documentName={selectedDocumentName}
+                onSuccess={handleActionSuccess}
+            />
+
+            {/* Document Delete Modal */}
+            <DocumentDeleteModal
+                open={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
                 documentId={selectedDocumentId}
                 documentName={selectedDocumentName}
                 onSuccess={handleActionSuccess}
