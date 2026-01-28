@@ -80,6 +80,11 @@ class DatabaseSeeder extends Seeder
             $this->call(\Database\Seeders\WorkforceManagementPermissionsSeeder::class);
         }
 
+        // Seed Document Management permissions
+        if (class_exists(\Database\Seeders\DocumentManagementPermissionsSeeder::class)) {
+            $this->call(\Database\Seeders\DocumentManagementPermissionsSeeder::class);
+        }
+
         // Seed Payroll permissions
         if (class_exists(\Database\Seeders\PayrollPermissionsSeeder::class)) {
             $this->call(\Database\Seeders\PayrollPermissionsSeeder::class);
