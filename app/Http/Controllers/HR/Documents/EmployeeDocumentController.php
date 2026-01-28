@@ -272,24 +272,10 @@ class EmployeeDocumentController extends Controller
      */
     public function show(int $id)
     {
-        // TODO: Implement document retrieval when EmployeeDocument model is created (Phase 4)
-        // For now, return mock data structure
-        
-        $document = [
-            'id' => $id,
-            'employee_id' => 1,
-            'employee_name' => 'Mock Employee',
-            'document_category' => 'personal',
-            'document_type' => 'Birth Certificate',
-            'file_name' => 'birth_certificate.pdf',
-            'file_size' => 1024000,
-            'file_path' => null,
-            'status' => 'pending',
-            'uploaded_by' => auth()->user()->name,
-            'uploaded_at' => now()->toDateTimeString(),
-            'expires_at' => null,
-            'notes' => 'Mock document for frontend development',
-        ];
+        $document = \App\Models\EmployeeDocument::with([
+            'employee.profile:id,first_name,last_name',
+            'uploadedBy:id,name'
+        ])->findOrFail($id);
 
         // Log security audit
         $this->logAudit(
@@ -300,8 +286,27 @@ class EmployeeDocumentController extends Controller
             ]
         );
 
-        return Inertia::render('HR/Documents/Show', [
-            'document' => $document,
+        // Transform document for response
+        return response()->json([
+            'document' => [
+                'id' => $document->id,
+                'employee_id' => $document->employee_id,
+                'employee_name' => $document->employee->profile 
+                    ? $document->employee->profile->first_name . ' ' . $document->employee->profile->last_name
+                    : 'Unknown Employee',
+                'employee_number' => $document->employee->employee_number ?? 'N/A',
+                'document_category' => $document->document_category,
+                'document_type' => $document->document_type,
+                'file_name' => $document->file_name,
+                'file_size' => $document->file_size,
+                'file_path' => $document->file_path,
+                'status' => $document->status,
+                'uploaded_by' => $document->uploadedBy->name ?? 'Unknown',
+                'uploaded_at' => $document->uploaded_at->toDateTimeString(),
+                'expires_at' => $document->expires_at?->toDateString(),
+                'notes' => $document->notes,
+                'mime_type' => $document->mime_type,
+            ]
         ]);
     }
 
@@ -313,13 +318,20 @@ class EmployeeDocumentController extends Controller
      */
     public function download(int $id)
     {
-        // TODO: Implement document download when EmployeeDocument model is created (Phase 4)
-        // For now, log the action and return error
-        
-        \Log::info('Document download requested', [
-            'document_id' => $id,
-            'user_id' => auth()->id(),
-        ]);
+        $document = \App\Models\EmployeeDocument::findOrFail($id);
+
+        // Check if file exists
+        $disk = \Illuminate\Support\Facades\Storage::disk('employee_documents');
+        if (!$disk->exists($document->file_path)) {
+            \Log::error('Document file not found', [
+                'document_id' => $id,
+                'file_path' => $document->file_path,
+            ]);
+
+            return response()->json([
+                'error' => 'Document file not found.',
+            ], 404);
+        }
 
         // Log security audit
         $this->logAudit(
@@ -327,12 +339,12 @@ class EmployeeDocumentController extends Controller
             severity: 'info',
             details: [
                 'document_id' => $id,
+                'file_name' => $document->file_name,
             ]
         );
 
-        return response()->json([
-            'error' => 'Document download not yet implemented.'
-        ], 501);
+        // Stream the file as download
+        return $disk->download($document->file_path, $document->file_name);
     }
 
     /**
@@ -340,19 +352,18 @@ class EmployeeDocumentController extends Controller
      * 
      * @param ApproveDocumentRequest $request
      * @param int $id
-     * @return \Illuminate\Http\RedirectResponse
+     * @return \Illuminate\Http\JsonResponse
      */
     public function approve(ApproveDocumentRequest $request, int $id)
     {
         $validated = $request->validated();
-
-        // TODO: Implement document approval when EmployeeDocument model is created (Phase 4)
-        // For now, log the action
         
-        \Log::info('Document approval request received', [
-            'document_id' => $id,
-            'approved_by' => auth()->id(),
-            'notes' => $validated['notes'] ?? null,
+        $document = \App\Models\EmployeeDocument::findOrFail($id);
+        
+        // Update document status
+        $document->update([
+            'status' => 'approved',
+            'notes' => $validated['notes'] ?? $document->notes,
         ]);
 
         // Log security audit
@@ -361,11 +372,15 @@ class EmployeeDocumentController extends Controller
             severity: 'info',
             details: [
                 'document_id' => $id,
+                'file_name' => $document->file_name,
                 'notes' => $validated['notes'] ?? null,
             ]
         );
 
-        return back()->with('success', 'Document approved successfully. (Database implementation pending - Phase 4)');
+        return response()->json([
+            'message' => 'Document approved successfully.',
+            'document' => $document,
+        ], 200);
     }
 
     /**
@@ -373,19 +388,18 @@ class EmployeeDocumentController extends Controller
      * 
      * @param RejectDocumentRequest $request
      * @param int $id
-     * @return \Illuminate\Http\RedirectResponse
+     * @return \Illuminate\Http\JsonResponse
      */
     public function reject(RejectDocumentRequest $request, int $id)
     {
         $validated = $request->validated();
-
-        // TODO: Implement document rejection when EmployeeDocument model is created (Phase 4)
-        // For now, log the action
         
-        \Log::info('Document rejection request received', [
-            'document_id' => $id,
-            'rejected_by' => auth()->id(),
-            'rejection_reason' => $validated['rejection_reason'],
+        $document = \App\Models\EmployeeDocument::findOrFail($id);
+        
+        // Update document status
+        $document->update([
+            'status' => 'rejected',
+            'notes' => $validated['rejection_reason'],
         ]);
 
         // Log security audit
@@ -394,41 +408,43 @@ class EmployeeDocumentController extends Controller
             severity: 'info',
             details: [
                 'document_id' => $id,
+                'file_name' => $document->file_name,
                 'rejection_reason' => $validated['rejection_reason'],
             ]
         );
 
-        return back()->with('success', 'Document rejected. (Database implementation pending - Phase 4)');
+        return response()->json([
+            'message' => 'Document rejected successfully.',
+            'document' => $document,
+        ], 200);
     }
 
     /**
      * Soft delete a document.
      * 
      * @param int $id
-     * @return \Illuminate\Http\RedirectResponse
+     * @return \Illuminate\Http\JsonResponse
      */
     public function destroy(int $id)
     {
-        // TODO: Implement soft delete when EmployeeDocument model is created (Phase 4)
-        // For now, log the action
-        
-        \Log::info('Document deletion request received', [
-            'document_id' => $id,
-            'deleted_by' => auth()->id(),
-        ]);
+        $document = \App\Models\EmployeeDocument::findOrFail($id);
 
-        // Log security audit
+        // Log security audit before deletion
         $this->logAudit(
             eventType: 'document_deleted',
             severity: 'warning',
             details: [
                 'document_id' => $id,
+                'file_name' => $document->file_name,
             ]
         );
 
-        return redirect()
-            ->route('hr.documents.index')
-            ->with('success', 'Document deleted successfully. (Database implementation pending - Phase 4)');
+        // Soft delete the document
+        $document->delete();
+
+        return response()->json([
+            'message' => 'Document deleted successfully.',
+        ], 200);
     }
 
     /**

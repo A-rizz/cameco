@@ -40,6 +40,9 @@ import {
 import { PermissionGate, usePermission } from '@/components/permission-gate';
 import { useToast } from '@/hooks/use-toast';
 import { DocumentUploadModal } from '@/components/hr/document-upload-modal';
+import { DocumentViewModal } from '@/components/hr/document-view-modal';
+import { DocumentApprovalModal } from '@/components/hr/document-approval-modal';
+import { DocumentRejectionModal } from '@/components/hr/document-rejection-modal';
 
 // ============================================================================
 // Type Definitions
@@ -189,6 +192,13 @@ export default function DocumentsIndex({
     const [statusFilter, setStatusFilter] = useState(filters.status || 'all');
     const [departmentFilter, setDepartmentFilter] = useState(filters.department || 'all');
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+    
+    // Modal states
+    const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+    const [selectedDocumentId, setSelectedDocumentId] = useState<number | undefined>(undefined);
+    const [selectedDocumentName, setSelectedDocumentName] = useState<string>('');
+    const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
+    const [isRejectionModalOpen, setIsRejectionModalOpen] = useState(false);
 
     // Hooks
     const { toast } = useToast();
@@ -268,33 +278,115 @@ export default function DocumentsIndex({
     };
 
     // Handle individual document actions
-    const handleView = (documentId: number) => {
-        // TODO: Open document details modal
-        console.log('View document:', documentId);
+    const handleView = (documentId: number, documentName: string) => {
+        setSelectedDocumentId(documentId);
+        setSelectedDocumentName(documentName);
+        setIsViewModalOpen(true);
     };
 
-    const handleDownload = (documentId: number) => {
-        // TODO: Implement download API call
-        console.log('Download document:', documentId);
-    };
-
-    const handleApprove = (documentId: number) => {
-        // TODO: Implement approve API call
-        console.log('Approve document:', documentId);
-    };
-
-    const handleReject = (documentId: number) => {
-        if (confirm('Are you sure you want to reject this document?')) {
-            // TODO: Implement reject API call
-            console.log('Reject document:', documentId);
+    const handleDownload = async (documentId: number) => {
+        try {
+            const response = await fetch(`/hr/documents/${documentId}/download`);
+            
+            if (response.ok) {
+                // Get the blob from response
+                const blob = await response.blob();
+                
+                // Get filename from Content-Disposition header or use default
+                const contentDisposition = response.headers.get('content-disposition');
+                let filename = 'document';
+                
+                if (contentDisposition) {
+                    const match = contentDisposition.match(/filename="?([^"]*)"?/);
+                    if (match) filename = match[1];
+                }
+                
+                // Create download link
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+                
+                toast({
+                    title: 'Success',
+                    description: 'Document downloaded successfully.',
+                });
+            } else {
+                const data = await response.json();
+                toast({
+                    title: 'Error',
+                    description: data.error || 'Failed to download document.',
+                    variant: 'destructive',
+                });
+            }
+        } catch (error) {
+            console.error('Error downloading document:', error);
+            toast({
+                title: 'Error',
+                description: 'An unexpected error occurred.',
+                variant: 'destructive',
+            });
         }
     };
 
-    const handleDelete = (documentId: number) => {
-        if (confirm('Are you sure you want to delete this document?')) {
-            // TODO: Implement delete API call
-            console.log('Delete document:', documentId);
+    const handleApprove = (documentId: number, documentName: string) => {
+        setSelectedDocumentId(documentId);
+        setSelectedDocumentName(documentName);
+        setIsApprovalModalOpen(true);
+    };
+
+    const handleReject = (documentId: number, documentName: string) => {
+        setSelectedDocumentId(documentId);
+        setSelectedDocumentName(documentName);
+        setIsRejectionModalOpen(true);
+    };
+
+    const handleDelete = async (documentId: number) => {
+        if (!confirm('Are you sure you want to delete this document? This action cannot be undone.')) {
+            return;
         }
+
+        try {
+            const response = await fetch(`/hr/documents/${documentId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            });
+
+            if (response.ok) {
+                toast({
+                    title: 'Success',
+                    description: 'Document deleted successfully.',
+                });
+                // Refresh the documents list
+                router.get(window.location.href, {}, { preserveState: false });
+            } else {
+                const data = await response.json();
+                toast({
+                    title: 'Error',
+                    description: data.message || 'Failed to delete document.',
+                    variant: 'destructive',
+                });
+            }
+        } catch (error) {
+            console.error('Error deleting document:', error);
+            toast({
+                title: 'Error',
+                description: 'An unexpected error occurred.',
+                variant: 'destructive',
+            });
+        }
+    };
+
+    const handleActionSuccess = () => {
+        // Refresh the documents list
+        router.get(window.location.href, {}, { preserveState: false });
     };
 
     return (
@@ -585,8 +677,7 @@ export default function DocumentsIndex({
                                         {filteredDocuments.map((doc) => (
                                             <tr
                                                 key={doc.id}
-                                                className="border-b hover:bg-muted/50 cursor-pointer"
-                                                onClick={() => handleView(doc.id)}
+                                                className="border-b hover:bg-muted/50"
                                             >
                                                 <td className="py-3 px-2" onClick={(e) => e.stopPropagation()}>
                                                     <Checkbox
@@ -644,7 +735,7 @@ export default function DocumentsIndex({
                                                         <DropdownMenuContent align="end">
                                                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                                             <DropdownMenuSeparator />
-                                                            <DropdownMenuItem onClick={() => handleView(doc.id)}>
+                                                            <DropdownMenuItem onClick={() => handleView(doc.id, doc.file_name)}>
                                                                 <Eye className="h-4 w-4 mr-2" />
                                                                 View
                                                             </DropdownMenuItem>
@@ -654,11 +745,11 @@ export default function DocumentsIndex({
                                                             </DropdownMenuItem>
                                                             {doc.status === 'pending' && canApprove && (
                                                                 <>
-                                                                    <DropdownMenuItem onClick={() => handleApprove(doc.id)}>
+                                                                    <DropdownMenuItem onClick={() => handleApprove(doc.id, doc.file_name)}>
                                                                         <CheckCircle className="h-4 w-4 mr-2" />
                                                                         Approve
                                                                     </DropdownMenuItem>
-                                                                    <DropdownMenuItem onClick={() => handleReject(doc.id)}>
+                                                                    <DropdownMenuItem onClick={() => handleReject(doc.id, doc.file_name)}>
                                                                         <XCircle className="h-4 w-4 mr-2" />
                                                                         Reject
                                                                     </DropdownMenuItem>
@@ -694,6 +785,35 @@ export default function DocumentsIndex({
                 open={isUploadModalOpen}
                 onClose={() => setIsUploadModalOpen(false)}
                 onSuccess={handleUploadSuccess}
+            />
+
+            {/* Document View Modal */}
+            <DocumentViewModal
+                open={isViewModalOpen}
+                onClose={() => setIsViewModalOpen(false)}
+                documentId={selectedDocumentId}
+                onDownload={(id) => {
+                    setIsViewModalOpen(false);
+                    handleDownload(id);
+                }}
+            />
+
+            {/* Document Approval Modal */}
+            <DocumentApprovalModal
+                open={isApprovalModalOpen}
+                onClose={() => setIsApprovalModalOpen(false)}
+                documentId={selectedDocumentId}
+                documentName={selectedDocumentName}
+                onSuccess={handleActionSuccess}
+            />
+
+            {/* Document Rejection Modal */}
+            <DocumentRejectionModal
+                open={isRejectionModalOpen}
+                onClose={() => setIsRejectionModalOpen(false)}
+                documentId={selectedDocumentId}
+                documentName={selectedDocumentName}
+                onSuccess={handleActionSuccess}
             />
         </AppLayout>
     );
