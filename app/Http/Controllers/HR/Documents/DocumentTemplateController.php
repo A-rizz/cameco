@@ -511,14 +511,41 @@ class DocumentTemplateController extends Controller
      */
     private function generatePdfContent($title, $content)
     {
-        // Minimal valid PDF structure
+        // Clean and escape content for PDF
+        $escapedTitle = str_replace(['(', ')', '\\'], ['\\(', '\\)', '\\\\'], $title);
+        $escapedContent = str_replace(['(', ')', '\\', "\r"], ['\\(', '\\)', '\\\\', ''], $content);
+        
+        // Split content into lines that fit on the page (approximately 80 chars per line)
+        $lines = explode("\n", wordwrap($escapedContent, 80, "\n", true));
+        
+        // Build the text drawing commands
+        $textCommands = "BT\n/F1 16 Tf\n50 750 Td\n($escapedTitle) Tj\n";
+        $textCommands .= "/F1 10 Tf\n";
+        
+        $yPosition = 720;
+        foreach ($lines as $index => $line) {
+            if ($index > 60) break; // Limit to ~60 lines per page for simplicity
+            $line = trim($line);
+            if (!empty($line)) {
+                $textCommands .= "50 $yPosition Td\n($line) Tj\n";
+                $yPosition -= 12;
+            } else {
+                $yPosition -= 12; // Empty line spacing
+            }
+        }
+        $textCommands .= "ET\n";
+        
+        // Calculate content stream length
+        $streamLength = strlen($textCommands);
+        
+        // Build PDF structure
         $pdf = "%PDF-1.4\n";
         $pdf .= "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n";
         $pdf .= "2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n";
         $pdf .= "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R >> >> /MediaBox [0 0 612 792] /Contents 5 0 R >>\nendobj\n";
         $pdf .= "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n";
-        $pdf .= "5 0 obj\n<< /Length " . (strlen("BT\n/F1 12 Tf\n100 700 Td\n(" . str_replace(['(', ')'], ['\\(', '\\)'], $title) . ") Tj\n100 680 Td\n(" . str_replace(['(', ')'], ['\\(', '\\)'], substr($content, 0, 200)) . ") Tj\nET\n")) . " >>\nstream\n";
-        $pdf .= "BT\n/F1 12 Tf\n100 700 Td\n(" . str_replace(['(', ')'], ['\\(', '\\)'], $title) . ") Tj\n100 680 Td\n(" . str_replace(['(', ')'], ['\\(', '\\)'], substr($content, 0, 200)) . ") Tj\nET\n";
+        $pdf .= "5 0 obj\n<< /Length $streamLength >>\nstream\n";
+        $pdf .= $textCommands;
         $pdf .= "endstream\nendobj\n";
         $pdf .= "xref\n0 6\n0000000000 65535 f \n0000000009 00000 n \n0000000058 00000 n \n0000000115 00000 n \n0000000247 00000 n \n0000000333 00000 n \n";
         $pdf .= "trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n" . (strlen($pdf) + 100) . "\n%%EOF\n";
@@ -563,12 +590,28 @@ class DocumentTemplateController extends Controller
 </Relationships>';
         file_put_contents($extractPath . '_rels/.rels', $rels);
 
-        // Create word/document.xml
+        // Create word/document.xml with full content
+        $escapedTitle = htmlspecialchars($title);
+        $escapedContent = htmlspecialchars($content);
+        
+        // Split content into paragraphs
+        $paragraphs = explode("\n", $escapedContent);
+        $paragraphsXml = '';
+        foreach ($paragraphs as $para) {
+            $para = trim($para);
+            if (!empty($para)) {
+                $paragraphsXml .= '<w:p><w:r><w:t xml:space="preserve">' . $para . '</w:t></w:r></w:p>';
+            } else {
+                $paragraphsXml .= '<w:p/>'; // Empty paragraph for spacing
+            }
+        }
+        
         $document = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
 <w:body>
-<w:p><w:r><w:t>' . htmlspecialchars($title) . '</w:t></w:r></w:p>
-<w:p><w:r><w:t>' . htmlspecialchars(substr($content, 0, 500)) . '</w:t></w:r></w:p>
+<w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="32"/></w:rPr><w:t>' . $escapedTitle . '</w:t></w:r></w:p>
+<w:p/>
+' . $paragraphsXml . '
 </w:body>
 </w:document>';
         file_put_contents($extractPath . 'word/document.xml', $document);
