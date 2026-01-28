@@ -270,6 +270,12 @@ class EmployeeDocumentController extends Controller
      * @param int $id
      * @return \Inertia\Response
      */
+    /**
+     * Get document details via API.
+     * 
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function show(int $id)
     {
         $document = \App\Models\EmployeeDocument::with([
@@ -303,7 +309,7 @@ class EmployeeDocumentController extends Controller
                 'status' => $document->status,
                 'uploaded_by' => $document->uploadedBy->name ?? 'Unknown',
                 'uploaded_at' => $document->uploaded_at->toDateTimeString(),
-                'expires_at' => $document->expires_at?->toDateString(),
+                'expires_at' => $document->expires_at ? (string)$document->expires_at : null,
                 'notes' => $document->notes,
                 'mime_type' => $document->mime_type,
             ]
@@ -344,7 +350,12 @@ class EmployeeDocumentController extends Controller
         );
 
         // Stream the file as download
-        return $disk->download($document->file_path, $document->file_name);
+        $path = $disk->path($document->file_path);
+        return response()->download(
+            $path,
+            $document->file_name,
+            ['Content-Type' => $document->mime_type]
+        );
     }
 
     /**

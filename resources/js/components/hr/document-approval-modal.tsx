@@ -11,6 +11,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { CheckCircle, AlertCircle } from 'lucide-react';
 
+// Helper function to get CSRF token
+function getCsrfToken(): string {
+    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    return token || '';
+}
+
 interface DocumentApprovalModalProps {
     open: boolean;
     onClose: () => void;
@@ -40,6 +46,7 @@ export function DocumentApprovalModal({
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': getCsrfToken(),
                 },
                 body: JSON.stringify({
                     notes: notes || null,

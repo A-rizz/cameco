@@ -44,6 +44,12 @@ import { DocumentViewModal } from '@/components/hr/document-view-modal';
 import { DocumentApprovalModal } from '@/components/hr/document-approval-modal';
 import { DocumentRejectionModal } from '@/components/hr/document-rejection-modal';
 
+// Helper function to get CSRF token
+function getCsrfToken(): string {
+    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    return token || '';
+}
+
 // ============================================================================
 // Type Definitions
 // ============================================================================
@@ -356,6 +362,7 @@ export default function DocumentsIndex({
                 headers: {
                     'Accept': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': getCsrfToken(),
                 },
             });
 
