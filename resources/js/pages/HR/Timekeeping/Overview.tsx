@@ -4,12 +4,20 @@ import AppLayout from '@/layouts/app-layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { SummaryCard } from '@/components/timekeeping/summary-card';
-import { LedgerHealthWidget, mockHealthStates } from '@/components/timekeeping/ledger-health-widget';
-import { TimeLogsStream, mockTimeLogs } from '@/components/timekeeping/time-logs-stream';
+import { LedgerHealthWidget } from '@/components/timekeeping/ledger-health-widget';
+import { TimeLogsStream } from '@/components/timekeeping/time-logs-stream';
 import { LogsFilterPanel, LogsFilterConfig, defaultFilters } from '@/components/timekeeping/logs-filter-panel';
 import { EventReplayControl } from '@/components/timekeeping/event-replay-control';
-import { ChevronDown, ChevronUp, Filter, RefreshCw } from 'lucide-react';
+import { ChevronDown, ChevronUp, Filter, RefreshCw, AlertCircle } from 'lucide-react';
+import { 
+    fetchTimeLogs, 
+    fetchLedgerHealth,
+    TimeLogFilters,
+    LedgerHealthStatus
+} from '@/services/mock-timekeeping-api';
+import type { AttendanceEvent } from '@/types/timekeeping-pages';
 
 interface StatusDistribution {
     status: string;
@@ -43,6 +51,14 @@ export default function TimekeepingOverview() {
         top_issues: [],
     };
 
+    // State for API data
+    const [timeLogs, setTimeLogs] = useState<AttendanceEvent[]>([]);
+    const [ledgerHealth, setLedgerHealth] = useState<LedgerHealthStatus | null>(null);
+    const [isLoadingLogs, setIsLoadingLogs] = useState(true);
+    const [isLoadingHealth, setIsLoadingHealth] = useState(true);
+    const [logsError, setLogsError] = useState<string | null>(null);
+    const [healthError, setHealthError] = useState<string | null>(null);
+    
     // State for Live Event Stream visibility and filters
     const [showEventStream, setShowEventStream] = useState(true);
     const [showFilterPanel, setShowFilterPanel] = useState(true);
@@ -52,20 +68,124 @@ export default function TimekeepingOverview() {
     
     // State for replay mode (Task 1.8.3)
     const [replayMode, setReplayMode] = useState(false);
-    const [replayEvents, setReplayEvents] = useState<typeof mockTimeLogs>([]);
+    const [replayEvents, setReplayEvents] = useState<Array<{
+        id: number;
+        sequenceId: number;
+        employeeId: string;
+        employeeName: string;
+        eventType: 'time_in' | 'time_out' | 'break_start' | 'break_end';
+        timestamp: string;
+        deviceId: string;
+        deviceLocation: string;
+        employeePhoto?: string;
+        rfidCard: string;
+        verified: boolean;
+        hashChain?: string;
+        latencyMs?: number;
+    }>>([]);
 
-    // Auto-refresh effect (simulates real-time updates every 5 seconds)
+    // Fetch time logs from API (Task 2.2.1)
+    const loadTimeLogs = useCallback(async () => {
+        setIsLoadingLogs(true);
+        setLogsError(null);
+        
+        try {
+            const apiFilters: TimeLogFilters = {
+                date_from: filters.customDateFrom || undefined,
+                date_to: filters.customDateTo || undefined,
+                device_id: filters.deviceLocations.length > 0 && !filters.deviceLocations.includes('all') 
+                    ? filters.deviceLocations[0] 
+                    : undefined,
+                event_type: filters.eventTypes.length > 0 ? filters.eventTypes[0] : undefined,
+                page: 1,
+                per_page: 50,
+            };
+
+            const response = await fetchTimeLogs(apiFilters);
+            setTimeLogs(response.data);
+            setLastRefreshTime(new Date());
+        } catch (error: unknown) {
+            console.error('Failed to load time logs:', error);
+            setLogsError(error instanceof Error ? error.message : 'Failed to load time logs');
+        } finally {
+            setIsLoadingLogs(false);
+        }
+    }, [filters]);
+
+    // Fetch ledger health from API (Task 2.2.1)
+    const loadLedgerHealth = useCallback(async () => {
+        setIsLoadingHealth(true);
+        setHealthError(null);
+        
+        try {
+            const health = await fetchLedgerHealth();
+            setLedgerHealth(health);
+        } catch (error: unknown) {
+            console.error('Failed to load ledger health:', error);
+            setHealthError(error instanceof Error ? error.message : 'Failed to load health status');
+        } finally {
+            setIsLoadingHealth(false);
+        }
+    }, []);
+
+    // Initial data load
+    useEffect(() => {
+        loadTimeLogs();
+        loadLedgerHealth();
+    }, [loadTimeLogs, loadLedgerHealth]);
+
+    // Auto-refresh effect (polls API every 30 seconds when enabled)
     useEffect(() => {
         if (!autoRefresh) return;
 
         const intervalId = setInterval(() => {
-            setLastRefreshTime(new Date());
-            // In production, this would fetch new data from the server
-            console.log('Auto-refresh: Fetching new events...', new Date().toISOString());
-        }, 5000);
+            loadTimeLogs();
+            loadLedgerHealth();
+        }, 30000); // 30 seconds
 
         return () => clearInterval(intervalId);
-    }, [autoRefresh]);
+    }, [autoRefresh, loadTimeLogs, loadLedgerHealth]);
+
+    // Retry handler for errors
+    const handleRetryLogs = () => {
+        loadTimeLogs();
+    };
+
+    const handleRetryHealth = () => {
+        loadLedgerHealth();
+    };
+
+    // Transform API health status to widget format
+    const transformedHealthState = useMemo(() => {
+        if (!ledgerHealth) return null;
+
+        return {
+            status: ledgerHealth.status,
+            lastSequence: ledgerHealth.metrics.last_sequence_id,
+            lastProcessedAgo: ledgerHealth.metrics.last_processed_at 
+                ? `${Math.floor((Date.now() - new Date(ledgerHealth.metrics.last_processed_at).getTime()) / 60000)}m ago`
+                : 'Never',
+            processingRate: ledgerHealth.performance.events_per_hour,
+            integrityStatus: ledgerHealth.metrics.hash_chain_intact ? 'verified' as const : 'hash_mismatch_detected' as const,
+            devicesOnline: ledgerHealth.metrics.device_sync_status.online,
+            devicesOffline: ledgerHealth.metrics.device_sync_status.offline,
+            backlog: ledgerHealth.metrics.pending_events,
+            processingRateHistory: [
+                ledgerHealth.performance.events_per_hour,
+                ledgerHealth.performance.events_per_hour - 5,
+                ledgerHealth.performance.events_per_hour + 3,
+                ledgerHealth.performance.events_per_hour - 2,
+                ledgerHealth.performance.events_per_hour + 1,
+                ledgerHealth.performance.events_per_hour,
+                ledgerHealth.performance.events_per_hour + 2,
+                ledgerHealth.performance.events_per_hour - 1,
+                ledgerHealth.performance.events_per_hour,
+                ledgerHealth.performance.events_per_hour + 3,
+                ledgerHealth.performance.events_per_hour - 2,
+                ledgerHealth.performance.events_per_hour,
+            ]
+        };
+    }, [ledgerHealth]);
 
     // Handler for View Logs action
     const handleViewLogs = useCallback((filterType: string) => {
@@ -116,6 +236,25 @@ export default function TimekeepingOverview() {
         }
     };
 
+    // Convert time logs to TimeLogEntry format for the stream
+    const convertedLogs = useMemo(() => {
+        return timeLogs.map(log => ({
+            id: log.id,
+            sequenceId: log.id,
+            employeeId: `EMP-${log.id}`,
+            employeeName: `Employee ${log.id}`,
+            employeePhoto: undefined,
+            rfidCard: '****-0000',
+            eventType: log.event_type,
+            timestamp: log.timestamp,
+            deviceId: log.device_id || 'UNKNOWN',
+            deviceLocation: log.device_location || 'Unknown Location',
+            verified: true,
+            hashChain: undefined,
+            latencyMs: undefined,
+        }));
+    }, [timeLogs]);
+
     // Filter logs based on comprehensive filter configuration
     const filteredLogs = useMemo(() => {
         const now = new Date();
@@ -125,7 +264,7 @@ export default function TimekeepingOverview() {
         const last7Days = new Date(today);
         last7Days.setDate(last7Days.getDate() - 7);
 
-        return mockTimeLogs.filter((log) => {
+        return convertedLogs.filter((log) => {
             // 1. Date range filter
             const logDate = new Date(log.timestamp);
             let dateMatch = true;
@@ -243,7 +382,7 @@ export default function TimekeepingOverview() {
             // All filters passed
             return true;
         });
-    }, [filters]);
+    }, [convertedLogs, filters]);
 
     const breadcrumbs = [
         { title: 'HR', href: '/hr' },
@@ -263,7 +402,41 @@ export default function TimekeepingOverview() {
                 </div>
 
                 {/* Ledger Health Widget - Full Width at Top */}
-                <LedgerHealthWidget healthState={mockHealthStates.healthy} />
+                {isLoadingHealth ? (
+                    <Card>
+                        <CardHeader>
+                            <Skeleton className="h-6 w-48" />
+                            <Skeleton className="h-4 w-64 mt-2" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid gap-4 md:grid-cols-4">
+                                <Skeleton className="h-24" />
+                                <Skeleton className="h-24" />
+                                <Skeleton className="h-24" />
+                                <Skeleton className="h-24" />
+                            </div>
+                        </CardContent>
+                    </Card>
+                ) : healthError ? (
+                    <Card className="border-red-200 bg-red-50">
+                        <CardContent className="pt-6">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <AlertCircle className="h-5 w-5 text-red-600" />
+                                    <div>
+                                        <p className="font-medium text-red-900">Failed to load ledger health</p>
+                                        <p className="text-sm text-red-700">{healthError}</p>
+                                    </div>
+                                </div>
+                                <Button variant="outline" size="sm" onClick={handleRetryHealth}>
+                                    Retry
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                ) : transformedHealthState ? (
+                    <LedgerHealthWidget healthState={transformedHealthState} />
+                ) : null}
 
                 {/* Two Column Layout: Summary Cards + Live Event Stream */}
                 <div className="grid gap-6 lg:grid-cols-3">
@@ -427,7 +600,7 @@ export default function TimekeepingOverview() {
                                 {/* Last refresh time indicator */}
                                 {autoRefresh && showEventStream && (
                                     <div className="mt-2 text-xs text-muted-foreground">
-                                        Last refreshed: {lastRefreshTime.toLocaleTimeString()} • Updates every 5 seconds
+                                        Last refreshed: {lastRefreshTime.toLocaleTimeString()} • Updates every 30 seconds
                                     </div>
                                 )}
                             </CardHeader>
@@ -435,12 +608,48 @@ export default function TimekeepingOverview() {
 
                         {/* Event Stream Component */}
                         {showEventStream && (
-                            <TimeLogsStream 
-                                logs={replayMode ? replayEvents : filteredLogs} 
-                                maxHeight="calc(100vh - 500px)"
-                                showLiveIndicator={!replayMode}
-                                autoScroll={!replayMode}
-                            />
+                            <>
+                                {isLoadingLogs ? (
+                                    <Card>
+                                        <CardContent className="pt-6">
+                                            <div className="space-y-4">
+                                                {[...Array(5)].map((_, i) => (
+                                                    <div key={i} className="flex gap-4">
+                                                        <Skeleton className="h-12 w-12 rounded-full" />
+                                                        <div className="flex-1 space-y-2">
+                                                            <Skeleton className="h-4 w-3/4" />
+                                                            <Skeleton className="h-3 w-1/2" />
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                ) : logsError ? (
+                                    <Card className="border-red-200 bg-red-50">
+                                        <CardContent className="pt-6">
+                                            <div className="flex flex-col items-center justify-center gap-4 py-8">
+                                                <AlertCircle className="h-12 w-12 text-red-600" />
+                                                <div className="text-center">
+                                                    <p className="font-medium text-red-900 mb-2">Failed to load events</p>
+                                                    <p className="text-sm text-red-700 mb-4">{logsError}</p>
+                                                    <Button variant="outline" onClick={handleRetryLogs}>
+                                                        <RefreshCw className="h-4 w-4 mr-2" />
+                                                        Retry
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                ) : (
+                                    <TimeLogsStream 
+                                        logs={replayMode ? replayEvents : filteredLogs} 
+                                        maxHeight="calc(100vh - 500px)"
+                                        showLiveIndicator={!replayMode}
+                                        autoScroll={!replayMode}
+                                    />
+                                )}
+                            </>
                         )}
 
                         {/* Replay Mode Toggle */}

@@ -531,7 +531,7 @@ const mockDevices = [
 - [x] **2.1.2** Simulate API latency (200-500ms random delay)
 - [x] **2.1.3** Implement pagination logic (20 events per page)
 - [x] **2.1.4** Implement filter logic (apply filters to mock dataset)
-- [ ] **2.1.5** Add error simulation (5% chance of network error)
+- [x] **2.1.5** Add error simulation (5% chance of network error)
 
 **Acceptance Criteria:**
 - Mock API returns realistic data structures

@@ -296,6 +296,54 @@ const simulateLatency = (): Promise<void> => {
 };
 
 /**
+ * Simulate network errors (5% chance)
+ * Implements Task 2.1.5
+ * 
+ * Randomly throws realistic network/server errors to test error handling in components
+ */
+const simulateNetworkError = (): void => {
+    const shouldError = Math.random() < 0.05; // 5% chance
+    
+    if (shouldError) {
+        const errorTypes = [
+            {
+                name: 'NetworkError',
+                message: 'Failed to fetch: Network request failed',
+                status: 0,
+            },
+            {
+                name: 'TimeoutError',
+                message: 'Request timeout: The request took too long to complete',
+                status: 408,
+            },
+            {
+                name: 'ServerError',
+                message: 'Internal Server Error: An unexpected error occurred',
+                status: 500,
+            },
+            {
+                name: 'ServiceUnavailable',
+                message: 'Service Unavailable: The server is temporarily unavailable',
+                status: 503,
+            },
+            {
+                name: 'BadGateway',
+                message: 'Bad Gateway: Invalid response from upstream server',
+                status: 502,
+            },
+        ];
+        
+        const randomError = errorTypes[Math.floor(Math.random() * errorTypes.length)];
+        
+        const error = new Error(randomError.message);
+        error.name = randomError.name;
+        (error as any).status = randomError.status;
+        
+        throw error;
+    }
+};
+
+/**
  * Generate random hash for ledger metadata
  */
 const generateHash = (): string => {
@@ -361,12 +409,13 @@ const paginate = <T>(items: T[], page: number, perPage: number): PaginatedRespon
 
 /**
  * Fetch paginated time logs with filters
- * Implements Task 2.1.1
+ * Implements Task 2.1.1, 2.1.2, 2.1.5
  */
 export const fetchTimeLogs = async (
     filters: TimeLogFilters = {}
 ): Promise<PaginatedResponse<AttendanceEvent>> => {
     await simulateLatency();
+    simulateNetworkError(); // 5% chance of error
     
     const page = filters.page || 1;
     const perPage = filters.per_page || 20;
@@ -380,10 +429,11 @@ export const fetchTimeLogs = async (
 
 /**
  * Fetch ledger health status
- * Implements Task 2.1.1
+ * Implements Task 2.1.1, 2.1.2, 2.1.5
  */
 export const fetchLedgerHealth = async (): Promise<LedgerHealthStatus> => {
     await simulateLatency();
+    simulateNetworkError(); // 5% chance of error
     
     const totalEvents = MOCK_TIME_LOGS.length;
     const pendingEvents = Math.floor(Math.random() * 10);
@@ -451,13 +501,14 @@ export const fetchLedgerHealth = async (): Promise<LedgerHealthStatus> => {
 
 /**
  * Fetch employee timeline for a specific date
- * Implements Task 2.1.1
+ * Implements Task 2.1.1, 2.1.2, 2.1.5
  */
 export const fetchEmployeeTimeline = async (
     employeeId: number,
     date: string
 ): Promise<EmployeeTimeline> => {
     await simulateLatency();
+    simulateNetworkError(); // 5% chance of error
     
     const employee = MOCK_EMPLOYEES.find(e => e.id === employeeId) || MOCK_EMPLOYEES[0];
     
@@ -508,10 +559,11 @@ export const fetchEmployeeTimeline = async (
 
 /**
  * Fetch device status list
- * Implements Task 2.1.1
+ * Implements Task 2.1.1, 2.1.2, 2.1.5
  */
 export const fetchDeviceStatus = async (): Promise<EdgeMachineDevice[]> => {
     await simulateLatency();
+    simulateNetworkError(); // 5% chance of error
     
     // Randomly update device status to simulate real-time changes
     return MOCK_DEVICES.map(device => ({
@@ -527,10 +579,11 @@ export const fetchDeviceStatus = async (): Promise<EdgeMachineDevice[]> => {
 
 /**
  * Fetch full event detail with ledger metadata
- * Implements Task 2.1.1
+ * Implements Task 2.1.1, 2.1.2, 2.1.5
  */
 export const fetchEventDetail = async (sequenceId: number): Promise<EventDetail> => {
     await simulateLatency();
+    simulateNetworkError(); // 5% chance of error
     
     // Find event by ID (using id as sequence for mock)
     const event = MOCK_TIME_LOGS.find(log => log.id === sequenceId) || MOCK_TIME_LOGS[0];
@@ -567,17 +620,21 @@ export const fetchEventDetail = async (sequenceId: number): Promise<EventDetail>
 
 /**
  * Get all employees (for dropdowns, filters)
+ * Implements Task 2.1.2, 2.1.5
  */
 export const fetchEmployees = async (): Promise<EmployeeBasic[]> => {
     await simulateLatency();
+    simulateNetworkError(); // 5% chance of error
     return MOCK_EMPLOYEES;
 };
 
 /**
  * Get all devices (for dropdowns, filters)
+ * Implements Task 2.1.2, 2.1.5
  */
 export const fetchDevices = async (): Promise<EdgeMachineDevice[]> => {
     await simulateLatency();
+    simulateNetworkError(); // 5% chance of error
     return MOCK_DEVICES;
 };
 
