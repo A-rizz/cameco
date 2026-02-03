@@ -1,4 +1,4 @@
-﻿# Timekeeping Module - RFID Event-Driven Integration Implementation
+﻿?# Timekeeping Module - RFID Event-Driven Integration Implementation
 
 **Issue Type:** Feature Implementation  
 **Priority:** HIGH  
@@ -9,7 +9,7 @@
 
 ---
 
-## ðŸ“‹ Executive Summary
+## 📋 Executive Summary
 
 Implement an event-driven Timekeeping system that pulls time logs from an append-only PostgreSQL ledger populated by a FastAPI RFID server. This system replaces manual time entry with automated RFID scanning and provides tamper-resistant, replayable event logs for payroll, performance appraisal, and compliance auditing.
 
@@ -32,8 +32,8 @@ Implement an event-driven Timekeeping system that pulls time logs from an append
 - **Page Separation**: Overview page shows analytics/summaries, Ledger page shows full event stream with replay
 
 **RFID Event Flow:**
-- Employee scans RFID card at gate â†’ FastAPI server receives scan â†’ Saves to PostgreSQL ledger
-- Laravel Timekeeping module polls/listens to ledger â†’ Pulls new events â†’ Processes into attendance records
+- Employee scans RFID card at gate → FastAPI server receives scan → Saves to PostgreSQL ledger
+- Laravel Timekeeping module polls/listens to ledger → Pulls new events → Processes into attendance records
 - Event-driven dispatch to Payroll, Appraisal, and Notification modules
 - Append-only ledger ensures tamper-resistance and audit trail
 
@@ -64,9 +64,9 @@ Implement an event-driven Timekeeping system that pulls time logs from an append
 
 ---
 
-## âœ… Implementation Decisions Applied
+## ✅ Implementation Decisions Applied
 
-**FastAPI â†’ PostgreSQL â†’ Laravel Flow:**
+**FastAPI → PostgreSQL → Laravel Flow:**
 1. RFID scanner captures employee card tap
 2. FastAPI server receives scan, validates employee, writes to `rfid_ledger`
 3. Laravel scheduled job (every 1 minute) polls `rfid_ledger` for new events
@@ -96,11 +96,11 @@ CREATE INDEX idx_rfid_ledger_employee ON rfid_ledger(employee_rfid);
 ```
 
 **Event-Driven Architecture:**
-- `AttendanceEventProcessed` â†’ Triggers daily summary recomputation
-- `AttendanceSummaryUpdated` â†’ Notifies Payroll module
-- `AttendanceViolation` â†’ Alerts HR and updates Appraisal score
-- `DeviceOfflineDetected` â†’ Triggers admin notification
-- `LedgerIntegrityFailed` â†’ Blocks payroll processing, triggers audit
+- `AttendanceEventProcessed` → Triggers daily summary recomputation
+- `AttendanceSummaryUpdated` → Notifies Payroll module
+- `AttendanceViolation` → Alerts HR and updates Appraisal score
+- `DeviceOfflineDetected` → Triggers admin notification
+- `LedgerIntegrityFailed` → Blocks payroll processing, triggers audit
 
 **Deduplication & Replay Logic:**
 - 15-second window for duplicate tap detection (same employee, same device, same event type)
@@ -115,7 +115,7 @@ CREATE INDEX idx_rfid_ledger_employee ON rfid_ledger(employee_rfid);
 
 ---
 
-## ðŸ—„ï¸ Database Schema Updates
+## 🗄️ Database Schema Updates
 
 ### New Table: `rfid_ledger` (PostgreSQL)
 Append-only ledger populated by FastAPI server. Never modified by Laravel.
@@ -177,7 +177,7 @@ CREATE TABLE ledger_health_logs (
 
 ---
 
-## ðŸ“¦ Implementation Phases
+## 📦 Implementation Phases
 
 ### **Phase 1: Frontend Mockup - Overview Analytics & Ledger Page (Week 1)**
 
@@ -197,11 +197,11 @@ Mock data stored in controllers (MVC pattern), rendered via Inertia responses. N
 - [x] **1.1.2** Display each log entry with:
   - Employee photo/avatar
   - Employee name and ID
-  - Event type badge (ðŸŸ¢ Time In, ðŸ”´ Time Out, â˜• Break Start, â–¶ï¸ Break End)
+  - Event type badge (🟢 Time In, 🔴 Time Out, ☕ Break Start, ▶️ Break End)
   - Timestamp (e.g., "8:05 AM")
   - Device location (e.g., "Gate 1 - Main Entrance")
   - Sequence ID (e.g., "#12345")
-  - Verification status icon (ðŸ”’ Verified / âš ï¸ Pending)
+  - Verification status icon (🔒 Verified / ⚠️ Pending)
 - [x] **1.1.3** Use mock data array with 50+ sample events (various employees, times, events)
 - [x] **1.1.4** Add auto-scroll animation (new events appear at top with slide-in effect)
 - [x] **1.1.5** Add hover effect showing full event details tooltip
@@ -232,7 +232,7 @@ const mockTimeLogs = [
 
 **Acceptance Criteria:**
 - Component renders 50+ mock time log entries
-- Visual hierarchy clear (employee â†’ event â†’ time â†’ location)
+- Visual hierarchy clear (employee → event → time → location)
 - Color coding distinguishes event types at a glance
 - Smooth animations for new entries
 - Responsive design (works on tablet/desktop)
@@ -246,10 +246,10 @@ const mockTimeLogs = [
 
 **Subtasks:**
 - [x] **1.2.1** Create dashboard widget showing:
-  - **Status Badge**: ðŸŸ¢ HEALTHY / ðŸŸ¡ WARNING / ðŸ”´ CRITICAL
+  - **Status Badge**: 🟢 HEALTHY / 🟡 WARNING / 🔴 CRITICAL
   - **Last Processed**: "Sequence #12,450 - 2 seconds ago"
   - **Processing Speed**: "425 events/min"
-  - **Integrity Status**: "âœ… All chains verified"
+  - **Integrity Status**: "✅ All chains verified"
   - **Device Status**: "3 online, 0 offline"
   - **Backlog**: "0 pending events"
 - [x] **1.2.2** Use color-coded card backgrounds (green/yellow/red)
@@ -320,19 +320,19 @@ const mockHealthStates = {
 
 **Overview Page Layout:**
 ```
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚  Ledger Health Widget (green/yellow/red card)  â”‚
-â”‚  [View Full Ledger] button                      â”‚
-â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
-â”‚  Summary Cards (Present, Late, Absent, Leave)  â”‚
-â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
-â”‚  Analytics Chart â”‚  Recent Violations (last 5)  â”‚
-â”‚  (Daily Trends)  â”‚  - Juan: Late arrival        â”‚
-â”‚                  â”‚  - Maria: Missing time out   â”‚
-â”‚                  â”‚  [View All Violations]       â”‚
-â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
-â”‚  Quick Actions: [Attendance] [Import] [Overtime]â”‚
-â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
++-------------------------------------------------+
+|  Ledger Health Widget (green/yellow/red card)  |
+|  [View Full Ledger] button                      |
++-------------------------------------------------+
+|  Summary Cards (Present, Late, Absent, Leave)  |
++------------------+------------------------------+
+|  Analytics Chart |  Recent Violations (last 5)  |
+|  (Daily Trends)  |  - Juan: Late arrival        |
+|                  |  - Maria: Missing time out   |
+|                  |  [View All Violations]       |
++------------------+------------------------------+
+|  Quick Actions: [Attendance] [Import] [Overtime]|
++-------------------------------------------------+
 ```
 
 **Acceptance Criteria:**
@@ -362,26 +362,26 @@ const mockHealthStates = {
 
 **Ledger Page Layout:**
 ```
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚  Ledger Health Widget                           â”‚
-â”‚  [Live Mode] / [Replay Mode] toggle             â”‚
-â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
-â”‚  Filters     â”‚  Event Stream (Full Width)       â”‚
-â”‚  - Date      â”‚  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”â”‚
-â”‚  - Employee  â”‚  â”‚ ðŸŸ¢ Juan DC - Time In        â”‚â”‚
-â”‚  - Device    â”‚  â”‚    8:05 AM â€¢ Gate 1 â€¢ #12345â”‚â”‚
-â”‚  - Event Typeâ”‚  â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤â”‚
-â”‚              â”‚  â”‚ â˜• Maria G - Break Start    â”‚â”‚
-â”‚  [Apply]     â”‚  â”‚    10:15 AM â€¢ Caf â€¢ #12346  â”‚â”‚
-â”‚  [Clear]     â”‚  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜â”‚
-â”‚              â”‚  [â† Prev Page] [Next Page â†’]     â”‚
-â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
-â”‚  Replay Controls (only in Replay Mode)          â”‚
-â”‚  â–¶ [Play] [2x Speed] [Jump to Violation]       â”‚
-â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
-â”‚  Device Status Dashboard (collapsible)          â”‚
-â”‚  Gate 1: ðŸŸ¢ Online â€¢ Gate 2: ðŸ”´ Offline        â”‚
-â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
++-------------------------------------------------+
+|  Ledger Health Widget                           |
+|  [Live Mode] / [Replay Mode] toggle             |
++--------------+----------------------------------+
+|  Filters     |  Event Stream (Full Width)       |
+|  - Date      |  +------------------------------+|
+|  - Employee  |  | 🟢 Juan DC - Time In        ||
+|  - Device    |  |    8:05 AM • Gate 1 • #12345||
+|  - Event Type|  +------------------------------+|
+|              |  | ☕ Maria G - Break Start    ||
+|  [Apply]     |  |    10:15 AM • Caf • #12346  ||
+|  [Clear]     |  +------------------------------+|
+|              |  [← Prev Page] [Next Page →]     |
++--------------+----------------------------------+
+|  Replay Controls (only in Replay Mode)          |
+|  ▶ [Play] [2x Speed] [Jump to Violation]       |
++-------------------------------------------------+
+|  Device Status Dashboard (collapsible)          |
+|  Gate 1: 🟢 Online • Gate 2: 🔴 Offline        |
++-------------------------------------------------+
 ```
 
 **Acceptance Criteria:**
@@ -425,7 +425,7 @@ const mockHealthStates = {
 
 **Subtasks:**
 - [x] **1.5.1** Create visual timeline component for single employee's day:
-  - Horizontal timeline (8 AM â†’ 6 PM)
+  - Horizontal timeline (8 AM → 6 PM)
   - Event markers at each tap (in/out/break)
   - Color-coded segments (working, break, off-duty)
   - Duration labels between events
@@ -440,7 +440,7 @@ const mockHealthStates = {
 Juan Dela Cruz - January 29, 2026
 Total: 8h 45m | Break: 1h 15m | Overtime: 45m
 
-8:00 â”€â”€â”€â”€â”€ðŸŸ¢â”€â”€â”€â”€â”€â”€â˜•â”€â”€â”€â”€â”€â”€â–¶â”€â”€â”€â”€â”€â”€â˜•â”€â”€â”€â”€â”€â”€â–¶â”€â”€â”€â”€â”€â”€ðŸ”´â”€â”€â”€â”€â”€â”€ 6:00
+8:00 -----🟢------☕------▶------☕------▶------🔴------ 6:00
       8:05    12:00  12:30  3:00  3:15    5:45
       Time In  Break       Break        Time Out
       (5m late)
@@ -493,10 +493,10 @@ Total: 8h 45m | Break: 1h 15m | Overtime: 45m
   - Event count today
   - Mini event log (last 5 scans)
 - [x] **1.7.2** Add status indicators:
-  - ðŸŸ¢ Online (last scan < 10 min ago)
-  - ðŸŸ¡ Idle (last scan 10-60 min ago)
-  - ðŸ”´ Offline (last scan > 60 min ago)
-  - ðŸ”§ Maintenance mode
+  - 🟢 Online (last scan < 10 min ago)
+  - 🟡 Idle (last scan 10-60 min ago)
+  - 🔴 Offline (last scan > 60 min ago)
+  - 🔧 Maintenance mode
 - [x] **1.7.3** Add "View Full Log" button per device
 - [x] **1.7.4** Mock different device states (some online, some offline)
 - [x] **1.7.5** Add device health metrics (uptime %, error rate)
@@ -553,7 +553,7 @@ const mockDevices = [
   - Play/Pause button
   - Speed control (1x, 2x, 5x, 10x)
   - Jump to controls (next event, previous event)
-- [x] **1.8.2** Display "Replaying: January 28, 2026 08:00 â†’ 18:00"
+- [x] **1.8.2** Display "Replaying: January 28, 2026 08:00 → 18:00"
 - [x] **1.8.3** Animate event stream to show events appearing in sequence
 - [x] **1.8.4** Add "Jump to Violation" button (skips to next late/missing punch)
 - [x] **1.8.5** Add "Export Replay" button (generates report of replayed period)
@@ -561,12 +561,12 @@ const mockDevices = [
 
 **Visual Example:**
 ```
-â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-â”‚  Replaying: Jan 28, 2026  [â¸] [2x]           â”‚
-â”‚  â–¶ 08:00 â•â•â•â•â•â•â•â•ðŸ”µâ•â•â•â•â•â•â•â•â•â•â•â•â•â• 18:00        â”‚
-â”‚          Current: 10:35 AM                     â”‚
-â”‚  [â—€â—€ Prev] [Jump to Violation] [Next â–¶â–¶]     â”‚
-â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
++------------------------------------------------+
+|  Replaying: Jan 28, 2026  [⏸] [2x]           |
+|  ▶ 08:00 ════════🔵══════════════ 18:00        |
+|          Current: 10:35 AM                     |
+|  [◀◀ Prev] [Jump to Violation] [Next ▶▶]     |
++------------------------------------------------+
 ```
 
 **Acceptance Criteria:**
@@ -590,9 +590,9 @@ const mockDevices = [
 - [x] **2.1.2** Create `LedgerController@index()`: Return Inertia response with paginated mock events (20/page)
 - [x] **2.1.3** Create `LedgerController@show($sequenceId)`: Return Inertia response with single event detail
 - [x] **2.1.4** Add mock data generators as private methods in controllers:
-  - `generateMockTimeLogs()` â†’ array of 50+ events
-  - `generateMockLedgerHealth()` â†’ health status object
-  - `generateMockDeviceStatus()` â†’ array of 5 devices
+  - `generateMockTimeLogs()` → array of 50+ events
+  - `generateMockLedgerHealth()` → health status object
+  - `generateMockDeviceStatus()` → array of 5 devices
 - [x] **2.1.5** Implement filter logic in `LedgerController@index()` (date, employee, device, event type)
 - [x] **2.1.6** Implement pagination in controller (use `collect()->paginate(20)`)
 
@@ -652,10 +652,10 @@ private function generateMockTimeLogs() {
 **File:** `routes/hr.php`
 
 **Subtasks:**
-- [x] **3.1.1** Add route: `GET /hr/timekeeping/ledger` â†’ `LedgerController@index` (main Ledger page)
-- [x] **3.1.2** Add route: `GET /hr/timekeeping/ledger/{sequenceId}` â†’ `LedgerController@show` (event detail)
-- [x] **3.1.3** Add route: `GET /hr/timekeeping/devices` â†’ `DeviceController@index` (device dashboard)
-- [x] **3.1.4** Add route: `GET /hr/timekeeping/employee/{employeeId}/timeline` â†’ `EmployeeTimelineController@show`
+- [x] **3.1.1** Add route: `GET /hr/timekeeping/ledger` → `LedgerController@index` (main Ledger page)
+- [x] **3.1.2** Add route: `GET /hr/timekeeping/ledger/{sequenceId}` → `LedgerController@show` (event detail)
+- [x] **3.1.3** Add route: `GET /hr/timekeeping/devices` → `DeviceController@index` (device dashboard)
+- [x] **3.1.4** Add route: `GET /hr/timekeeping/employee/{employeeId}/timeline` → `EmployeeTimelineController@show`
 - [x] **3.1.5** Update `AnalyticsController@overview()` to include ledger health widget data
 
 **Route Structure:**
@@ -687,16 +687,25 @@ Route::prefix('timekeeping')
 **File:** `routes/hr.php`
 
 **Subtasks:**
-- [x] **4.1.1** Add route: `GET /api/timekeeping/ledger/health` â†’ `LedgerHealthController@index`
-- [x] **4.1.2** Add route: `GET /api/timekeeping/ledger/events` â†’ `LedgerController@events` (paginated list)
-- [x] **4.1.3** Add route: `GET /api/timekeeping/ledger/events/{sequenceId}` â†’ `LedgerController@eventDetail`
-- [x] **4.1.4** Add route: `POST /api/timekeeping/ledger/sync` â†’ `LedgerSyncController@trigger` (manual sync)
-- [x] **4.1.5** Add route: `GET /api/timekeeping/ledger/devices` â†’ `LedgerDeviceController@index` (device list)
+- [x] **4.1.1** Add route: `GET /hr/timekeeping/api/ledger/health` → `LedgerHealthController@index`
+- [x] **4.1.2** Add route: `GET /hr/timekeeping/api/ledger/events` → `LedgerController@events` (paginated list)
+- [x] **4.1.3** Add route: `GET /hr/timekeeping/api/ledger/events/{sequenceId}` → `LedgerController@eventDetail`
+- [x] **4.1.4** Add route: `POST /hr/timekeeping/api/ledger/sync` → `LedgerSyncController@trigger` (manual sync)
+- [x] **4.1.5** Add route: `GET /hr/timekeeping/api/ledger/devices` → `LedgerDeviceController@index` (device list)
 
 **Acceptance Criteria:**
-- All routes protected with `auth` and `permission:timekeeping.attendance.view` middleware
-- Routes return JSON responses matching mock API structure
-- Route naming follows convention: `timekeeping.ledger.*`
+- All routes protected with `auth` and `permission:hr.timekeeping.attendance.view` middleware
+- Routes under `/hr/timekeeping/` with `/api/` as sub-namespace for JSON endpoints
+- Route naming follows convention: `hr.timekeeping.api.ledger.*`
+- Returns JSON responses for AJAX/API calls
+
+**Implementation Pattern:**
+```php
+// API routes (JSON endpoints)
+GET  /hr/timekeeping/api/ledger/health   ? LedgerHealthController@index
+GET  /hr/timekeeping/api/ledger/events   ? LedgerController@events
+POST /hr/timekeeping/api/ledger/sync     ? LedgerSyncController@trigger
+```
 
 ---
 
@@ -711,10 +720,14 @@ Route::prefix('timekeeping')
 - [x] **4.2.5** Add caching (5-minute TTL) to reduce DB load
 
 **Acceptance Criteria:**
-- âœ… Endpoint returns comprehensive health data
-- âœ… Response structure matches mock API
-- âœ… Cached for performance with 5-minute TTL
-- âœ… Cache clear endpoint available for administrators
+- ✅ Endpoint returns comprehensive health data
+- ✅ Response structure matches mock API
+- ✅ Cached for performance with 5-minute TTL
+- ✅ Cache clear endpoint available for administrators
+
+**Implementation Note:**
+- Route: `/hr/timekeeping/ledger/health` (NO `/api/` prefix)
+- Returns Inertia response or JSON based on Accept header
 
 ---
 
@@ -729,10 +742,88 @@ Route::prefix('timekeeping')
 - [x] **4.3.5** Return JSON with ledger fields + linked `attendance_events` record
 
 **Acceptance Criteria:**
-- âœ… Paginated list matches frontend expectations (20 per page default)
-- âœ… Filters work correctly (employee_rfid, device_id, date_range, event_type)
-- âœ… Single entry includes full metadata (ledger event + linked attendance_events)
-- âœ… Permission middleware applied to all routes (timekeeping.attendance.view)
+- ✅ Paginated list matches frontend expectations (20 per page default)
+- ✅ Filters work correctly (employee_rfid, device_id, date_range, event_type)
+- ✅ Single entry includes full metadata (ledger event + linked attendance_events)
+- ✅ Permission middleware applied to all routes (timekeeping.attendance.view)
+
+---
+
+#### **Task 4.4: Implement AttendanceCorrectionController**
+**File:** `app/Http/Controllers/HR/Timekeeping/AttendanceCorrectionController.php` (NEW)
+
+**Purpose:** Handle manual corrections to attendance records with audit trail and approval workflow.
+
+**Subtasks:**
+- [ ] **4.4.1** Create `store()` method to submit a new correction request:
+  - Accept: `attendance_id`, `corrected_time_in`, `corrected_time_out`, `corrected_break_start`, `corrected_break_end`, `correction_reason`, `justification`
+  - Validate all fields (minimum 10 characters for justification)
+  - Calculate hours difference between original and corrected times
+  - Create `AttendanceCorrection` record with status 'pending'
+  - Dispatch `AttendanceCorrectionRequested` event
+  - Return JSON response with success status
+- [ ] **4.4.2** Create `approve()` method for HR Manager approval:
+  - Accept: `correction_id`
+  - Verify requester has `hr.timekeeping.corrections.approve` permission
+  - Update correction status to 'approved'
+  - Apply correction to `daily_attendance_summary` (override computed values)
+  - Create audit log entry
+  - Dispatch `AttendanceCorrectionApproved` event
+  - Return JSON response
+- [ ] **4.4.3** Create `reject()` method for HR Manager rejection:
+  - Accept: `correction_id`, `rejection_reason`
+  - Update correction status to 'rejected'
+  - Store rejection reason
+  - Dispatch `AttendanceCorrectionRejected` event
+  - Return JSON response
+- [ ] **4.4.4** Add permission checks:
+  - `hr.timekeeping.corrections.create` for store()
+  - `hr.timekeeping.corrections.approve` for approve()/reject()
+- [ ] **4.4.5** Create migration for `attendance_corrections` table:
+  - Fields: `id`, `attendance_event_id`, `requested_by_user_id`, `approved_by_user_id`, `original_time_in`, `original_time_out`, `corrected_time_in`, `corrected_time_out`, `corrected_break_start`, `corrected_break_end`, `hours_difference`, `correction_reason`, `justification`, `rejection_reason`, `status` (pending/approved/rejected), `requested_at`, `processed_at`
+  - Indexes on `attendance_event_id`, `status`, `requested_by_user_id`
+
+**Routes to Add in `routes/hr.php`:**
+```php
+// Attendance Correction Routes (under timekeeping prefix)
+Route::prefix('timekeeping/attendance/corrections')->name('timekeeping.attendance.corrections.')->group(function () {
+    Route::post('/', [AttendanceCorrectionController::class, 'store'])
+        ->middleware('permission:hr.timekeeping.corrections.create')
+        ->name('store');
+    
+    Route::put('/{id}/approve', [AttendanceCorrectionController::class, 'approve'])
+        ->middleware('permission:hr.timekeeping.corrections.approve')
+        ->name('approve');
+    
+    Route::put('/{id}/reject', [AttendanceCorrectionController::class, 'reject'])
+        ->middleware('permission:hr.timekeeping.corrections.approve')
+        ->name('reject');
+});
+```
+
+**Frontend Integration:**
+- Update `attendance-correction-modal.tsx`:
+  - Replace mock `handleSaveCorrection` in `Attendance/Index.tsx` with Inertia form post
+  - Use route: `route('hr.timekeeping.attendance.corrections.store')`
+  - Handle validation errors and success responses
+  - Show success toast on submission
+- No `/api/` prefix needed - use HR routes directly
+
+**Acceptance Criteria:**
+- [ ] Controller created with store(), approve(), reject() methods
+- [ ] Migration for attendance_corrections table created and run
+- [ ] Routes added to hr.php (NO `/api/` prefix)
+- [ ] Permission checks applied to all routes
+- [ ] Frontend modal integrates with real backend API
+- [ ] Audit trail captured for all correction actions
+- [ ] Events dispatched for downstream processing (Payroll, Notifications)
+
+**Implementation Notes:**
+- **Architecture Decision**: Manual corrections NEVER modify the ledger or attendance_events
+- **Data Integrity**: Corrections stored separately in `attendance_corrections` table
+- **Audit Trail**: All correction requests logged with requestor, approver, timestamps, reasons
+- **Workflow Gating**: Payroll processing checks for pending corrections and blocks approval
+- **Event-Driven**: Correction approval triggers summary recomputation and payroll notification
 
 ---
 
@@ -750,9 +841,9 @@ Route::prefix('timekeeping')
 - [x] **5.1.5** Add indexes for performance
 
 **Acceptance Criteria:**
-- âœ… All migrations run successfully (5.1.1-5.1.5 complete)
-- âœ… Indexes created for performance (included in migrations and optimization migration)
-- âœ… Foreign keys properly configured (attendance_events â†’ import_batches, employees, users; daily_attendance_summary â†’ work_schedules, leave_requests)
+- ✅ All migrations run successfully (5.1.1-5.1.5 complete)
+- ✅ Indexes created for performance (included in migrations and optimization migration)
+- ✅ Foreign keys properly configured (attendance_events → import_batches, employees, users; daily_attendance_summary → work_schedules, leave_requests)
 
 **Implementation Notes:**
 - Created 5 total migrations:
@@ -798,21 +889,21 @@ Route::prefix('timekeeping')
 ---
 
 #### **Task 5.2: Create LedgerPollingService**
-**File:** `app/Services/Timekeeping/LedgerPollingService.php` (âœ… COMPLETE)
+**File:** `app/Services/Timekeeping/LedgerPollingService.php` (✅ COMPLETE)
 
 **Subtasks:**
-- [x] **5.2.1** Implement `pollNewEvents()` method to fetch unprocessed ledger entries âœ…
-- [x] **5.2.2** Implement deduplication logic (15-second window) âœ…
-- [x] **5.2.3** Validate hash chain on each event âœ…
-- [x] **5.2.4** Create `AttendanceEvent` records from ledger entries âœ…
-- [x] **5.2.5** Mark ledger entries as processed âœ…
+- [x] **5.2.1** Implement `pollNewEvents()` method to fetch unprocessed ledger entries ✅
+- [x] **5.2.2** Implement deduplication logic (15-second window) ✅
+- [x] **5.2.3** Validate hash chain on each event ✅
+- [x] **5.2.4** Create `AttendanceEvent` records from ledger entries ✅
+- [x] **5.2.5** Mark ledger entries as processed ✅
 
 **Acceptance Criteria:**
-- âœ… Polling processes events without errors - 17 unit tests passing
-- âœ… Deduplication prevents duplicates - 15-second window verified
-- âœ… Hash chain validation detects tampering and sequence gaps
-- âœ… Attendance events created from ledger entries with proper linking
-- âœ… Ledger entries marked as processed for next polling cycle
+- ✅ Polling processes events without errors - 17 unit tests passing
+- ✅ Deduplication prevents duplicates - 15-second window verified
+- ✅ Hash chain validation detects tampering and sequence gaps
+- ✅ Attendance events created from ledger entries with proper linking
+- ✅ Ledger entries marked as processed for next polling cycle
 
 **Implementation Details:**
 - Task 5.2.1: `pollNewEvents(limit=1000)` fetches RfidLedger entries with `unprocessed().orderBySequence()`
@@ -823,22 +914,22 @@ Route::prefix('timekeeping')
 - Combined pipeline: `processLedgerEventsComplete()` handles all three steps (5.2.3-5.2.5) in sequence
 - Created RfidLedgerFactory and AttendanceEventFactory for test data generation
 - Fixed EmployeeFactory to remove email field (dropped in earlier migration)
-- All unit tests passing: 17/17 âœ…
+- All unit tests passing: 17/17 ✅
 
 ---
 
 #### **Task 5.3: Create AttendanceSummaryService**
-**File:** `app/Services/Timekeeping/AttendanceSummaryService.php` âœ… COMPLETED
+**File:** `app/Services/Timekeeping/AttendanceSummaryService.php` ✅ COMPLETED
 
 **Subtasks:**
-- [x] **5.3.1** Implement `computeDailySummary($employeeId, $date)` method âœ…
-- [x] **5.3.2** Apply business rules (late, absent, overtime thresholds) âœ…
+- [x] **5.3.1** Implement `computeDailySummary($employeeId, $date)` method ✅
+- [x] **5.3.2** Apply business rules (late, absent, overtime thresholds) ✅
 - [ ] **5.3.3** Store/update `daily_attendance_summary` records
 - [ ] **5.3.4** Dispatch `AttendanceSummaryUpdated` event
 
 **Acceptance Criteria:**
-- âœ… Summaries computed accurately - 11 unit tests passing
-- âœ… Business rules applied correctly - All test scenarios covered
+- ✅ Summaries computed accurately - 11 unit tests passing
+- ✅ Business rules applied correctly - All test scenarios covered
 - Events will be dispatched in tasks 5.3.4
 
 **Implementation Summary:**
@@ -927,7 +1018,7 @@ Route::prefix('timekeeping')
 #### **Task 7.3: Integration Testing**
 
 **Subtasks:**
-- [ ] **7.3.1** Test end-to-end flow: RFID scan â†’ Display in UI
+- [ ] **7.3.1** Test end-to-end flow: RFID scan → Display in UI
 - [ ] **7.3.2** Test offline device handling
 - [ ] **7.3.3** Test hash chain validation
 - [ ] **7.3.4** Test workflow gating (Payroll integration)
@@ -946,7 +1037,7 @@ Route::prefix('timekeeping')
 - [ ] **1.4.1** Create new component `LedgerHealthWidget` showing:
   - Last sequence ID processed
   - Processing lag (seconds between scan and processing)
-  - Hash chain status (âœ… valid / âŒ broken)
+  - Hash chain status (✅ valid / ❌ broken)
   - Sequence gaps detected (count)
   - Replay jobs in progress (count)
 - [ ] **1.4.2** Add color-coded status: Green (healthy), Yellow (lag > 5 min), Red (integrity failed)
@@ -982,8 +1073,8 @@ Route::prefix('timekeeping')
 
 **Subtasks:**
 - [ ] **1.6.1** Update `edge_machine` source to display "RFID Ledger" label
-- [ ] **1.6.2** Add ledger icon (e.g., ðŸ”— chain link) for ledger-sourced events
-- [ ] **1.6.3** Add verification badge (ðŸ”’ verified / âš ï¸ unverified) next to source label
+- [ ] **1.6.2** Add ledger icon (e.g., 🔗 chain link) for ledger-sourced events
+- [ ] **1.6.3** Add verification badge (🔒 verified / ⚠️ unverified) next to source label
 - [ ] **1.6.4** Add tooltip showing device ID and sequence ID on hover
 
 **Acceptance Criteria:**
@@ -992,7 +1083,7 @@ Route::prefix('timekeeping')
 
 ---
 
-## ðŸ“Š Success Metrics
+## 📊 Success Metrics
 
 **Technical Metrics:**
 - Ledger processing lag < 2 minutes (95th percentile)
@@ -1014,7 +1105,7 @@ Route::prefix('timekeeping')
 
 ---
 
-## ðŸ”— Integration Points
+## 🔗 Integration Points
 
 **Payroll Module:**
 - Receives `AttendanceSummaryUpdated` events
@@ -1038,7 +1129,7 @@ Route::prefix('timekeeping')
 
 ---
 
-## ðŸ” Security & Compliance
+## 🔐 Security & Compliance
 
 **Data Integrity:**
 - Append-only ledger ensures RFID events cannot be modified
@@ -1062,7 +1153,7 @@ Route::prefix('timekeeping')
 
 ---
 
-## ðŸ“š Related Documentation
+## 📚 Related Documentation
 
 - [RFID Replayable Event-Log Proposal](../workflows/integrations/patentable-proposal/rfid-replayable-event-log-proposal.md)
 - [Timekeeping Module Architecture](../TIMEKEEPING_MODULE_ARCHITECTURE.md)
@@ -1073,7 +1164,7 @@ Route::prefix('timekeeping')
 
 ---
 
-## ðŸ—“ï¸ Timeline Summary
+## 🗓️ Timeline Summary
 
 | Phase | Duration | Key Deliverables |
 |-------|----------|------------------|
@@ -1090,7 +1181,7 @@ Route::prefix('timekeeping')
 
 ---
 
-## âœ… Pre-Implementation Checklist
+## ✅ Pre-Implementation Checklist
 
 - [ ] FastAPI RFID server is operational and writing to `rfid_ledger` table
 - [ ] PostgreSQL database configured and accessible from Laravel
@@ -1112,7 +1203,7 @@ Route::prefix('timekeeping')
 
 ---
 
-## ðŸ“ Change Log
+## 📝 Change Log
 
 | Date | Version | Changes | Author |
 |------|---------|---------|--------|
@@ -1121,5 +1212,5 @@ Route::prefix('timekeeping')
 
 ---
 
-**Status:** ðŸŸ¡ IN PROGRESS - Phase 5 (Tasks 5.3.1-5.3.2 Complete)  
-**Next Steps:** Complete Phase 5 (Tasks 5.3.3-5.3.4) â†’ Begin Phase 6 implementation
+**Status:** 🟡 IN PROGRESS - Phase 5 (Tasks 5.3.1-5.3.2 Complete)  
+**Next Steps:** Complete Phase 5 (Tasks 5.3.3-5.3.4) → Begin Phase 6 implementation
