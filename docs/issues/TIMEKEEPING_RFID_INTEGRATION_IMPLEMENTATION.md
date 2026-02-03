@@ -785,8 +785,8 @@ POST /hr/timekeeping/api/ledger/sync     ? LedgerSyncController@trigger
 
 **Routes to Add in `routes/hr.php`:**
 ```php
-// Attendance Correction Routes (under timekeeping prefix)
-Route::prefix('timekeeping/attendance/corrections')->name('timekeeping.attendance.corrections.')->group(function () {
+// Attendance Correction API Routes (JSON endpoints)
+Route::prefix('timekeeping/api/attendance/corrections')->name('timekeeping.api.attendance.corrections.')->group(function () {
     Route::post('/', [AttendanceCorrectionController::class, 'store'])
         ->middleware('permission:hr.timekeeping.corrections.create')
         ->name('store');
@@ -801,20 +801,25 @@ Route::prefix('timekeeping/attendance/corrections')->name('timekeeping.attendanc
 });
 ```
 
+**Route Pattern:**
+- POST `/hr/timekeeping/api/attendance/corrections` → Submit correction request (JSON)
+- PUT `/hr/timekeeping/api/attendance/corrections/{id}/approve` → Approve correction (JSON)
+- PUT `/hr/timekeeping/api/attendance/corrections/{id}/reject` → Reject correction (JSON)
+
 **Frontend Integration:**
 - Update `attendance-correction-modal.tsx`:
-  - Replace mock `handleSaveCorrection` in `Attendance/Index.tsx` with Inertia form post
-  - Use route: `route('hr.timekeeping.attendance.corrections.store')`
+  - Replace mock `handleSaveCorrection` with axios/fetch POST request
+  - Use route: `route('hr.timekeeping.api.attendance.corrections.store')`
   - Handle validation errors and success responses
   - Show success toast on submission
-- No `/api/` prefix needed - use HR routes directly
+- Uses `/api/` sub-namespace for JSON endpoints (consistent with ledger API routes)
 
 **Acceptance Criteria:**
-- [ ] Controller created with store(), approve(), reject() methods
+- [ ] Controller created with store(), approve(), reject() methods returning JSON responses
 - [ ] Migration for attendance_corrections table created and run
-- [ ] Routes added to hr.php (NO `/api/` prefix)
+- [ ] Routes added to hr.php with `/api/` sub-namespace (e.g., `/hr/timekeeping/api/attendance/corrections`)
 - [ ] Permission checks applied to all routes
-- [ ] Frontend modal integrates with real backend API
+- [ ] Frontend modal integrates with real backend API via axios/fetch
 - [ ] Audit trail captured for all correction actions
 - [ ] Events dispatched for downstream processing (Payroll, Notifications)
 
