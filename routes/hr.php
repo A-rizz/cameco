@@ -22,6 +22,12 @@ use App\Http\Controllers\HR\Workforce\AssignmentController;
 use App\Http\Controllers\HR\Timekeeping\AttendanceController;
 use App\Http\Controllers\HR\Timekeeping\OvertimeController;
 use App\Http\Controllers\HR\Timekeeping\ImportController;
+use App\Http\Controllers\HR\Timekeeping\LedgerController;
+use App\Http\Controllers\HR\Timekeeping\LedgerHealthController;
+use App\Http\Controllers\HR\Timekeeping\LedgerSyncController;
+use App\Http\Controllers\HR\Timekeeping\LedgerDeviceController;
+use App\Http\Controllers\HR\Timekeeping\DeviceController;
+use App\Http\Controllers\HR\Timekeeping\EmployeeTimelineController;
 use App\Http\Controllers\HR\Timekeeping\AnalyticsController as TimekeepingAnalyticsController;
 use App\Http\Controllers\HR\Appraisal\AppraisalCycleController;
 use App\Http\Controllers\HR\Appraisal\AppraisalController;
@@ -606,6 +612,79 @@ Route::middleware(['auth', 'verified' , EnsureHRAccess::class])
             Route::get('/attendance/{id}/history', [AttendanceController::class, 'correctionHistory'])
                 ->middleware('permission:hr.timekeeping.attendance.view')
                 ->name('attendance.history');
+
+            // RFID Ledger Page
+            Route::get('/ledger', [LedgerController::class, 'index'])
+                ->middleware('permission:hr.timekeeping.attendance.view')
+                ->name('ledger.index');
+            Route::get('/ledger/{sequenceId}', [LedgerController::class, 'show'])
+                ->middleware('permission:hr.timekeeping.attendance.view')
+                ->name('ledger.show');
+
+            // Device Status Dashboard
+            Route::get('/devices', [DeviceController::class, 'index'])
+                ->middleware('permission:hr.timekeeping.attendance.view')
+                ->name('devices');
+
+            // Employee Timeline
+            Route::get('/employee/{employeeId}/timeline', [EmployeeTimelineController::class, 'show'])
+                ->middleware('permission:hr.timekeeping.attendance.view')
+                ->name('employee.timeline');
+
+            // ========================================
+            // RFID Ledger API Routes (JSON Responses)
+            // ========================================
+            Route::prefix('api/ledger')->name('api.ledger.')->group(function () {
+                // Get ledger health status
+                Route::get('/health', [LedgerHealthController::class, 'index'])
+                    ->middleware('permission:hr.timekeeping.attendance.view')
+                    ->name('health');
+
+                // Get 24-hour health history
+                Route::get('/health-history', [LedgerHealthController::class, 'history'])
+                    ->middleware('permission:hr.timekeeping.attendance.view')
+                    ->name('health.history');
+
+                // Clear health cache (administrative endpoint)
+                Route::delete('/health-cache', [LedgerHealthController::class, 'clearCache'])
+                    ->middleware('permission:hr.timekeeping.attendance.update')
+                    ->name('health.cache.clear');
+
+                // Get ledger events (paginated JSON)
+                Route::get('/events', [LedgerController::class, 'events'])
+                    ->middleware('permission:hr.timekeeping.attendance.view')
+                    ->name('events');
+
+                // Get single event by sequence ID
+                Route::get('/events/{sequenceId}', [LedgerController::class, 'eventDetail'])
+                    ->middleware('permission:hr.timekeeping.attendance.view')
+                    ->name('event');
+
+                // Manual ledger sync
+                Route::post('/sync', [LedgerSyncController::class, 'trigger'])
+                    ->middleware('permission:hr.timekeeping.attendance.update')
+                    ->name('sync');
+
+                // Get sync job status
+                Route::get('/sync/{syncJobId}', [LedgerSyncController::class, 'status'])
+                    ->middleware('permission:hr.timekeeping.attendance.view')
+                    ->name('sync.status');
+
+                // Get sync history
+                Route::get('/sync-history', [LedgerSyncController::class, 'history'])
+                    ->middleware('permission:hr.timekeeping.attendance.view')
+                    ->name('sync.history');
+
+                // Get device list with status and metrics
+                Route::get('/devices', [LedgerDeviceController::class, 'index'])
+                    ->middleware('permission:hr.timekeeping.attendance.view')
+                    ->name('devices');
+
+                // Get single device details
+                Route::get('/devices/{deviceId}', [LedgerDeviceController::class, 'show'])
+                    ->middleware('permission:hr.timekeeping.attendance.view')
+                    ->name('device');
+            });
 
             // Overtime Management
             Route::get('/overtime', [OvertimeController::class, 'index'])

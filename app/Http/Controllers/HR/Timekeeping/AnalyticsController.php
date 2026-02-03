@@ -68,7 +68,37 @@ class AnalyticsController extends Controller
         return Inertia::render('HR/Timekeeping/Overview', [
             'analytics' => $analytics,
             'period' => $period,
+            'ledgerHealth' => $this->generateMockLedgerHealth(),
         ]);
+    }
+
+    /**
+     * Generate mock ledger health status.
+     * 
+     * @return array
+     */
+    private function generateMockLedgerHealth(): array
+    {
+        return [
+            'status' => 'healthy',
+            'last_sequence_id' => 12404,
+            'events_today' => 247,
+            'devices_online' => 4,
+            'devices_offline' => 1,
+            'last_sync' => now()->subMinutes(2)->toISOString(),
+            'avg_latency_ms' => 125,
+            'hash_verification' => [
+                'total_checked' => 247,
+                'passed' => 247,
+                'failed' => 0,
+            ],
+            'performance' => [
+                'events_per_hour' => 31,
+                'avg_processing_time_ms' => 45,
+                'queue_depth' => 0,
+            ],
+            'alerts' => [],
+        ];
     }
 
     /**

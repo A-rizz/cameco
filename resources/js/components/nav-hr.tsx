@@ -26,7 +26,8 @@ import {
     Upload,
     TrendingUp,
     FileSignature,
-    FileQuestion
+    FileQuestion,
+    Activity
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
@@ -218,6 +219,12 @@ export function NavHR() {
             icon: Calendar,
             href: '/hr/timekeeping/overview',
             permission: 'hr.timekeeping.view',
+        },
+        {
+            title: 'RFID Ledger',
+            icon: Activity,
+            href: '/hr/timekeeping/ledger',
+            permission: 'hr.timekeeping.attendance.view',
         },
         {
             title: 'Attendance Records',
