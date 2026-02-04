@@ -1910,59 +1910,6 @@ The page includes an information panel explaining offline handling:
 
 ---
 
-#### **Task 1.4: Add Ledger Health Dashboard Widget**
-**File:** `resources/js/components/timekeeping/ledger-health-widget.tsx` (NEW)
-
-**Subtasks:**
-- [ ] **1.4.1** Create new component `LedgerHealthWidget` showing:
-  - Last sequence ID processed
-  - Processing lag (seconds between scan and processing)
-  - Hash chain status (✅ valid / ❌ broken)
-  - Sequence gaps detected (count)
-  - Replay jobs in progress (count)
-- [ ] **1.4.2** Add color-coded status: Green (healthy), Yellow (lag > 5 min), Red (integrity failed)
-- [ ] **1.4.3** Add "View Details" button opening ledger health logs modal
-- [ ] **1.4.4** Add "Trigger Manual Sync" button for HR Manager (forces ledger poll)
-- [ ] **1.4.5** Display device online/offline status (based on last scan timestamp)
-
-**Acceptance Criteria:**
-- Widget displays on Overview page and Attendance Index page
-- Real-time health status updates every 30 seconds
-- HR Manager can manually trigger sync
-
----
-
-#### **Task 1.5: Update Attendance Filters Component**
-**File:** `resources/js/components/timekeeping/attendance-filters.tsx`
-
-**Subtasks:**
-- [ ] **1.5.1** Add "Source" filter dropdown: All / RFID Ledger / Manual / Imported
-- [ ] **1.5.2** Add "Ledger Verified" checkbox filter
-- [ ] **1.5.3** Add "Sequence ID Range" input (for audit/replay scenarios)
-- [ ] **1.5.4** Add "Device ID" dropdown (populated from `rfid_ledger.device_id`)
-- [ ] **1.5.5** Update filter state management to include new ledger-specific filters
-
-**Acceptance Criteria:**
-- All ledger-specific filters functional
-- Filter combinations work correctly (e.g., "RFID Ledger + Not Verified")
-
----
-
-#### **Task 1.6: Update Source Indicator Component**
-**File:** `resources/js/components/timekeeping/source-indicator.tsx`
-
-**Subtasks:**
-- [ ] **1.6.1** Update `edge_machine` source to display "RFID Ledger" label
-- [ ] **1.6.2** Add ledger icon (e.g., 🔗 chain link) for ledger-sourced events
-- [ ] **1.6.3** Add verification badge (🔒 verified / ⚠️ unverified) next to source label
-- [ ] **1.6.4** Add tooltip showing device ID and sequence ID on hover
-
-**Acceptance Criteria:**
-- Source indicator clearly distinguishes ledger vs manual vs imported
-- Verification status visible at a glance
-
----
-
 ## 📊 Success Metrics
 
 **Technical Metrics:**
