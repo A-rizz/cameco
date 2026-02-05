@@ -1,12 +1,11 @@
 import { Head, usePage, Link } from '@inertiajs/react';
-import { useMemo, useCallback } from 'react';
+import { useCallback } from 'react';
 import AppLayout from '@/layouts/app-layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { SummaryCard } from '@/components/timekeeping/summary-card';
-import { LedgerHealthWidget } from '@/components/timekeeping/ledger-health-widget';
-import { ExternalLink, Activity } from 'lucide-react';
+import { ExternalLink, Activity, CheckCircle, AlertCircle, AlertTriangle } from 'lucide-react';
 
 interface StatusDistribution {
     status: string;
@@ -64,45 +63,24 @@ export default function TimekeepingOverview() {
     // Get ledgerHealth from Inertia props (passed from controller)
     const ledgerHealth = (page.props as { ledgerHealth?: LedgerHealthStatus }).ledgerHealth || null;
 
-    // Transform controller health status to widget format
-    const transformedHealthState = useMemo(() => {
-        if (!ledgerHealth) return null;
+    // Simple status mapping function
+    const getStatusIcon = (status: string) => {
+        if (status === 'healthy') return <CheckCircle className="h-5 w-5 text-green-600" />;
+        if (status === 'degraded') return <AlertTriangle className="h-5 w-5 text-yellow-600" />;
+        return <AlertCircle className="h-5 w-5 text-red-600" />;
+    };
 
-        const lastSyncDate = new Date(ledgerHealth.last_sync);
-        const minutesAgo = Math.floor((new Date().getTime() - lastSyncDate.getTime()) / 60000);
+    const getStatusColor = (status: string) => {
+        if (status === 'healthy') return 'bg-green-50 border-green-200';
+        if (status === 'degraded') return 'bg-yellow-50 border-yellow-200';
+        return 'bg-red-50 border-red-200';
+    };
 
-        // Map controller status to widget status type
-        const mapStatus = (status: string): 'healthy' | 'warning' | 'critical' => {
-            if (status === 'degraded') return 'warning';
-            if (status === 'healthy' || status === 'warning' || status === 'critical') return status;
-            return 'warning'; // default fallback
-        };
-
-        return {
-            status: mapStatus(ledgerHealth.status),
-            lastSequence: ledgerHealth.last_sequence_id,
-            lastProcessedAgo: `${minutesAgo}m ago`,
-            processingRate: ledgerHealth.performance.events_per_hour,
-            integrityStatus: ledgerHealth.hash_verification.failed === 0 ? 'verified' as const : 'hash_mismatch_detected' as const,
-            devicesOnline: ledgerHealth.devices_online,
-            devicesOffline: ledgerHealth.devices_offline,
-            backlog: ledgerHealth.performance.queue_depth,
-            processingRateHistory: [
-                ledgerHealth.performance.events_per_hour,
-                ledgerHealth.performance.events_per_hour - 5,
-                ledgerHealth.performance.events_per_hour + 3,
-                ledgerHealth.performance.events_per_hour - 2,
-                ledgerHealth.performance.events_per_hour + 1,
-                ledgerHealth.performance.events_per_hour,
-                ledgerHealth.performance.events_per_hour + 2,
-                ledgerHealth.performance.events_per_hour - 1,
-                ledgerHealth.performance.events_per_hour,
-                ledgerHealth.performance.events_per_hour + 3,
-                ledgerHealth.performance.events_per_hour - 2,
-                ledgerHealth.performance.events_per_hour,
-            ]
-        };
-    }, [ledgerHealth]);
+    const getStatusBadge = (status: string) => {
+        if (status === 'healthy') return <Badge className="bg-green-600">Healthy</Badge>;
+        if (status === 'degraded') return <Badge variant="secondary" className="bg-yellow-600">Degraded</Badge>;
+        return <Badge variant="destructive">Critical</Badge>;
+    };
 
     // Handler for View Logs action
     const handleViewLogs = useCallback((filterType: string) => {
@@ -128,9 +106,48 @@ export default function TimekeepingOverview() {
                     <p className="text-gray-600">Monitor attendance metrics and trends </p>
                 </div>
 
-                {/* Ledger Health Widget - Full Width at Top */}
-                {ledgerHealth && transformedHealthState ? (
-                    <LedgerHealthWidget healthState={transformedHealthState} />
+                {/* Ledger Health Overview Card - Simple Status */}
+                {ledgerHealth ? (
+                    <Card className={`border ${getStatusColor(ledgerHealth.status)}`}>
+                        <CardHeader>
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    {getStatusIcon(ledgerHealth.status)}
+                                    <div>
+                                        <CardTitle>RFID Ledger Status</CardTitle>
+                                        <CardDescription>Event stream and device health overview</CardDescription>
+                                    </div>
+                                </div>
+                                {getStatusBadge(ledgerHealth.status)}
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                <div>
+                                    <div className="text-muted-foreground">Devices Online</div>
+                                    <div className="text-2xl font-bold text-green-600">{ledgerHealth.devices_online}</div>
+                                </div>
+                                <div>
+                                    <div className="text-muted-foreground">Devices Offline</div>
+                                    <div className="text-2xl font-bold text-red-600">{ledgerHealth.devices_offline}</div>
+                                </div>
+                                <div>
+                                    <div className="text-muted-foreground">Events Today</div>
+                                    <div className="text-2xl font-bold">{ledgerHealth.events_today}</div>
+                                </div>
+                                <div>
+                                    <div className="text-muted-foreground">Processing Rate</div>
+                                    <div className="text-2xl font-bold">{ledgerHealth.performance.events_per_hour}/hr</div>
+                                </div>
+                            </div>
+                            <Link href="/hr/timekeeping/ledger" className="block mt-4">
+                                <Button className="w-full gap-2">
+                                    View Full Ledger & Replay
+                                    <ExternalLink className="h-4 w-4" />
+                                </Button>
+                            </Link>
+                        </CardContent>
+                    </Card>
                 ) : null}
 
                 {/* Two Column Layout: Summary Cards + Analytics */}
@@ -312,19 +329,19 @@ export default function TimekeepingOverview() {
                                 <div className="grid grid-cols-3 gap-4">
                                     <div className="text-center p-4 bg-green-50 rounded-lg">
                                         <div className="text-3xl font-bold text-green-700">
-                                            {transformedHealthState?.devicesOnline || 0}
+                                            {ledgerHealth?.devices_online || 0}
                                         </div>
                                         <div className="text-sm text-green-600 mt-1">Online</div>
                                     </div>
                                     <div className="text-center p-4 bg-red-50 rounded-lg">
                                         <div className="text-3xl font-bold text-red-700">
-                                            {transformedHealthState?.devicesOffline || 0}
+                                            {ledgerHealth?.devices_offline || 0}
                                         </div>
                                         <div className="text-sm text-red-600 mt-1">Offline</div>
                                     </div>
                                     <div className="text-center p-4 bg-blue-50 rounded-lg">
                                         <div className="text-3xl font-bold text-blue-700">
-                                            {(transformedHealthState?.devicesOnline || 0) + (transformedHealthState?.devicesOffline || 0)}
+                                            {(ledgerHealth?.devices_online || 0) + (ledgerHealth?.devices_offline || 0)}
                                         </div>
                                         <div className="text-sm text-blue-600 mt-1">Total</div>
                                     </div>

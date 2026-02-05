@@ -55,7 +55,7 @@ class AnalyticsController extends Controller
             $totalRecords = $summaries->count();
             $presentCount = $summaries->where('is_present', true)->count();
             $lateCount = $summaries->where('is_late', true)->count();
-            $absentCount = $summaries->where('is_absent', true)->count();
+            $absentCount = $summaries->where('is_present', false)->count();
             
             $attendanceRate = $totalRecords > 0 ? ($presentCount / $totalRecords) * 100 : 0;
             $lateRate = $totalRecords > 0 ? ($lateCount / $totalRecords) * 100 : 0;
@@ -216,7 +216,7 @@ class AnalyticsController extends Controller
         ]);
         
         $lateCount = (clone $summaries)->where('is_late', true)->count();
-        $absentCount = (clone $summaries)->where('is_absent', true)->count();
+        $absentCount = (clone $summaries)->where('is_present', false)->count();
         $manualEntriesCount = AttendanceEvent::whereBetween('event_date', [
             $dateRange['start'],
             $dateRange['end']
