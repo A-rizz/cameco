@@ -33,6 +33,7 @@ class RfidLedgerFactory extends Factory
             'hash_chain' => fake()->sha256(),
             'hash_previous' => fake()->sha256(),
             'device_signature' => fake()->sha256(),
+            'latency_ms' => fake()->numberBetween(50, 300), // Realistic latency: 50-300ms
             'processed' => false,
             'processed_at' => null,
             'created_at' => $now,

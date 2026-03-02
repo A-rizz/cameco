@@ -119,6 +119,7 @@ class LedgerController extends Controller
      * 
      * Subtask 4.3.3: Return single ledger entry (Inertia response for page view)
      * Subtask 4.3.4: Permission check applied in routes (timekeeping.attendance.view)
+     * Task 1.1: Replace mock implementation with real database query
      * 
      * @param int $sequenceId
      * @return Response
@@ -127,26 +128,53 @@ class LedgerController extends Controller
     {
         // Permission check is handled by middleware in routes (4.3.4)
         
-        $allLogs = $this->generateMockTimeLogs();
-        $event = collect($allLogs)->firstWhere('sequence_id', $sequenceId);
+        // Query real ledger entry by sequence_id
+        $ledgerEntry = RfidLedger::with([
+            'employee:id,employee_number,profile_id',
+            'employee.profile:id,first_name,last_name',
+            'device:id,device_id,device_name,location'
+        ])->where('sequence_id', $sequenceId)
+          ->first();
         
-        if (!$event) {
-            abort(404, 'Event not found');
+        if (!$ledgerEntry) {
+            abort(404, 'Ledger event not found');
         }
         
-        // Generate linked attendance_events record (4.3.5)
-        $attendanceEvent = $this->generateLinkedAttendanceEvent($event);
+        // Transform ledger entry to event format
+        $employee = $ledgerEntry->employee;
+        $event = [
+            'id' => $ledgerEntry->id,
+            'sequence_id' => $ledgerEntry->sequence_id,
+            'employee_id' => $employee ? $employee->employee_number : 'Unknown',
+            'employee_name' => $employee ? "{$employee->profile->first_name} {$employee->profile->last_name}" : 'Unknown Employee',
+            'event_type' => $ledgerEntry->event_type,
+            'timestamp' => $ledgerEntry->scan_timestamp->toISOString(),
+            'device_id' => $ledgerEntry->device_id,
+            'device_location' => $ledgerEntry->device && $ledgerEntry->device->location ? $ledgerEntry->device->location : $ledgerEntry->device_id,
+            'verified' => $ledgerEntry->processed,
+            'rfid_card' => '****-' . substr($ledgerEntry->employee_rfid, -4),
+            'hash_chain' => $ledgerEntry->hash_chain,
+            'latency_ms' => $ledgerEntry->latency_ms ?? null,
+            'source' => 'edge_machine',
+        ];
+        
+        // Get linked attendance event (real query, not mock)
+        $attendanceEvent = $this->getLinkedAttendanceEvent($ledgerEntry->sequence_id);
+        
+        // Get related events (real query, not mock)
+        $relatedEvents = $this->getRelatedEventsReal($ledgerEntry);
         
         return Inertia::render('HR/Timekeeping/EventDetail', [
             'event' => $event,
             'attendanceEvent' => $attendanceEvent, // Linked attendance_events record
-            'relatedEvents' => $this->getRelatedEvents($event),
+            'relatedEvents' => $relatedEvents,
         ]);
     }
 
     /**
      * API: Return ledger events as JSON (paginated).
      * 
+     * Task 2.1: Replace mock API with real database queries
      * Subtask 4.3.1: Pagination with 20 events per page
      * Subtask 4.3.2: Filtering by employee_rfid, device_id, date_range, event_type
      * 
@@ -156,54 +184,90 @@ class LedgerController extends Controller
     public function events(Request $request): JsonResponse
     {
         $perPage = $request->get('per_page', 20); // Default 20 per page (4.3.1)
-        $page = $request->get('page', 1);
         
-        // Generate mock time logs
-        $allLogs = $this->generateMockTimeLogs();
+        // Build query for rfid_ledger with filters (eager load relationships for performance)
+        $query = RfidLedger::with([
+            'employee:id,employee_number,profile_id',
+            'employee.profile:id,first_name,last_name',
+            'device:id,device_id,device_name,location'
+        ])->orderBy('sequence_id', 'desc');
         
-        // Apply filters from request (4.3.2: employee_rfid, device_id, date_range, event_type)
-        $filteredLogs = $this->applyFilters($allLogs, $request);
+        // Apply filters (4.3.2: employee_rfid, device_id, date_range, event_type)
+        if ($request->filled('date_from')) {
+            $query->where('scan_timestamp', '>=', Carbon::parse($request->date_from)->startOfDay());
+        }
         
-        // Paginate results
-        $logs = collect($filteredLogs)
-            ->forPage($page, $perPage)
-            ->values()
-            ->toArray();
+        if ($request->filled('date_to')) {
+            $query->where('scan_timestamp', '<=', Carbon::parse($request->date_to)->endOfDay());
+        }
         
-        // Generate pagination meta
-        $total = count($filteredLogs);
-        $lastPage = ceil($total / $perPage);
+        if ($request->filled('device_id') && $request->device_id !== 'all') {
+            $query->where('device_id', $request->device_id);
+        }
+        
+        if ($request->filled('event_type')) {
+            $query->where('event_type', $request->event_type);
+        }
+        
+        if ($request->filled('employee_rfid')) {
+            $query->where('employee_rfid', $request->employee_rfid);
+        }
+        
+        if ($request->filled('employee_search')) {
+            $search = $request->employee_search;
+            $query->whereHas('employee.profile', function ($q) use ($search) {
+                $q->where('first_name', 'like', "%{$search}%")
+                  ->orWhere('last_name', 'like', "%{$search}%");
+            })->orWhere('employee_number', 'like', "%{$search}%");
+        }
+        
+        // Paginate results using Eloquent pagination
+        $logs = $query->paginate($perPage);
+        
+        // Transform for API response
+        $transformedLogs = $logs->getCollection()->map(function ($log) {
+            $employee = $log->employee;
+            return [
+                'id' => $log->id,
+                'sequence_id' => $log->sequence_id,
+                'employee_id' => $employee ? $employee->employee_number : 'Unknown',
+                'employee_name' => $employee ? "{$employee->profile->first_name} {$employee->profile->last_name}" : 'Unknown Employee',
+                'event_type' => $log->event_type,
+                'timestamp' => $log->scan_timestamp->toISOString(),
+                'device_id' => $log->device_id,
+                'device_location' => $log->device && $log->device->location ? $log->device->location : $log->device_id,
+                'verified' => $log->processed,
+                'rfid_card' => '****-' . substr($log->employee_rfid, -4),
+                'hash_chain' => $log->hash_chain,
+                'latency_ms' => $log->latency_ms ?? null,
+                'source' => 'edge_machine',
+            ];
+        });
         
         return response()->json([
-            'data' => $logs,
+            'data' => $transformedLogs,
             'meta' => [
-                'current_page' => (int) $page,
-                'per_page' => $perPage,
-                'total' => $total,
-                'last_page' => $lastPage,
-                'from' => ($page - 1) * $perPage + 1,
-                'to' => min($page * $perPage, $total),
+                'current_page' => $logs->currentPage(),
+                'per_page' => $logs->perPage(),
+                'total' => $logs->total(),
+                'last_page' => $logs->lastPage(),
+                'from' => $logs->firstItem(),
+                'to' => $logs->lastItem(),
             ],
             'links' => [
-                'first' => route('timekeeping.api.ledger.events', ['page' => 1]),
-                'last' => route('timekeeping.api.ledger.events', ['page' => $lastPage]),
-                'next' => $page < $lastPage ? route('timekeeping.api.ledger.events', ['page' => $page + 1]) : null,
-                'prev' => $page > 1 ? route('timekeeping.api.ledger.events', ['page' => $page - 1]) : null,
+                'first' => $logs->url(1),
+                'last' => $logs->url($logs->lastPage()),
+                'next' => $logs->nextPageUrl(),
+                'prev' => $logs->previousPageUrl(),
             ],
-            'filters' => [
-                'date_from' => $request->get('date_from'),
-                'date_to' => $request->get('date_to'),
-                'device_id' => $request->get('device_id'),
-                'event_type' => $request->get('event_type'),
-                'employee_rfid' => $request->get('employee_rfid'),
-                'employee_search' => $request->get('employee_search'),
-            ],
+            'filters' => $request->only(['date_from', 'date_to', 'device_id', 'event_type', 'employee_rfid', 'employee_search']),
         ]);
     }
 
     /**
      * API: Get a single event by sequence ID (JSON response).
      * 
+     * Task 2.2: Replace mock API with real database query
      * Subtask 4.3.3: Return single ledger entry as JSON
      * Subtask 4.3.4: Permission check applied in routes (timekeeping.attendance.view)
      * Subtask 4.3.5: Return JSON with ledger fields + linked attendance_events record
@@ -215,31 +279,55 @@ class LedgerController extends Controller
     {
         // Permission check is handled by middleware in routes (4.3.4)
         
-        $allLogs = $this->generateMockTimeLogs();
-        $event = collect($allLogs)->firstWhere('sequence_id', $sequenceId);
+        // Query real ledger entry by sequence_id
+        $ledgerEntry = RfidLedger::with([
+            'employee:id,employee_number,profile_id',
+            'employee.profile:id,first_name,last_name',
+            'device:id,device_id,device_name,location'
+        ])->where('sequence_id', $sequenceId)
+          ->first();
         
-        if (!$event) {
+        if (!$ledgerEntry) {
             return response()->json([
                 'message' => 'Event not found',
                 'error' => 'EVENT_NOT_FOUND',
             ], 404);
         }
         
-        $relatedEvents = $this->getRelatedEvents($event);
+        // Transform to event format
+        $employee = $ledgerEntry->employee;
+        $event = [
+            'id' => $ledgerEntry->id,
+            'sequence_id' => $ledgerEntry->sequence_id,
+            'employee_id' => $employee ? $employee->employee_number : 'Unknown',
+            'employee_name' => $employee ? "{$employee->profile->first_name} {$employee->profile->last_name}" : 'Unknown Employee',
+            'event_type' => $ledgerEntry->event_type,
+            'timestamp' => $ledgerEntry->scan_timestamp->toISOString(),
+            'device_id' => $ledgerEntry->device_id,
+            'device_location' => $ledgerEntry->device && $ledgerEntry->device->location ? $ledgerEntry->device->location : $ledgerEntry->device_id,
+            'verified' => $ledgerEntry->processed,
+            'rfid_card' => '****-' . substr($ledgerEntry->employee_rfid, -4),
+            'hash_chain' => $ledgerEntry->hash_chain,
+            'latency_ms' => $ledgerEntry->latency_ms ?? null,
+            'source' => 'edge_machine',
+        ];
         
-        // Generate linked attendance_events record (4.3.5)
-        $attendanceEvent = $this->generateLinkedAttendanceEvent($event);
+        // Get linked attendance event (real query, not mock)
+        $attendanceEvent = $this->getLinkedAttendanceEvent($ledgerEntry->sequence_id);
+        
+        // Get related events (real query, not mock)
+        $relatedEvents = $this->getRelatedEventsReal($ledgerEntry);
         
         return response()->json([
             'success' => true,
             'data' => [
-                'ledger_event' => $event, // Full ledger fields (4.3.5)
+                'ledger_event' => $event, // Full ledger fields from real database (4.3.5)
                 'attendance_event' => $attendanceEvent, // Linked attendance_events record (4.3.5)
             ],
             'related' => [
                 'previous' => $relatedEvents['previous'] ?? null,
                 'next' => $relatedEvents['next'] ?? null,
-                'employee_today' => array_values($relatedEvents['employee_today'] ?? []),
+                'employee_today' => $relatedEvents['employee_today'] ?? [],
             ],
             'links' => [
                 'self' => route('timekeeping.api.ledger.event', ['sequenceId' => $sequenceId]),
@@ -254,70 +342,12 @@ class LedgerController extends Controller
     }
 
     /**
-     * Generate mock time logs (50+ events).
-     * 
-     * @return array
-     */
-    private function generateMockTimeLogs(): array
-    {
-        $logs = [];
-        $employees = [
-            ['id' => 'EMP-001', 'name' => 'Juan Dela Cruz'],
-            ['id' => 'EMP-002', 'name' => 'Maria Santos'],
-            ['id' => 'EMP-003', 'name' => 'Pedro Garcia'],
-            ['id' => 'EMP-004', 'name' => 'Ana Reyes'],
-            ['id' => 'EMP-005', 'name' => 'Jose Mendoza'],
-            ['id' => 'EMP-006', 'name' => 'Rosa Martinez'],
-            ['id' => 'EMP-007', 'name' => 'Carlos Lopez'],
-            ['id' => 'EMP-008', 'name' => 'Linda Torres'],
-            ['id' => 'EMP-009', 'name' => 'Miguel Rivera'],
-            ['id' => 'EMP-010', 'name' => 'Sofia Flores'],
-        ];
-        
-        $devices = [
-            ['id' => 'GATE-01', 'location' => 'Gate 1 - Main Entrance'],
-            ['id' => 'GATE-02', 'location' => 'Gate 2 - Side Entrance'],
-            ['id' => 'CAFETERIA-01', 'location' => 'Cafeteria'],
-            ['id' => 'WAREHOUSE-01', 'location' => 'Warehouse Entry'],
-            ['id' => 'OFFICE-01', 'location' => 'Office Floor'],
-        ];
-        
-        $eventTypes = ['time_in', 'time_out', 'break_start', 'break_end'];
-        
-        $sequenceId = 12345;
-        $baseTime = now()->startOfDay()->addHours(7); // Start at 7 AM
-        
-        // Generate 60 events over the course of a day
-        for ($i = 0; $i < 60; $i++) {
-            $employee = $employees[array_rand($employees)];
-            $device = $devices[array_rand($devices)];
-            $eventType = $eventTypes[array_rand($eventTypes)];
-            
-            // Distribute events throughout the day
-            $timestamp = $baseTime->copy()->addMinutes($i * 15 + rand(-5, 5));
-            
-            $logs[] = [
-                'id' => $i + 1,
-                'sequence_id' => $sequenceId++,
-                'employee_id' => $employee['id'],
-                'employee_name' => $employee['name'],
-                'event_type' => $eventType,
-                'timestamp' => $timestamp->toISOString(),
-                'device_id' => $device['id'],
-                'device_location' => $device['location'],
-                'verified' => rand(1, 100) > 5, // 95% verified
-                'rfid_card' => '****-' . str_pad(rand(1000, 9999), 4, '0', STR_PAD_LEFT),
-                'hash_chain' => bin2hex(random_bytes(16)),
-                'latency_ms' => rand(50, 500),
-                'source' => 'edge_machine',
-            ];
-        }
-        
-        return $logs;
-    }
-
-    /**
      * Get real ledger health status from database.
+     * 
+     * Task 4.1: Add Real Metric Calculations
+     * - Calculates avg_latency_ms from today's events
+     * - Calculates avg_processing_time_ms from processed attendance events
+     * - Calculates hash verification failures from database
      * 
      * @return array
      */
@@ -342,6 +372,29 @@ class LedgerController extends Controller
         // Calculate events per hour (last hour)
         $eventsLastHour = RfidLedger::where('scan_timestamp', '>=', now()->subHour())->count();
         
+        // Task 4.1.1: Calculate average latency from today's events
+        $avgLatency = RfidLedger::whereDate('scan_timestamp', today())
+            ->whereNotNull('latency_ms')
+            ->avg('latency_ms');
+        $avgLatencyMs = $avgLatency ? round($avgLatency, 0) : 0;
+        
+        // Task 4.1.2: Calculate average processing time from rfid_ledger table
+        // Processing time = when ledger entry was processed (processed_at) - when scan occurred (scan_timestamp)
+        // PostgreSQL: Use EXTRACT(EPOCH FROM ...) to get time difference in seconds
+        $avgProcessingTime = RfidLedger::whereDate('scan_timestamp', today())
+            ->whereNotNull('processed_at')
+            ->selectRaw('AVG(EXTRACT(EPOCH FROM (processed_at - scan_timestamp))) as avg_seconds')
+            ->first();
+        $avgProcessingTimeMs = $avgProcessingTime && $avgProcessingTime->avg_seconds 
+            ? round($avgProcessingTime->avg_seconds * 1000, 0) 
+            : 0;
+        
+        // Task 4.1.3: Get hash verification failures from health logs today
+        $hashFailures = LedgerHealthLog::whereDate('created_at', today())
+            ->where('hash_failures', true)
+            ->sum('hash_failure_count');
+        $hashFailures = $hashFailures ?: 0;
+        
         // Determine health status
         $status = 'healthy';
         if ($queueDepth > 1000) {
@@ -357,15 +410,15 @@ class LedgerController extends Controller
             'devices_online' => $devicesOnline,
             'devices_offline' => $devicesOffline,
             'last_sync' => $latestLedger ? $latestLedger->created_at->toISOString() : now()->toISOString(),
-            'avg_latency_ms' => 125, // TODO: Calculate from actual metrics
+            'avg_latency_ms' => $avgLatencyMs, // REAL METRIC - Task 4.1.1: Calculated from actual events
             'hash_verification' => [
                 'total_checked' => $eventsToday,
-                'passed' => $eventsToday, // TODO: Calculate from hash validation results
-                'failed' => 0,
+                'passed' => $eventsToday - $hashFailures, // REAL CALCULATION - Task 4.1.3
+                'failed' => $hashFailures, // REAL METRIC - Task 4.1.3: From health logs
             ],
             'performance' => [
                 'events_per_hour' => $eventsLastHour,
-                'avg_processing_time_ms' => 45, // TODO: Calculate from processing metrics
+                'avg_processing_time_ms' => $avgProcessingTimeMs, // REAL METRIC - Task 4.1.2: Calculated from processing times
                 'queue_depth' => $queueDepth,
             ],
             'alerts' => $latestHealthLog ? $latestHealthLog->alerts ?? [] : [],
@@ -408,137 +461,139 @@ class LedgerController extends Controller
     }
 
     /**
-     * Apply filters to logs collection.
+     * Task 1.1: Get linked attendance_events record from database.
      * 
-     * Subtask 4.3.2: Support filtering by employee_rfid, device_id, date_range, event_type
+     * Queries the attendance_events table for an entry linked to this ledger sequence ID.
+     * Not all ledger entries have been processed into attendance_events yet.
      * 
-     * @param array $logs
-     * @param Request $request
-     * @return array
+     * @param int $sequenceId Ledger sequence ID
+     * @return array|null Formatted attendance event or null if not yet processed
      */
-    private function applyFilters(array $logs, Request $request): array
+    private function getLinkedAttendanceEvent(int $sequenceId): ?array
     {
-        $filtered = $logs;
+        // Query attendance_events table for this ledger entry
+        $attendanceEvent = AttendanceEvent::with([
+            'employee:id,employee_number,profile_id',
+            'employee.profile:id,first_name,last_name'
+        ])->where('ledger_sequence_id', $sequenceId)
+          ->first();
         
-        // Date range filter (date_range: date_from and date_to)
-        if ($request->has('date_from')) {
-            $dateFrom = \Carbon\Carbon::parse($request->get('date_from'))->startOfDay();
-            $filtered = array_filter($filtered, function ($log) use ($dateFrom) {
-                return \Carbon\Carbon::parse($log['timestamp'])->gte($dateFrom);
-            });
+        if (!$attendanceEvent) {
+            return null; // Not yet processed into attendance_events
         }
         
-        if ($request->has('date_to')) {
-            $dateTo = \Carbon\Carbon::parse($request->get('date_to'))->endOfDay();
-            $filtered = array_filter($filtered, function ($log) use ($dateTo) {
-                return \Carbon\Carbon::parse($log['timestamp'])->lte($dateTo);
-            });
-        }
+        $employee = $attendanceEvent->employee;
         
-        // Device filter (device_id)
-        if ($request->has('device_id') && $request->get('device_id') !== 'all' && $request->get('device_id') !== '') {
-            $deviceId = $request->get('device_id');
-            $filtered = array_filter($filtered, function ($log) use ($deviceId) {
-                return $log['device_id'] === $deviceId;
-            });
-        }
-        
-        // Event type filter (event_type)
-        if ($request->has('event_type') && $request->get('event_type') !== '' && $request->get('event_type') !== 'all') {
-            $eventType = $request->get('event_type');
-            $filtered = array_filter($filtered, function ($log) use ($eventType) {
-                return $log['event_type'] === $eventType;
-            });
-        }
-        
-        // Employee RFID filter (employee_rfid) - NEW for 4.3.2
-        if ($request->has('employee_rfid') && $request->get('employee_rfid') !== '' && $request->get('employee_rfid') !== 'all') {
-            $employeeRfid = $request->get('employee_rfid');
-            $filtered = array_filter($filtered, function ($log) use ($employeeRfid) {
-                return $log['employee_id'] === $employeeRfid;
-            });
-        }
-        
-        // Employee search filter (for backward compatibility and free-text search)
-        if ($request->has('employee_search') && $request->get('employee_search')) {
-            $search = strtolower($request->get('employee_search'));
-            $filtered = array_filter($filtered, function ($log) use ($search) {
-                return str_contains(strtolower($log['employee_name']), $search) ||
-                       str_contains(strtolower($log['employee_id']), $search) ||
-                       str_contains(strtolower($log['rfid_card']), $search);
-            });
-        }
-        
-        return array_values($filtered);
+        return [
+            'id' => $attendanceEvent->id,
+            'ledger_sequence_id' => $attendanceEvent->ledger_sequence_id,
+            'employee_id' => $employee ? $employee->employee_number : 'Unknown',
+            'employee_name' => $employee ? "{$employee->profile->first_name} {$employee->profile->last_name}" : 'Unknown Employee',
+            'event_type' => $attendanceEvent->event_type,
+            'recorded_at' => $attendanceEvent->event_time->toISOString(),
+            'device_id' => $attendanceEvent->device_id ?? 'N/A',
+            'device_location' => $attendanceEvent->location ?? 'N/A',
+            'source' => $attendanceEvent->source,
+            'is_deduplicated' => $attendanceEvent->is_deduplicated ?? false,
+            'ledger_hash_verified' => (bool) $attendanceEvent->ledger_hash_verified,
+            'attendance_date' => $attendanceEvent->event_date->toDateString(),
+            'processed_at' => $attendanceEvent->updated_at ? $attendanceEvent->updated_at->toISOString() : null,
+            'notes' => $attendanceEvent->notes,
+            'created_at' => $attendanceEvent->created_at->toISOString(),
+            'updated_at' => $attendanceEvent->updated_at->toISOString(),
+        ];
     }
 
     /**
-     * Get related events for a specific event.
+     * Task 1.1: Get related events from database (previous, next, same employee today).
      * 
-     * @param array $event
-     * @return array
+     * Returns related ledger entries for context:
+     * - Previous event in sequence
+     * - Next event in sequence
+     * - All events from the same employee today
+     * 
+     * @param RfidLedger $currentEvent Current ledger entry
+     * @return array Array with 'previous', 'next', and 'employee_today' keys
      */
-    private function getRelatedEvents(array $event): array
+    private function getRelatedEventsReal(RfidLedger $currentEvent): array
     {
-        $allLogs = $this->generateMockTimeLogs();
-        
-        // Get previous and next events in sequence
-        $currentIndex = array_search($event['sequence_id'], array_column($allLogs, 'sequence_id'));
-        
         $related = [];
         
-        if ($currentIndex > 0) {
-            $related['previous'] = $allLogs[$currentIndex - 1];
+        // Get previous event by sequence_id
+        $previousEvent = RfidLedger::with([
+            'employee:id,employee_number,profile_id',
+            'employee.profile:id,first_name,last_name',
+            'device:id,device_id,device_name,location'
+        ])->where('sequence_id', '<', $currentEvent->sequence_id)
+          ->orderByDesc('sequence_id')
+          ->first();
+        
+        if ($previousEvent) {
+            $employee = $previousEvent->employee;
+            $related['previous'] = [
+                'id' => $previousEvent->id,
+                'sequence_id' => $previousEvent->sequence_id,
+                'employee_id' => $employee ? $employee->employee_number : 'Unknown',
+                'employee_name' => $employee ? "{$employee->profile->first_name} {$employee->profile->last_name}" : 'Unknown Employee',
+                'event_type' => $previousEvent->event_type,
+                'timestamp' => $previousEvent->scan_timestamp->toISOString(),
+                'device_id' => $previousEvent->device_id,
+                'device_location' => $previousEvent->device && $previousEvent->device->location ? $previousEvent->device->location : $previousEvent->device_id,
+                'verified' => $previousEvent->processed,
+            ];
         }
         
-        if ($currentIndex < count($allLogs) - 1) {
-            $related['next'] = $allLogs[$currentIndex + 1];
+        // Get next event by sequence_id
+        $nextEvent = RfidLedger::with([
+            'employee:id,employee_number,profile_id',
+            'employee.profile:id,first_name,last_name',
+            'device:id,device_id,device_name,location'
+        ])->where('sequence_id', '>', $currentEvent->sequence_id)
+          ->orderBy('sequence_id')
+          ->first();
+        
+        if ($nextEvent) {
+            $employee = $nextEvent->employee;
+            $related['next'] = [
+                'id' => $nextEvent->id,
+                'sequence_id' => $nextEvent->sequence_id,
+                'employee_id' => $employee ? $employee->employee_number : 'Unknown',
+                'employee_name' => $employee ? "{$employee->profile->first_name} {$employee->profile->last_name}" : 'Unknown Employee',
+                'event_type' => $nextEvent->event_type,
+                'timestamp' => $nextEvent->scan_timestamp->toISOString(),
+                'device_id' => $nextEvent->device_id,
+                'device_location' => $nextEvent->device && $nextEvent->device->location ? $nextEvent->device->location : $nextEvent->device_id,
+                'verified' => $nextEvent->processed,
+            ];
         }
         
         // Get same employee events today
-        $related['employee_today'] = array_filter($allLogs, function ($log) use ($event) {
-            return $log['employee_id'] === $event['employee_id'] &&
-                   \Carbon\Carbon::parse($log['timestamp'])->isToday();
-        });
+        $employeeTodayEvents = RfidLedger::with([
+            'employee:id,employee_number,profile_id',
+            'employee.profile:id,first_name,last_name',
+            'device:id,device_id,device_name,location'
+        ])->where('employee_rfid', $currentEvent->employee_rfid)
+          ->whereDate('scan_timestamp', today())
+          ->orderBy('sequence_id')
+          ->get()
+          ->map(function ($event) {
+              $employee = $event->employee;
+              return [
+                  'id' => $event->id,
+                  'sequence_id' => $event->sequence_id,
+                  'employee_id' => $employee ? $employee->employee_number : 'Unknown',
+                  'employee_name' => $employee ? "{$employee->profile->first_name} {$employee->profile->last_name}" : 'Unknown Employee',
+                  'event_type' => $event->event_type,
+                  'timestamp' => $event->scan_timestamp->toISOString(),
+                  'device_id' => $event->device_id,
+                  'device_location' => $event->device && $event->device->location ? $event->device->location : $event->device_id,
+                  'verified' => $event->processed,
+              ];
+          })
+          ->toArray();
+        
+        $related['employee_today'] = $employeeTodayEvents;
         
         return $related;
-    }
-
-    /**
-     * Generate linked attendance_events record for a ledger event.
-     * 
-     * Subtask 4.3.5: Generate mock attendance_events record linked to ledger entry.
-     * In production, this would query the attendance_events table using ledger_sequence_id.
-     * 
-     * @param array $ledgerEvent
-     * @return array|null
-     */
-    private function generateLinkedAttendanceEvent(array $ledgerEvent): ?array
-    {
-        // Simulate processing: not all ledger events have been processed into attendance_events yet
-        $isProcessed = $ledgerEvent['verified'] && rand(1, 100) > 10; // 90% processed if verified
-        
-        if (!$isProcessed) {
-            return null; // Event not yet processed into attendance_events
-        }
-        
-        return [
-            'id' => rand(1000, 9999),
-            'ledger_sequence_id' => $ledgerEvent['sequence_id'], // Links back to ledger
-            'employee_id' => $ledgerEvent['employee_id'],
-            'employee_name' => $ledgerEvent['employee_name'],
-            'event_type' => $ledgerEvent['event_type'],
-            'recorded_at' => $ledgerEvent['timestamp'],
-            'device_id' => $ledgerEvent['device_id'],
-            'device_location' => $ledgerEvent['device_location'],
-            'source' => $ledgerEvent['source'],
-            'is_deduplicated' => false,
-            'ledger_hash_verified' => $ledgerEvent['verified'],
-            'attendance_date' => \Carbon\Carbon::parse($ledgerEvent['timestamp'])->toDateString(),
-            'processed_at' => \Carbon\Carbon::parse($ledgerEvent['timestamp'])->addSeconds(rand(5, 300))->toISOString(),
-            'notes' => $ledgerEvent['verified'] ? 'Automatically processed from ledger' : 'Manual verification required',
-            'created_at' => \Carbon\Carbon::parse($ledgerEvent['timestamp'])->addSeconds(rand(1, 60))->toISOString(),
-            'updated_at' => \Carbon\Carbon::parse($ledgerEvent['timestamp'])->addSeconds(rand(1, 60))->toISOString(),
-        ];
     }
 }

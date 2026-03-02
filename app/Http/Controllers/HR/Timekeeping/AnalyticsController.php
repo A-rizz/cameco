@@ -296,7 +296,7 @@ class AnalyticsController extends Controller
             'compliance_score' => rand(80, 95) + (rand(0, 9) / 10),
 
             // Daily breakdown (last 7 days)
-            'daily_breakdown' => $this->getDailyBreakdown(),
+            'daily_breakdown' => $this->getDailyBreakdown($id),
 
             // Employee performance
             'top_performers' => $this->getTopPerformers($id),
@@ -661,80 +661,219 @@ class AnalyticsController extends Controller
     }
 
     /**
-     * Get daily breakdown for department.
+     * Get daily breakdown for department (last 7 days).
+     * Task 1.1: Replaced mock data with real database queries using DailyAttendanceSummary
+     * 
+     * Queries attendance records for all employees in a department over the last 7 days
+     * and aggregates by date to show present, late, absent, and on-leave counts.
+     * 
+     * @param int $departmentId Department ID to filter employees
+     * @return array Array of 7 days with attendance breakdowns
      */
-    private function getDailyBreakdown(): array
+    private function getDailyBreakdown(int $departmentId): array
     {
+        $endDate = now();
+        $startDate = now()->subDays(6)->startOfDay();
+        
+        // Query daily attendance summaries for department employees (last 7 days)
+        $summaries = DailyAttendanceSummary::query()
+            ->select([
+                'attendance_date',
+                DB::raw('COUNT(*) as total_records'),
+                DB::raw('SUM(CASE WHEN is_present = TRUE THEN 1 ELSE 0 END) as present_count'),
+                DB::raw('SUM(CASE WHEN is_late = TRUE THEN 1 ELSE 0 END) as late_count'),
+                DB::raw('SUM(CASE WHEN is_present = FALSE AND is_on_leave = FALSE THEN 1 ELSE 0 END) as absent_count'),
+                DB::raw('SUM(CASE WHEN is_on_leave = TRUE THEN 1 ELSE 0 END) as on_leave_count'),
+            ])
+            ->join('employees', 'daily_attendance_summary.employee_id', '=', 'employees.id')
+            ->where('employees.department_id', $departmentId)
+            ->whereBetween('daily_attendance_summary.attendance_date', [$startDate, $endDate])
+            ->groupBy('attendance_date')
+            ->orderBy('attendance_date', 'asc')
+            ->get()
+            ->keyBy(fn($item) => Carbon::parse($item->attendance_date)->format('Y-m-d'));
+        
+        // Build 7-day array (fill missing dates with zeros)
         $breakdown = [];
         for ($i = 6; $i >= 0; $i--) {
             $date = now()->subDays($i);
+            $dateKey = $date->format('Y-m-d');
+            $summary = $summaries->get($dateKey);
+            
             $breakdown[] = [
-                'date' => $date->format('Y-m-d'),
+                'date' => $dateKey,
                 'day' => $date->format('D'),
-                'present' => rand(35, 48),
-                'late' => rand(1, 5),
-                'absent' => rand(0, 2),
-                'on_leave' => rand(0, 3),
+                'present' => $summary ? (int) $summary->present_count : 0,
+                'late' => $summary ? (int) $summary->late_count : 0,
+                'absent' => $summary ? (int) $summary->absent_count : 0,
+                'on_leave' => $summary ? (int) $summary->on_leave_count : 0,
             ];
         }
+        
         return $breakdown;
     }
 
     /**
      * Get top performers in department.
+     * Task 1.2: Replaced mock data with real database queries using DailyAttendanceSummary
+     * 
+     * Queries employees in a department with attendance records from the last 30 days
+     * and calculates attendance rate and on-time rate. Returns top 5 by attendance rate.
+     * 
+     * @param int $departmentId Department ID to filter employees
+     * @return array Array of top 5 performers with attendance metrics
      */
     private function getTopPerformers(int $departmentId): array
     {
-        $performers = [];
-        for ($i = 1; $i <= 5; $i++) {
-            $performers[] = [
-                'employee_id' => $i,
-                'employee_name' => 'Employee ' . $i,
-                'attendance_rate' => rand(96, 100) + (rand(0, 9) / 10),
-                'on_time_rate' => rand(95, 100) + (rand(0, 9) / 10),
-            ];
-        }
-        return $performers;
+        $startDate = now()->subDays(30)->startOfDay();
+        
+        return Employee::query()
+            ->select([
+                'employees.id as employee_id',
+                'profiles.first_name',
+                'profiles.last_name',
+                DB::raw('COUNT(*) as total_days'),
+                DB::raw('SUM(CASE WHEN daily_attendance_summary.is_present = TRUE THEN 1 ELSE 0 END) as present_days'),
+                DB::raw('ROUND((SUM(CASE WHEN daily_attendance_summary.is_present = TRUE THEN 1 ELSE 0 END) / COUNT(*)) * 100, 1) as attendance_rate'),
+                DB::raw('ROUND((SUM(CASE WHEN daily_attendance_summary.is_late = FALSE AND daily_attendance_summary.is_present = TRUE THEN 1 ELSE 0 END) / COUNT(*)) * 100, 1) as on_time_rate'),
+            ])
+            ->join('profiles', 'employees.profile_id', '=', 'profiles.id')
+            ->join('daily_attendance_summary', 'daily_attendance_summary.employee_id', '=', 'employees.id')
+            ->where('employees.department_id', $departmentId)
+            ->where('employees.status', 'active')
+            ->where('daily_attendance_summary.attendance_date', '>=', $startDate)
+            ->groupBy('employees.id', 'profiles.first_name', 'profiles.last_name')
+            ->having(DB::raw('COUNT(*)'), '>=', 15)
+            ->orderByDesc('attendance_rate')
+            ->orderByDesc('on_time_rate')
+            ->limit(5)
+            ->get()
+            ->map(fn($emp) => [
+                'employee_id' => $emp->employee_id,
+                'employee_name' => $emp->first_name . ' ' . $emp->last_name,
+                'attendance_rate' => (float) $emp->attendance_rate,
+                'on_time_rate' => (float) $emp->on_time_rate,
+            ])
+            ->toArray();
     }
 
     /**
      * Get employees needing attention.
+     * Task 1.3: Replaced mock data with real database queries using DailyAttendanceSummary
+     * 
+     * Queries employees in a department with low attendance (<90%) or frequent late arrivals (>5)
+     * from the last 30 days. Returns top 3 with issue classification.
+     * 
+     * @param int $departmentId Department ID to filter employees
+     * @return array Array of up to 3 employees needing attention with classification
      */
     private function getAttentionNeeded(int $departmentId): array
     {
-        $attention = [];
-        for ($i = 1; $i <= 3; $i++) {
-            $attention[] = [
-                'employee_id' => $i + 100,
-                'employee_name' => 'Employee ' . ($i + 100),
-                'attendance_rate' => rand(70, 84) + (rand(0, 9) / 10),
-                'late_count' => rand(5, 12),
-                'issue' => ['Frequent late arrivals', 'Multiple absences', 'Low attendance rate'][rand(0, 2)],
-            ];
-        }
-        return $attention;
+        $startDate = now()->subDays(30)->startOfDay();
+        
+        return Employee::query()
+            ->select([
+                'employees.id as employee_id',
+                'profiles.first_name',
+                'profiles.last_name',
+                DB::raw('COUNT(*) as total_days'),
+                DB::raw('SUM(CASE WHEN daily_attendance_summary.is_late = TRUE THEN 1 ELSE 0 END) as late_count'),
+                DB::raw('ROUND((SUM(CASE WHEN daily_attendance_summary.is_present = TRUE THEN 1 ELSE 0 END) / COUNT(*)) * 100, 1) as attendance_rate'),
+            ])
+            ->join('profiles', 'employees.profile_id', '=', 'profiles.id')
+            ->join('daily_attendance_summary', 'daily_attendance_summary.employee_id', '=', 'employees.id')
+            ->where('employees.department_id', $departmentId)
+            ->where('employees.status', 'active')
+            ->where('daily_attendance_summary.attendance_date', '>=', $startDate)
+            ->groupBy('employees.id', 'profiles.first_name', 'profiles.last_name')
+            ->havingRaw('(SUM(CASE WHEN daily_attendance_summary.is_present = TRUE THEN 1 ELSE 0 END) / COUNT(*)) * 100 < 90 OR SUM(CASE WHEN daily_attendance_summary.is_late = TRUE THEN 1 ELSE 0 END) > 5')
+            ->orderBy('attendance_rate', 'asc')
+            ->orderByDesc('late_count')
+            ->limit(3)
+            ->get()
+            ->map(function($emp) {
+                // Determine primary issue based on classification logic
+                $issue = 'Low attendance rate';
+                if ((float) $emp->attendance_rate < 75) {
+                    $issue = 'Critical attendance';
+                } elseif ((float) $emp->attendance_rate >= 85 && $emp->late_count > 5) {
+                    $issue = 'Frequent late arrivals';
+                } elseif ($emp->late_count > 8) {
+                    $issue = 'Excessive tardiness';
+                }
+                
+                return [
+                    'employee_id' => $emp->employee_id,
+                    'employee_name' => $emp->first_name . ' ' . $emp->last_name,
+                    'attendance_rate' => (float) $emp->attendance_rate,
+                    'late_count' => (int) $emp->late_count,
+                    'issue' => $issue,
+                ];
+            })
+            ->toArray();
     }
 
     /**
      * Get employee recent activity.
+     * Task 2.1: Replaced mock data with real database queries using DailyAttendanceSummary
+     * 
+     * Queries the last 10 days of attendance records for a specific employee
+     * and returns attendance status with time details.
+     * 
+     * @param int $employeeId Employee ID to fetch activity for
+     * @return array Array of 10 days with attendance status and time details
      */
     private function getEmployeeRecentActivity(int $employeeId): array
     {
+        $endDate = now();
+        $startDate = now()->subDays(9)->startOfDay();
+        
+        // Query last 10 days of attendance summaries
+        $summaries = DailyAttendanceSummary::query()
+            ->select([
+                'attendance_date',
+                'time_in',
+                'time_out',
+                'total_hours_worked',
+                'is_present',
+                'is_late',
+                'is_on_leave'
+            ])
+            ->where('employee_id', $employeeId)
+            ->whereBetween('attendance_date', [$startDate, $endDate])
+            ->orderByDesc('attendance_date')
+            ->get()
+            ->keyBy(fn($item) => Carbon::parse($item->attendance_date)->format('Y-m-d'));
+        
+        // Build 10-day array (fill missing dates with absent status)
         $activity = [];
-        $statuses = ['present', 'late', 'absent', 'on_leave'];
-
         for ($i = 9; $i >= 0; $i--) {
             $date = now()->subDays($i);
-            $status = $statuses[array_rand($statuses)];
+            $dateKey = $date->format('Y-m-d');
+            $summary = $summaries->get($dateKey);
+            
+            // Determine status based on attendance record
+            $status = 'absent';
+            if ($summary) {
+                if ($summary->is_on_leave) {
+                    $status = 'on_leave';
+                } elseif ($summary->is_present && $summary->is_late) {
+                    $status = 'late';
+                } elseif ($summary->is_present) {
+                    $status = 'present';
+                }
+            }
+            
             $activity[] = [
-                'date' => $date->format('Y-m-d'),
+                'date' => $dateKey,
                 'day' => $date->format('D'),
                 'status' => $status,
-                'time_in' => $status !== 'absent' ? '08:' . str_pad(rand(0, 30), 2, '0', STR_PAD_LEFT) . ':00' : null,
-                'time_out' => $status !== 'absent' ? '17:' . str_pad(rand(0, 30), 2, '0', STR_PAD_LEFT) . ':00' : null,
-                'total_hours' => $status !== 'absent' ? round(8 + (rand(-10, 10) / 10), 1) : 0,
+                'time_in' => $summary && $summary->time_in ? Carbon::parse($summary->time_in)->format('H:i:s') : null,
+                'time_out' => $summary && $summary->time_out ? Carbon::parse($summary->time_out)->format('H:i:s') : null,
+                'total_hours' => $summary ? round((float) $summary->total_hours_worked, 1) : 0,
             ];
         }
+        
         return $activity;
     }
 }
