@@ -38,7 +38,7 @@ interface CreateBadgeProps {
     existingBadgeUids: string[];
 }
 
-export default function CreateBadge() {
+export default function CreateBadge({ employees, existingBadgeUids }: CreateBadgeProps) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitResult, setSubmitResult] = useState<{
@@ -46,62 +46,6 @@ export default function CreateBadge() {
         message: string;
         badgeData?: BadgeSubmitResult;
     } | null>(null);
-
-    // Mock employees data for Phase 1
-    const [mockEmployees] = useState<Employee[]>([
-        {
-            id: '1',
-            name: 'Juan Dela Cruz',
-            employee_id: 'EMP-2024-001',
-            department: 'Operations',
-            position: 'Warehouse Supervisor',
-            photo: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Juan',
-            badge: {
-                card_uid: '04:3A:B2:C5:D8',
-                issued_at: '2024-01-15T10:00:00',
-                expires_at: '2026-01-15',
-                last_used_at: '2024-02-12T08:05:23',
-                is_active: true,
-            },
-        },
-        {
-            id: '2',
-            name: 'Maria Santos',
-            employee_id: 'EMP-2024-002',
-            department: 'HR',
-            position: 'HR Manager',
-            photo: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Maria',
-        },
-        {
-            id: '3',
-            name: 'Pedro Garcia',
-            employee_id: 'EMP-2024-003',
-            department: 'Engineering',
-            position: 'Systems Engineer',
-            photo: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Pedro',
-        },
-        {
-            id: '4',
-            name: 'Angela Lopez',
-            employee_id: 'EMP-2024-004',
-            department: 'Operations',
-            position: 'Forklift Operator',
-            photo: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Angela',
-        },
-        {
-            id: '5',
-            name: 'Ramon Reyes',
-            employee_id: 'EMP-2024-005',
-            department: 'Warehouse',
-            position: 'Warehouse Staff',
-            photo: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Ramon',
-        },
-    ]);
-
-    // Subtask 1.3.4: Extract existing badge UIDs for uniqueness validation
-    const existingBadgeUids = mockEmployees
-        .filter((emp) => emp.badge?.is_active)
-        .map((emp) => emp.badge!.card_uid);
 
     const breadcrumbs = [
         { title: 'HR', href: '/hr' },
@@ -122,7 +66,7 @@ export default function CreateBadge() {
         setTimeout(() => {
             try {
                 // Mock success response
-                const selectedEmployee = mockEmployees.find((emp) => emp.id === formData.employee_id);
+                const selectedEmployee = employees.find((emp) => emp.id === formData.employee_id);
 
                 setSubmitResult({
                     success: true,
@@ -282,7 +226,7 @@ export default function CreateBadge() {
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 onSubmit={handleSubmit}
-                employees={mockEmployees}
+                employees={employees}
                 isLoading={isSubmitting}
                 existingBadgeUids={existingBadgeUids}
             />
