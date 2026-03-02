@@ -33,6 +33,11 @@ interface BadgeSubmitResult {
     issuedAt: string;
 }
 
+interface CreateBadgeProps {
+    employees: Employee[];
+    existingBadgeUids: string[];
+}
+
 export default function CreateBadge() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
