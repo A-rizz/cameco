@@ -76,6 +76,7 @@ class LedgerController extends Controller
             return [
                 'id' => $log->id,
                 'sequence_id' => $log->sequence_id,
+                'employee_rfid' => $log->employee_rfid,
                 'employee_id' => $employee ? $employee->employee_number : 'Unknown',
                 'employee_name' => $employee ? "{$employee->profile->first_name} {$employee->profile->last_name}" : 'Unknown Employee',
                 'event_type' => $log->event_type,
@@ -147,6 +148,7 @@ class LedgerController extends Controller
         $event = [
             'id' => $ledgerEntry->id,
             'sequence_id' => $ledgerEntry->sequence_id,
+            'employee_rfid' => $ledgerEntry->employee_rfid,
             'employee_id' => $employee ? $employee->employee_number : 'Unknown',
             'employee_name' => $employee ? "{$employee->profile->first_name} {$employee->profile->last_name}" : 'Unknown Employee',
             'event_type' => $ledgerEntry->event_type,
@@ -234,6 +236,7 @@ class LedgerController extends Controller
             return [
                 'id' => $log->id,
                 'sequence_id' => $log->sequence_id,
+                'employee_rfid' => $log->employee_rfid,
                 'employee_id' => $employee ? $employee->employee_number : 'Unknown',
                 'employee_name' => $employee ? "{$employee->profile->first_name} {$employee->profile->last_name}" : 'Unknown Employee',
                 'event_type' => $log->event_type,
@@ -250,14 +253,12 @@ class LedgerController extends Controller
         
         return response()->json([
             'data' => $transformedLogs,
-            'meta' => [
-                'current_page' => $logs->currentPage(),
-                'per_page' => $logs->perPage(),
-                'total' => $logs->total(),
-                'last_page' => $logs->lastPage(),
-                'from' => $logs->firstItem(),
-                'to' => $logs->lastItem(),
-            ],
+            'current_page' => $logs->currentPage(),
+            'per_page' => $logs->perPage(),
+            'total' => $logs->total(),
+            'last_page' => $logs->lastPage(),
+            'from' => $logs->firstItem(),
+            'to' => $logs->lastItem(),
             'links' => [
                 'first' => $logs->url(1),
                 'last' => $logs->url($logs->lastPage()),
@@ -525,7 +526,11 @@ class LedgerController extends Controller
      */
     private function getRelatedEventsReal(RfidLedger $currentEvent): array
     {
-        $related = [];
+        $related = [
+            'previous' => null,
+            'next' => null,
+            'employee_today' => []
+        ];
         
         // Get previous event by sequence_id
         $previousEvent = RfidLedger::with([
