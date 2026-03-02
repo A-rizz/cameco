@@ -241,7 +241,7 @@ export default function BadgesIndex({ badges, stats, filters, employees, employe
                 {/* Employees Without Badges Widget - Task 1.8.1 & 1.8.2 */}
                 {safeStats.employees_without_badges > 0 && (
                     <EmployeesWithoutBadges
-                        employees={getMockEmployeesWithoutBadges()}
+                        employees={employeesWithoutBadges}
                         onIssueBadge={handleIssueBadgeToEmployee}
                     />
                 )}
@@ -400,7 +400,7 @@ export default function BadgesIndex({ badges, stats, filters, employees, employe
                 isOpen={isReportModalOpen}
                 onClose={() => setIsReportModalOpen(false)}
                 badges={safeBadges}
-                employees={getMockEmployees()}
+                employees={employees}
             />
 
             {/* Badge Bulk Import Modal - Task 1.7 */}
@@ -408,7 +408,7 @@ export default function BadgesIndex({ badges, stats, filters, employees, employe
                 isOpen={isImportModalOpen}
                 onClose={() => setIsImportModalOpen(false)}
                 badges={safeBadges}
-                employees={getMockEmployees()}
+                employees={employees}
             />
 
             {/* Badge Issuance Modal - Task 1.8.2 */}
@@ -419,7 +419,7 @@ export default function BadgesIndex({ badges, stats, filters, employees, employe
                     setSelectedEmployeeForIssuance(null);
                 }}
                 onSubmit={handleIssuanceSubmit}
-                employees={getMockEmployees()}
+                employees={employees}
                 existingBadgeUids={safeBadges.data?.map((b) => b.card_uid) || []}
             />
         </AppLayout>
