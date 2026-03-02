@@ -57,10 +57,7 @@ class EmployeePayrollInfoController extends Controller
             }
         }
 
-        $employees = $query->paginate(50);
-
-        // Transform the data for the frontend
-        $employees->transform(function ($payrollInfo) {
+        $employees = $query->get()->map(function ($payrollInfo) {
             return [
                 'id' => $payrollInfo->id,
                 'employee_id' => $payrollInfo->employee_id,
@@ -104,7 +101,7 @@ class EmployeePayrollInfoController extends Controller
                 'created_at' => $payrollInfo->created_at,
                 'updated_at' => $payrollInfo->updated_at,
             ];
-        });
+        })->values()->toArray();
 
         // Get available options
         $departments = Department::where('is_active', true)->get(['id', 'name'])->toArray();

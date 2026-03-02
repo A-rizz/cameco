@@ -405,8 +405,9 @@ class LedgerControllerTest extends TestCase
             'employee_id' => $this->testEmployee->id,
             'ledger_sequence_id' => $ledgerEntry->sequence_id,
             'event_type' => 'time_in',
-            'event_timestamp' => $ledgerEntry->scan_timestamp,
-        ]);
+            'event_date' => $ledgerEntry->scan_timestamp->toDateString(),
+            'event_time' => $ledgerEntry->scan_timestamp,
+        ]);  
 
         // Act: Access event detail page
         $response = $this->actingAs($this->hrManager)

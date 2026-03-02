@@ -59,10 +59,10 @@ class LedgerController extends Controller
         
         if ($request->filled('employee_search')) {
             $search = $request->employee_search;
-            $query->whereHas('employee.profile', function ($q) use ($search) {
+            $query->whereHas('rfidCardMapping.employee.profile', function ($q) use ($search) {
                 $q->where('first_name', 'like', "%{$search}%")
                   ->orWhere('last_name', 'like', "%{$search}%");
-            })->orWhereHas('employee', function ($q) use ($search) {
+            })->orWhereHas('rfidCardMapping.employee', function ($q) use ($search) {
                 $q->where('employee_number', 'like', "%{$search}%");
             });
         }
@@ -131,8 +131,9 @@ class LedgerController extends Controller
         
         // Query real ledger entry by sequence_id
         $ledgerEntry = RfidLedger::with([
-            'employee:id,employee_number,profile_id',
-            'employee.profile:id,first_name,last_name',
+            'rfidCardMapping:id,employee_id,card_uid',
+            'rfidCardMapping.employee:id,employee_number,profile_id',
+            'rfidCardMapping.employee.profile:id,first_name,last_name',
             'device:id,device_id,device_name,location'
         ])->where('sequence_id', $sequenceId)
           ->first();
@@ -216,10 +217,10 @@ class LedgerController extends Controller
         
         if ($request->filled('employee_search')) {
             $search = $request->employee_search;
-            $query->whereHas('employee.profile', function ($q) use ($search) {
+            $query->whereHas('rfidCardMapping.employee.profile', function ($q) use ($search) {
                 $q->where('first_name', 'like', "%{$search}%")
                   ->orWhere('last_name', 'like', "%{$search}%");
-            })->orWhereHas('employee', function ($q) use ($search) {
+            })->orWhereHas('rfidCardMapping.employee', function ($q) use ($search) {
                 $q->where('employee_number', 'like', "%{$search}%");
             });
         }
