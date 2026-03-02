@@ -2,8 +2,6 @@ import { useState } from 'react';
 import { Head, Link } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ArrowLeft } from 'lucide-react';
 import { BadgeDetailView } from '@/components/hr/badge-detail-view';
 import { BadgeUsageTimeline } from '@/components/hr/badge-usage-timeline';
