@@ -85,9 +85,11 @@ interface BadgesIndexProps {
 }
 
 export default function BadgesIndex({ badges, stats, filters, employees, employeesWithoutBadges }: BadgesIndexProps) {
-    // Defensive: ensure badges has expected structure
+    // Defensive: ensure props have expected structure
     const safeBadges = badges || { data: [], current_page: 1, last_page: 1, total: 0, per_page: 10 };
     const safeStats = stats || { total: 0, active: 0, inactive: 0, expiring_soon: 0, expiringSoon: 0, employees_without_badges: 0, employeesWithoutBadges: 0 };
+    const safeEmployees = employees || [];
+    const safeEmployeesWithoutBadges = employeesWithoutBadges || [];
     
     const [activeTab, setActiveTab] = useState<string>('active');
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -241,7 +243,7 @@ export default function BadgesIndex({ badges, stats, filters, employees, employe
                 {/* Employees Without Badges Widget - Task 1.8.1 & 1.8.2 */}
                 {safeStats.employees_without_badges > 0 && (
                     <EmployeesWithoutBadges
-                        employees={employeesWithoutBadges}
+                        employees={safeEmployeesWithoutBadges}
                         onIssueBadge={handleIssueBadgeToEmployee}
                     />
                 )}
@@ -400,7 +402,7 @@ export default function BadgesIndex({ badges, stats, filters, employees, employe
                 isOpen={isReportModalOpen}
                 onClose={() => setIsReportModalOpen(false)}
                 badges={safeBadges}
-                employees={employees}
+                employees={safeEmployees}
             />
 
             {/* Badge Bulk Import Modal - Task 1.7 */}
@@ -408,7 +410,7 @@ export default function BadgesIndex({ badges, stats, filters, employees, employe
                 isOpen={isImportModalOpen}
                 onClose={() => setIsImportModalOpen(false)}
                 badges={safeBadges}
-                employees={employees}
+                employees={safeEmployees}
             />
 
             {/* Badge Issuance Modal - Task 1.8.2 */}
@@ -419,7 +421,7 @@ export default function BadgesIndex({ badges, stats, filters, employees, employe
                     setSelectedEmployeeForIssuance(null);
                 }}
                 onSubmit={handleIssuanceSubmit}
-                employees={employees}
+                employees={safeEmployees}
                 existingBadgeUids={safeBadges.data?.map((b) => b.card_uid) || []}
             />
         </AppLayout>
