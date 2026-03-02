@@ -24,6 +24,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $hash_chain SHA-256 hash of (prev_hash || payload)
  * @property string|null $hash_previous Hash of previous entry
  * @property string|null $device_signature Optional Ed25519 signature
+ * @property int|null $latency_ms Processing latency in milliseconds
  * @property bool $processed Whether entry has been processed
  * @property \Carbon\Carbon|null $processed_at When entry was processed
  * @property \Carbon\Carbon $created_at Server creation timestamp
@@ -52,6 +53,7 @@ class RfidLedger extends Model
         'hash_chain',
         'hash_previous',
         'device_signature',
+        'latency_ms',
         'processed',
         'processed_at',
         'created_at',
@@ -64,6 +66,7 @@ class RfidLedger extends Model
         'processed_at' => 'datetime',
         'created_at' => 'datetime',
         'processed' => 'boolean',
+        'latency_ms' => 'integer',
     ];
 
     // Scope: Get unprocessed entries
