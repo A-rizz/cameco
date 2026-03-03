@@ -1,11 +1,12 @@
 import { Head, router } from '@inertiajs/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AppLayout from '@/layouts/app-layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, RefreshCw, Download, Wifi, WifiOff, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Plus, RefreshCw, Download, Wifi, WifiOff, AlertTriangle, CheckCircle2, Clock } from 'lucide-react';
 
 /**
  * Device interface representing RFID scanner/reader information
@@ -23,6 +24,7 @@ interface Device {
     firmware_version: string;
     sync_status: 'synced' | 'pending' | 'failed';
     maintenance_due: boolean;
+    last_issue_at: string | null; // For "Last 24h Issues" filter
     notes?: string;
 }
 
@@ -61,21 +63,64 @@ export default function TimekeepingDevicesIndex({
 }: TimekeepingDevicesProps) {
     const [selectedTab, setSelectedTab] = useState('all');
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [showCriticalOnly, setShowCriticalOnly] = useState(false);
+    const [showLast24hIssues, setShowLast24hIssues] = useState(false);
+    const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+
+    /**
+     * Check if device had issues in the last 24 hours
+     */
+    const hasRecentIssue = (device: Device): boolean => {
+        if (!device.last_issue_at) return false;
+        const issueTime = new Date(device.last_issue_at).getTime();
+        const now = new Date().getTime();
+        const oneDayMs = 24 * 60 * 60 * 1000;
+        return (now - issueTime) <= oneDayMs;
+    };
+
+    /**
+     * Check if device is critical
+     */
+    const isCritical = (device: Device): boolean => {
+        return (
+            device.status === 'offline' ||
+            device.status === 'error' ||
+            (device.status === 'maintenance' && device.maintenance_due)
+        );
+    };
 
     /**
      * Filter devices based on selected tab
      */
     const getFilteredDevices = () => {
+        let filtered = devices;
+
+        // Apply tab filter
         switch (selectedTab) {
             case 'active':
-                return devices.filter(d => d.status === 'online');
+                filtered = filtered.filter(d => d.status === 'online');
+                break;
             case 'offline':
-                return devices.filter(d => d.status === 'offline');
+                filtered = filtered.filter(d => d.status === 'offline');
+                break;
             case 'maintenance':
-                return devices.filter(d => d.status === 'maintenance' || d.maintenance_due);
+                filtered = filtered.filter(d => d.status === 'maintenance' || d.maintenance_due);
+                break;
             default:
-                return devices;
+                break;
         }
+
+        // Apply critical only filter
+        if (showCriticalOnly) {
+            filtered = filtered.filter(d => isCritical(d));
+        }
+
+        // Apply last 24h issues filter
+        if (showLast24hIssues) {
+            filtered = filtered.filter(d => hasRecentIssue(d));
+        }
+
+        return filtered;
     };
 
     /**
@@ -83,6 +128,7 @@ export default function TimekeepingDevicesIndex({
      */
     const handleRefresh = () => {
         setIsRefreshing(true);
+        setLastUpdated(new Date());
         router.reload({
             onFinish: () => setIsRefreshing(false),
         });
@@ -243,18 +289,83 @@ export default function TimekeepingDevicesIndex({
                     </Card>
                 </div>
 
+                {/* ================== SECTION: Quick Filters ================== */}
+                <Card className="bg-muted/30">
+                    <CardHeader>
+                        <CardTitle className="text-base">Quick Filters</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center">
+                            <div className="flex items-center gap-3">
+                                <Checkbox
+                                    id="critical-only"
+                                    checked={showCriticalOnly}
+                                    onCheckedChange={(checked) => setShowCriticalOnly(checked as boolean)}
+                                />
+                                <label htmlFor="critical-only" className="text-sm font-medium cursor-pointer">
+                                    Show Critical Only
+                                </label>
+                                <Badge variant="destructive" className="ml-2">
+                                    Offline, Error, or Due
+                                </Badge>
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                                <Checkbox
+                                    id="last-24h"
+                                    checked={showLast24hIssues}
+                                    onCheckedChange={(checked) => setShowLast24hIssues(checked as boolean)}
+                                />
+                                <label htmlFor="last-24h" className="text-sm font-medium cursor-pointer">
+                                    Last 24h Issues
+                                </label>
+                                <Badge variant="outline" className="ml-2">
+                                    Recent problems
+                                </Badge>
+                            </div>
+
+                            <div className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
+                                <Clock className="h-3 w-3" />
+                                Last updated: {lastUpdated.toLocaleTimeString()}
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
                 {/* ================== SECTION: Tab Navigation ================== */}
                 <Card>
                     <CardHeader>
-                        <CardTitle>Device List</CardTitle>
-                        <CardDescription>
-                            Manage and monitor all registered RFID devices
-                        </CardDescription>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <CardTitle>Device List</CardTitle>
+                                <CardDescription>
+                                    Manage and monitor all registered RFID devices
+                                </CardDescription>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <div className="text-right">
+                                    <div className="text-xs text-muted-foreground flex items-center gap-1">
+                                        <Clock className="h-3 w-3" />
+                                        Updated: {lastUpdated.toLocaleTimeString()}
+                                    </div>
+                                </div>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={handleRefresh}
+                                    disabled={isRefreshing}
+                                    className="gap-2"
+                                >
+                                    <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                                    {isRefreshing ? 'Syncing...' : 'Refresh'}
+                                </Button>
+                            </div>
+                        </div>
                     </CardHeader>
                     <CardContent>
                         {/* Tabs */}
                         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-                            <div className="flex items-center justify-between mb-4">
+                            <div className="mb-4">
                                 <TabsList className="grid w-full max-w-md grid-cols-4">
                                     <TabsTrigger value="all">
                                         All
@@ -281,18 +392,6 @@ export default function TimekeepingDevicesIndex({
                                         </span>
                                     </TabsTrigger>
                                 </TabsList>
-
-                                {/* Refresh Button */}
-                                <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={handleRefresh}
-                                    disabled={isRefreshing}
-                                    className="gap-2"
-                                >
-                                    <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                                    {isRefreshing ? 'Refreshing...' : 'Refresh'}
-                                </Button>
                             </div>
 
                             {/* Tab: All Devices */}
