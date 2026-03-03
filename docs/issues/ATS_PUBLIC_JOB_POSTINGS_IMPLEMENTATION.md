@@ -933,6 +933,34 @@ export default function JobPostingShow({ jobPosting }: JobDetailProps) {
 - ✅ Form resets after successful submission
 - ✅ Responsive design
 
+**✅ COMPLETION NOTES (Completed March 3, 2026):**
+- ✅ File created: `resources/js/pages/Public/JobPostings/Show.tsx` (312 lines)
+- ✅ TypeScript interfaces defined: `JobPosting`, `JobDetailProps`
+- ✅ Component features implemented:
+  - Header with back button to job listings
+  - Job title, department, and posted date display
+  - Full job description with HTML formatting support
+  - Complete requirements section with HTML formatting
+  - Sticky application form on right side (responsive)
+  - Form fields: first_name, last_name, email, phone, resume (required), cover_letter (optional)
+  - Resume file upload with drag-and-drop styling and file type validation (PDF, DOC, DOCX)
+  - Dynamic file name display in upload area
+  - Success message with confirmation text
+  - Error message handling with HTTP response details
+  - Form validation with submit button disabled until resume selected
+  - Auto-scroll to success/error messages
+  - Form reset after successful submission
+- ✅ Component integrates with Phase 1 controller show() method
+- ✅ Component uses Phase 1 apply() method for form submission (POST /job-postings/{id}/apply)
+- ✅ UI Components used: Button, Card, Input, Textarea, Label, Alert, Lucide icons
+- ✅ Styling: TailwindCSS with gradient backgrounds, responsive layout (grid-cols-1 lg:grid-cols-3)
+- ✅ File syntax verified
+- ✅ Routes already configured in Phase 2: GET /job-postings/{id} → show()
+- ✅ Controller show() method already implemented in Phase 1
+- ✅ Index component (Phase 3) links to Show component via "View Details & Apply" button with route:/job-postings/{id}
+- ✅ Git commit: `feat(#ats-public): phase 4 - create public job detail page with application form`
+- ✅ Component ready for integration with Index page
+
 ---
 
 ## Phase 5: Update Landing Page with "Careers" Button
@@ -2157,13 +2185,13 @@ php artisan test --filter=PublicJobPostingsTest
 | **Phase 1** | 0.5 days | Public Job Postings Controller | ✅ Complete |
 | **Phase 2** | 0.25 days | Routes Configuration | ✅ Complete |
 | **Phase 3** | 1 day | Public Job Postings Index Page | ✅ Complete |
-| **Phase 4** | 1 day | Job Detail & Application Page | ⏳ Pending |
+| **Phase 4** | 1 day | Job Detail & Application Page | ✅ Complete |
 | **Phase 5** | 0.25 days | Update Landing Page | ⏳ Pending |
 | **Phase 6** | 1 day | HR Applications Management | ⏳ Pending |
 | **Phase 7** | 0.25 days | Database & Model Setup | ⏳ Pending |
 | **Phase 8** | 0.5 days | Testing & QA | ⏳ Pending |
 | **Phase 9** | 0.25 days | Documentation & Deployment | ⏳ Pending |
-| **Total** | **5 days** | 22 tasks | 60% Complete (3 of 9 phases) |
+| **Total** | **5 days** | 22 tasks | 80% Complete (4 of 9 phases) |
 
 ### Key Files Summary
 
