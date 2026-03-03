@@ -1040,7 +1040,756 @@ export default function Welcome({ canRegister }: { canRegister: boolean }) {
 
 ---
 
-## Phase 6: Database & Model Setup
+## Phase 6: HR Applications Management
+
+**Duration:** 1 day
+
+### Task 6.1: Create HR Applications Management Controller
+
+**Goal:** Create a controller for HR staff to view and manage applicants per job posting.
+
+**Implementation Steps:**
+
+Create file: `app/Http/Controllers/HR/ATS/ApplicationsController.php`
+
+```php
+<?php
+
+namespace App\Http\Controllers\HR\ATS;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
+use App\Models\JobPosting;
+use App\Models\Application;
+use App\Models\Candidate;
+use Illuminate\Support\Facades\Storage;
+
+class ApplicationsController extends Controller
+{
+    /**
+     * Display a listing of applications for a specific job posting.
+     */
+    public function index(Request $request, int $jobId): Response
+    {
+        $jobPosting = JobPosting::findOrFail($jobId);
+        
+        $status = $request->input('status');
+        $sortBy = $request->input('sort_by', 'applied_at');
+        $sortOrder = $request->input('sort_order', 'desc');
+        
+        $applications = Application::where('job_id', $jobId)
+            ->with(['candidate.profile'])
+            ->when($status, fn($q) => $q->where('status', $status))
+            ->orderBy($sortBy, $sortOrder)
+            ->paginate(15)
+            ->through(fn($app) => [
+                'id' => $app->id,
+                'candidate_id' => $app->candidate_id,
+                'candidate_name' => $app->candidate->profile->full_name ?? 'N/A',
+                'candidate_email' => $app->candidate->profile->email,
+                'candidate_phone' => $app->candidate->profile->phone,
+                'status' => $app->status,
+                'applied_at' => $app->applied_at?->format('F d, Y H:i A'),
+                'resume_path' => $app->resume_path,
+                'has_resume' => !empty($app->resume_path),
+            ]);
+        
+        return Inertia::render('HR/ATS/Applications/Index', [
+            'jobPosting' => [
+                'id' => $jobPosting->id,
+                'title' => $jobPosting->title,
+            ],
+            'applications' => $applications,
+            'filters' => [
+                'status' => $status,
+                'sort_by' => $sortBy,
+                'sort_order' => $sortOrder,
+            ],
+            'applicationStatuses' => [
+                'submitted' => 'Submitted',
+                'reviewed' => 'Reviewed',
+                'shortlisted' => 'Shortlisted',
+                'rejected' => 'Rejected',
+                'hired' => 'Hired',
+            ],
+        ]);
+    }
+    
+    /**
+     * Display detailed information about a specific application and candidate.
+     */
+    public function show(int $applicationId): Response
+    {
+        $application = Application::with(['candidate.profile', 'job_posting'])
+            ->findOrFail($applicationId);
+        
+        $resumeUrl = null;
+        if ($application->resume_path && Storage::disk('public')->exists($application->resume_path)) {
+            $resumeUrl = Storage::disk('public')->url($application->resume_path);
+        }
+        
+        return Inertia::render('HR/ATS/Applications/Show', [
+            'application' => [
+                'id' => $application->id,
+                'status' => $application->status,
+                'applied_at' => $application->applied_at?->format('F d, Y H:i A'),
+                'cover_letter' => $application->cover_letter,
+                'resume_path' => $application->resume_path,
+                'resume_url' => $resumeUrl,
+            ],
+            'candidate' => [
+                'id' => $application->candidate->id,
+                'first_name' => $application->candidate->profile->first_name,
+                'last_name' => $application->candidate->profile->last_name,
+                'full_name' => $application->candidate->profile->full_name,
+                'email' => $application->candidate->profile->email,
+                'phone' => $application->candidate->profile->phone,
+                'address' => $application->candidate->profile->address ?? 'N/A',
+                'city' => $application->candidate->profile->city ?? 'N/A',
+                'state' => $application->candidate->profile->state ?? 'N/A',
+                'postal_code' => $application->candidate->profile->postal_code ?? 'N/A',
+                'country' => $application->candidate->profile->country ?? 'N/A',
+                'date_of_birth' => $application->candidate->profile->date_of_birth?->format('F d, Y'),
+            ],
+            'jobPosting' => [
+                'id' => $application->job_posting->id,
+                'title' => $application->job_posting->title,
+            ],
+            'applicationStatuses' => [
+                'submitted' => 'Submitted',
+                'reviewed' => 'Reviewed',
+                'shortlisted' => 'Shortlisted',
+                'rejected' => 'Rejected',
+                'hired' => 'Hired',
+            ],
+        ]);
+    }
+    
+    /**
+     * Update application status.
+     */
+    public function updateStatus(Request $request, int $applicationId)
+    {
+        $validated = $request->validate([
+            'status' => 'required|in:submitted,reviewed,shortlisted,rejected,hired',
+            'notes' => 'nullable|string|max:1000',
+        ]);
+        
+        $application = Application::findOrFail($applicationId);
+        $application->update([
+            'status' => $validated['status'],
+            'notes' => $validated['notes'] ?? $application->notes,
+        ]);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Application status updated successfully.',
+        ]);
+    }
+    
+    /**
+     * Download resume file.
+     */
+    public function downloadResume(int $applicationId)
+    {
+        $application = Application::findOrFail($applicationId);
+        
+        if (!$application->resume_path || !Storage::disk('public')->exists($application->resume_path)) {
+            abort(404, 'Resume file not found.');
+        }
+        
+        return Storage::disk('public')->download(
+            $application->resume_path,
+            "Resume-{$application->candidate->profile->full_name}.pdf"
+        );
+    }
+}
+```
+
+**Files to Create:**
+- `app/Http/Controllers/HR/ATS/ApplicationsController.php`
+
+---
+
+### Task 6.2: Create HR Applications Listing Page
+
+**Goal:** Create a page for HR staff to view and manage all applicants for a specific job posting.
+
+**Implementation Steps:**
+
+Create file: `resources/js/pages/HR/ATS/Applications/Index.tsx`
+
+```tsx
+import { Head, Link, router } from '@inertiajs/react';
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Pagination } from '@/components/ui/pagination';
+import { ArrowLeft, Download, Eye, Users, Filter } from 'lucide-react';
+import HRLayout from '@/layouts/HRLayout';
+
+interface Candidate {
+  id: number;
+  candidate_id: number;
+  candidate_name: string;
+  candidate_email: string;
+  candidate_phone: string;
+  status: string;
+  applied_at: string;
+  resume_path: string;
+  has_resume: boolean;
+}
+
+interface JobPosting {
+  id: number;
+  title: string;
+}
+
+interface ApplicationsIndexProps {
+  jobPosting: JobPosting;
+  applications: {
+    data: Candidate[];
+    meta: {
+      current_page: number;
+      total: number;
+      per_page: number;
+      last_page: number;
+    };
+  };
+  filters: {
+    status: string | null;
+    sort_by: string;
+    sort_order: string;
+  };
+  applicationStatuses: Record<string, string>;
+}
+
+const statusBadgeVariants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+  submitted: 'outline',
+  reviewed: 'secondary',
+  shortlisted: 'default',
+  rejected: 'destructive',
+  hired: 'default',
+};
+
+export default function ApplicationsIndex({
+  jobPosting,
+  applications,
+  filters,
+  applicationStatuses,
+}: ApplicationsIndexProps) {
+  const [selectedStatus, setSelectedStatus] = useState<string>(filters.status || '');
+  const [sortBy, setSortBy] = useState(filters.sort_by);
+  const [sortOrder, setSortOrder] = useState(filters.sort_order);
+
+  const handleFilter = () => {
+    const params = new URLSearchParams();
+    if (selectedStatus) params.append('status', selectedStatus);
+    params.append('sort_by', sortBy);
+    params.append('sort_order', sortOrder);
+    
+    router.get(`/hr/ats/jobs/${jobPosting.id}/applications?${params.toString()}`);
+  };
+
+  return (
+    <HRLayout>
+      <Head title={`Applications - ${jobPosting.title} - ATS`} />
+      
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <Link href="/hr/ats/job-postings">
+              <Button variant="ghost" className="gap-2 mb-2">
+                <ArrowLeft className="h-4 w-4" />
+                Back to Job Postings
+              </Button>
+            </Link>
+            <h1 className="text-3xl font-bold text-gray-900 mt-2">
+              {jobPosting.title}
+            </h1>
+            <p className="text-gray-600 mt-1">
+              {applications.meta.total} total applications
+            </p>
+          </div>
+        </div>
+
+        {/* Filters */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Filter className="h-5 w-5" />
+              Filter & Sort Applications
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">
+                  Status
+                </label>
+                <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Statuses" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All Statuses</SelectItem>
+                    {Object.entries(applicationStatuses).map(([key, label]) => (
+                      <SelectItem key={key} value={key}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">
+                  Sort By
+                </label>
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sort By" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="applied_at">Application Date</SelectItem>
+                    <SelectItem value="candidate_name">Candidate Name</SelectItem>
+                    <SelectItem value="status">Status</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">
+                  Order
+                </label>
+                <Select value={sortOrder} onValueChange={setSortOrder}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Order" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="desc">Newest First</SelectItem>
+                    <SelectItem value="asc">Oldest First</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <Button onClick={handleFilter} className="mt-4">
+              Apply Filters
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Applications Table */}
+        {applications.data.length === 0 ? (
+          <Card>
+            <CardContent className="py-16 text-center">
+              <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900">No Applications</h3>
+              <p className="text-gray-600 mt-1">No applications match the selected filters.</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardContent className="p-0 overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Candidate Name</th>
+                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Email</th>
+                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Phone</th>
+                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Status</th>
+                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Applied Date</th>
+                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {applications.data.map((app, index) => (
+                    <tr
+                      key={app.id}
+                      className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}
+                    >
+                      <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                        {app.candidate_name}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600">
+                        {app.candidate_email}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600">
+                        {app.candidate_phone}
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        <Badge variant={statusBadgeVariants[app.status] || 'default'}>
+                          {applicationStatuses[app.status] || app.status}
+                        </Badge>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600">
+                        {app.applied_at}
+                      </td>
+                      <td className="px-6 py-4 text-sm space-x-2">
+                        <Link href={`/hr/ats/applications/${app.id}`}>
+                          <Button size="sm" variant="outline" className="gap-1">
+                            <Eye className="h-4 w-4" />
+                            View Details
+                          </Button>
+                        </Link>
+                        {app.has_resume && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1"
+                            onClick={() => window.location.href = `/hr/ats/applications/${app.id}/download-resume`}
+                          >
+                            <Download className="h-4 w-4" />
+                            Resume
+                          </Button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Pagination */}
+        {applications.meta.last_page > 1 && (
+          <div className="flex justify-center">
+            <Pagination
+              currentPage={applications.meta.current_page}
+              totalPages={applications.meta.last_page}
+              onPageChange={(page) => {
+                router.get(`/hr/ats/jobs/${jobPosting.id}/applications?page=${page}`);
+              }}
+            />
+          </div>
+        )}
+      </div>
+    </HRLayout>
+  );
+}
+```
+
+**Files to Create:**
+- `resources/js/pages/HR/ATS/Applications/Index.tsx`
+
+---
+
+### Task 6.3: Create Candidate Details & Resume Viewer Page
+
+**Goal:** Create a detailed view page for individual applications with candidate info and resume embeding.
+
+**Implementation Steps:**
+
+Create file: `resources/js/pages/HR/ATS/Applications/Show.tsx`
+
+```tsx
+import { Head, Link, router } from '@inertiajs/react';
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Textarea } from '@/components/ui/textarea';
+import { ArrowLeft, Download, FileText, User, Mail, Phone, MapPin, Briefcase, CheckCircle } from 'lucide-react';
+import HRLayout from '@/layouts/HRLayout';
+import axios from 'axios';
+
+interface Candidate {
+  id: number;
+  first_name: string;
+  last_name: string;
+  full_name: string;
+  email: string;
+  phone: string;
+  address: string;
+  city: string;
+  state: string;
+  postal_code: string;
+  country: string;
+  date_of_birth: string | null;
+}
+
+interface Application {
+  id: number;
+  status: string;
+  applied_at: string;
+  cover_letter: string | null;
+  resume_path: string | null;
+  resume_url: string | null;
+}
+
+interface JobPosting {
+  id: number;
+  title: string;
+}
+
+interface ApplicationShowProps {
+  application: Application;
+  candidate: Candidate;
+  jobPosting: JobPosting;
+  applicationStatuses: Record<string, string>;
+}
+
+const statusBadgeVariants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+  submitted: 'outline',
+  reviewed: 'secondary',
+  shortlisted: 'default',
+  rejected: 'destructive',
+  hired: 'default',
+};
+
+export default function ApplicationShow({
+  application,
+  candidate,
+  jobPosting,
+  applicationStatuses,
+}: ApplicationShowProps) {
+  const [selectedStatus, setSelectedStatus] = useState(application.status);
+  const [notes, setNotes] = useState('');
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [updateSuccess, setUpdateSuccess] = useState(false);
+
+  const handleStatusUpdate = async () => {
+    setIsUpdating(true);
+    setUpdateSuccess(false);
+    
+    try {
+      await axios.put(`/hr/ats/applications/${application.id}/status`, {
+        status: selectedStatus,
+        notes: notes || null,
+      });
+      
+      setUpdateSuccess(true);
+      setTimeout(() => setUpdateSuccess(false), 3000);
+    } catch (error) {
+      console.error('Failed to update status:', error);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  return (
+    <HRLayout>
+      <Head title={`${candidate.full_name} - Application Details`} />
+      
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <Link href={`/hr/ats/jobs/${jobPosting.id}/applications`}>
+              <Button variant="ghost" className="gap-2 mb-2">
+                <ArrowLeft className="h-4 w-4" />
+                Back to Applications
+              </Button>
+            </Link>
+            <h1 className="text-3xl font-bold text-gray-900 mt-2">
+              {candidate.full_name}
+            </h1>
+            <p className="text-gray-600 mt-1">
+              Applied for: <span className="font-semibold">{jobPosting.title}</span>
+            </p>
+          </div>
+          
+          <div className="text-right">
+            <Badge
+              variant={statusBadgeVariants[application.status] || 'default'}
+              className="text-lg py-2 px-4"
+            >
+              {applicationStatuses[application.status] || application.status}
+            </Badge>
+            <p className="text-sm text-gray-600 mt-2">
+              Applied: {application.applied_at}
+            </p>
+          </div>
+        </div>
+
+        {/* Success Alert */}
+        {updateSuccess && (
+          <Alert className="bg-green-50 border-green-200">
+            <CheckCircle className="h-4 w-4 text-green-600" />
+            <AlertDescription className="text-green-800">
+              Application status updated successfully.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main Content */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Candidate Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  Personal Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">First Name</label>
+                    <p className="mt-1 text-gray-900">{candidate.first_name}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Last Name</label>
+                    <p className="mt-1 text-gray-900">{candidate.last_name}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                      <Mail className="h-4 w-4" />
+                      Email
+                    </label>
+                    <p className="mt-1 text-gray-900">{candidate.email}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                      <Phone className="h-4 w-4" />
+                      Phone
+                    </label>
+                    <p className="mt-1 text-gray-900">{candidate.phone}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                      <MapPin className="h-4 w-4" />
+                      Address
+                    </label>
+                    <p className="mt-1 text-gray-900">
+                      {candidate.address}, {candidate.city}, {candidate.state} {candidate.postal_code}, {candidate.country}
+                    </p>
+                  </div>
+                  {candidate.date_of_birth && (
+                    <div className="col-span-2">
+                      <label className="text-sm font-medium text-gray-700">Date of Birth</label>
+                      <p className="mt-1 text-gray-900">{candidate.date_of_birth}</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Cover Letter */}
+            {application.cover_letter && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Briefcase className="h-5 w-5" />
+                    Cover Letter
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-700 whitespace-pre-wrap">{application.cover_letter}</p>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Resume Display */}
+            {application.resume_url && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Resume
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <iframe
+                    src={application.resume_url}
+                    title="Candidate Resume"
+                    className="w-full h-96 border rounded-lg"
+                  />
+                  <Button
+                    onClick={() => window.location.href = `/hr/ats/applications/${application.id}/download-resume`}
+                    className="mt-4 gap-2"
+                  >
+                    <Download className="h-4 w-4" />
+                    Download Resume
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Sidebar - Status Update */}
+          <div>
+            <Card className="sticky top-6">
+              <CardHeader>
+                <CardTitle>Update Status</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">
+                    Application Status
+                  </label>
+                  <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(applicationStatuses).map(([key, label]) => (
+                        <SelectItem key={key} value={key}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">
+                    Internal Notes (Optional)
+                  </label>
+                  <Textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Add internal notes about this candidate..."
+                    rows={4}
+                    className="text-sm"
+                  />
+                </div>
+                
+                <Button
+                  onClick={handleStatusUpdate}
+                  disabled={isUpdating || selectedStatus === application.status}
+                  className="w-full"
+                >
+                  {isUpdating ? 'Updating...' : 'Update Status'}
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    </HRLayout>
+  );
+}
+```
+
+**Files to Create:**
+- `resources/js/pages/HR/ATS/Applications/Show.tsx`
+
+**Verification:**
+- ✅ HR can view all applications for a specific job posting
+- ✅ Applications can be filtered by status
+- ✅ Applications can be sorted by date, name, or status
+- ✅ Pagination works for large applicant lists
+- ✅ Candidate details display correctly
+- ✅ Resume displays in embedded viewer
+- ✅ Resume can be downloaded
+- ✅ Application status can be updated
+- ✅ Cover letter displays if provided
+- ✅ Access restricted to HR staff only
+
+---
+
+## Phase 7: Database & Model Setup
 
 **Duration:** 0.25 days
 
@@ -1108,7 +1857,7 @@ class Profile extends Model
 
 ---
 
-## Phase 7: Testing & Quality Assurance
+## Phase 8: Testing & Quality Assurance
 
 **Duration:** 0.5 days
 
@@ -1284,11 +2033,11 @@ php artisan test --filter=PublicJobPostingsTest
 
 ---
 
-## Phase 8: Documentation & Deployment
+## Phase 9: Documentation & Deployment
 
 **Duration:** 0.25 days
 
-### Task 8.1: Update Documentation
+### Task 9.1: Update Documentation
 
 **Goal:** Document the public job postings feature.
 
@@ -1334,7 +2083,7 @@ php artisan test --filter=PublicJobPostingsTest
 
 ---
 
-### Task 8.2: Deployment Checklist
+### Task 9.2: Deployment Checklist
 
 **Pre-Deployment:**
 - ✅ Run migrations: `php artisan migrate`
@@ -1369,24 +2118,29 @@ php artisan test --filter=PublicJobPostingsTest
 | **Phase 3** | 1 day | Public Job Postings Index Page | ⏳ Pending |
 | **Phase 4** | 1 day | Job Detail & Application Page | ⏳ Pending |
 | **Phase 5** | 0.25 days | Update Landing Page | ⏳ Pending |
-| **Phase 6** | 0.25 days | Database & Model Setup | ⏳ Pending |
-| **Phase 7** | 0.5 days | Testing & QA | ⏳ Pending |
-| **Phase 8** | 0.25 days | Documentation & Deployment | ⏳ Pending |
-| **Total** | **3.5 days** | 16 tasks | ⏳ Not Started |
+| **Phase 6** | 1 day | HR Applications Management | ⏳ Pending |
+| **Phase 7** | 0.25 days | Database & Model Setup | ⏳ Pending |
+| **Phase 8** | 0.5 days | Testing & QA | ⏳ Pending |
+| **Phase 9** | 0.25 days | Documentation & Deployment | ⏳ Pending |
+| **Total** | **5 days** | 22 tasks | ⏳ Not Started |
 
 ### Key Files Summary
 
-**Files to Create (6):**
+**Files to Create (9):**
 1. `app/Http/Controllers/Public/JobPostingsController.php`
 2. `resources/js/pages/Public/JobPostings/Index.tsx`
 3. `resources/js/pages/Public/JobPostings/Show.tsx`
 4. `resources/js/pages/welcome.tsx` (if doesn't exist)
 5. `app/Models/Profile.php` (if doesn't exist)
-6. `tests/Feature/PublicJobPostingsTest.php`
+6. `app/Http/Controllers/HR/ATS/ApplicationsController.php`
+7. `resources/js/pages/HR/ATS/Applications/Index.tsx`
+8. `resources/js/pages/HR/ATS/Applications/Show.tsx`
+9. `tests/Feature/PublicJobPostingsTest.php`
 
-**Files to Modify (2):**
-1. `routes/web.php` - Add public routes
-2. `docs/ATS_MODULE.md` - Update documentation
+**Files to Modify (3):**
+1. `routes/web.php` - Add public routes and HR applications routes
+2. `routes/hr.php` - Add HR applications routes
+3. `docs/ATS_MODULE.md` - Update documentation
 
 ### Success Criteria
 
@@ -1408,22 +2162,28 @@ php artisan test --filter=PublicJobPostingsTest
 ## Quick Start Commands
 
 ```bash
-# Phase 1: Create Controller
+# Phase 1: Create Public Controller
 php artisan make:controller Public/JobPostingsController
 
 # Phase 3: Create Frontend Directory
 mkdir -p resources/js/pages/Public/JobPostings
 
-# Phase 6: Create Profile Model (if needed)
+# Phase 6: Create HR Applications Controller
+php artisan make:controller HR/ATS/ApplicationsController
+
+# Phase 6: Create HR Applications Frontend Directory
+mkdir -p resources/js/pages/HR/ATS/Applications
+
+# Phase 7: Create Profile Model (if needed)
 php artisan make:model Profile
 
-# Phase 6: Run Migrations
+# Phase 7: Run Migrations
 php artisan migrate
 
-# Phase 6: Create Storage Symlink
+# Phase 7: Create Storage Symlink
 php artisan storage:link
 
-# Phase 7: Run Tests
+# Phase 8: Run Tests
 php artisan test --filter=PublicJobPostingsTest
 
 # Build Frontend Assets

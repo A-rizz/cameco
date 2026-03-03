@@ -30,7 +30,115 @@ Integrate Facebook Graph API to allow HR staff to automatically post job opening
 
 ---
 
-## 📊 Database Schema Extensions
+## � Development vs Production Setup
+
+### ⚡ Quick Development Setup (No Business URL Required)
+
+For local development, you **do not need** your official business domain. However, **Facebook requires a proper domain format with TLD (.com, .org, .local, etc.) - `localhost:8000` alone will not work.**
+
+**Option 1: Local Domain with .local TLD (Recommended)**
+
+1. **Add to your hosts file:**
+   
+   **Windows (`C:\Windows\System32\drivers\etc\hosts`):**
+   ```
+   127.0.0.1 cameco.local
+   ```
+   
+   **Mac/Linux (`/etc/hosts`):**
+   ```
+   127.0.0.1 cameco.local
+   ```
+
+2. **Facebook App Settings:**
+   - Site URL: `http://cameco.local:8000`
+   - Privacy Policy URL: `http://cameco.local:8000/privacy`
+   - Terms of Service URL: `http://cameco.local:8000/terms`
+   - App Mode: `Development`
+
+3. **Laravel Configuration:**
+   ```env
+   APP_URL=http://cameco.local:8000
+   ```
+
+4. **Access locally:**
+   - Open browser: `http://cameco.local:8000`
+   - Facebook will accept this domain format
+
+**Option 3: ngrok (Public Tunnel to Localhost)**
+
+If you need a real HTTPS domain temporarily:
+
+```bash
+# 1. Install ngrok from https://ngrok.com/
+# 2. Run ngrok to expose localhost
+ngrok http 8000
+
+# 3. You'll get a URL like: https://abc1234.ngrok.io
+# 4. Use in Facebook App:
+#    - Site URL: https://abc1234.ngrok.io
+#    - Privacy/Terms: https://abc1234.ngrok.io/privacy
+```
+
+**Option 4: Test Domain (.test TLD)**
+
+Use a test-reserved domain:
+
+1. **Add to hosts file:**
+   ```
+   127.0.0.1 cameco.test
+   ```
+
+2. **Facebook App Settings:**
+   - Site URL: `http://cameco.test:8000`
+   - Privacy Policy: `http://cameco.test:8000/privacy`
+   - Terms of Service: `http://cameco.test:8000/terms`
+
+### Environment Detection
+
+The config automatically detects your environment:
+
+```php
+// config/facebook.php
+'development_mode' => env('APP_ENV') === 'local',  // Auto-detected
+'site_url' => env('APP_ENV') === 'local' 
+    ? env('APP_URL', 'http://cameco.local:8000')      // Dev: use .local domain
+    : env('APP_URL'),                                // Prod: your business domain
+```
+
+**Important:** Update `APP_URL` in .env.local to match your hosts file entry:
+
+```env
+# .env.local
+APP_ENV=local
+APP_URL=http://cameco.local:8000
+```
+
+### Quick Setup with Caddy
+
+**All Platforms (Windows/Mac/Linux):**
+```bash
+# 1. Install Caddy (choose your OS above)
+
+# 2. Create Caddyfile in your project root with:
+# cameco.local {
+#     reverse_proxy localhost:8000
+#     handle_path /@vite* {
+#         reverse_proxy localhost:5173
+#     }
+# }
+
+# 3. Run from project root
+caddy run
+
+# 4. Access at http://cameco.local
+```
+
+⚠️ **Why localhost:8000 doesn't work:** Facebook's URL validator requires a properly formatted domain with TLD to prevent abuse. Development mode doesn't bypass this validation. Caddy eliminates the need to modify your system's hosts file!
+
+---
+
+## �📊 Database Schema Extensions
 
 ### New Migration: Add Facebook Tracking to job_postings
 
@@ -88,9 +196,15 @@ CREATE TABLE facebook_post_logs (
 2. **Configure App Permissions:**
    - Go to App Dashboard → Settings → Basic
    - Add Platform: Website
-   - Site URL: Your production domain (e.g., https://hris.cathaymetal.com)
-   - Privacy Policy URL: Add your privacy policy
-   - Terms of Service URL: Add your terms
+   - **For Development:**
+     - Site URL: `http://cameco.local:8000` (using .local domain from hosts file)
+     - Privacy Policy URL: `http://cameco.local:8000/privacy`
+     - Terms of Service URL: `http://cameco.local:8000/terms`
+   - **For Production:**
+     - Site URL: Your production domain (e.g., https://cameco.cathaymetal.com)
+     - Privacy Policy URL: Add your privacy policy
+     - Terms of Service URL: Add your terms
+   - **Tip:** Set App Mode to "Development" for local testing
 
 3. **Request Permissions:**
    - Go to App Dashboard → Permissions
@@ -138,14 +252,29 @@ CREATE TABLE facebook_post_logs (
 **Implementation Steps:**
 
 1. **Add Environment Variables:**
-   ```env
-   # config/.env
    
+   **Development (.env.local):**
+   ```env
+   # For local development
+   FACEBOOK_INTEGRATION_ENABLED=false  # Enable after app setup
    FACEBOOK_APP_ID=your_app_id
    FACEBOOK_APP_SECRET=your_app_secret
    FACEBOOK_PAGE_ID=your_page_id
    FACEBOOK_PAGE_ACCESS_TOKEN=your_long_lived_page_token
    FACEBOOK_API_VERSION=v18.0
+   APP_URL=http://localhost:8000  # Auto-detected for dev
+   ```
+   
+   **Production (.env):**
+   ```env
+   # For production
+   FACEBOOK_INTEGRATION_ENABLED=true
+   FACEBOOK_APP_ID=your_app_id
+   FACEBOOK_APP_SECRET=your_app_secret
+   FACEBOOK_PAGE_ID=your_page_id
+   FACEBOOK_PAGE_ACCESS_TOKEN=your_long_lived_page_token
+   FACEBOOK_API_VERSION=v18.0
+   APP_URL=https://hris.cathaymetal.com
    ```
 
 2. **Create Facebook Config File:**
@@ -165,13 +294,35 @@ CREATE TABLE facebook_post_logs (
        'enabled' => env('FACEBOOK_INTEGRATION_ENABLED', false),
        'auto_post' => env('FACEBOOK_AUTO_POST_ENABLED', false),
        
+       // Development mode detection
+       'development_mode' => env('APP_ENV') === 'local',
+       
+       // Environment-aware site URL
+       'site_url' => env('APP_ENV') === 'local' 
+           ? env('APP_URL', 'http://localhost:8000')
+           : env('APP_URL'),
+       
        // Job posting settings
        'job_post_template' => env('FACEBOOK_JOB_POST_TEMPLATE', 'default'),
        'include_link' => env('FACEBOOK_INCLUDE_LINK', true),
    ];
    ```
 
-3. **Install Facebook SDK (Optional but Recommended):**
+3. **Create Placeholder Privacy/Terms Pages (Development Only):**
+   
+   Create simple local pages for Facebook App validation:
+   ```php
+   // routes/web.php
+   Route::get('/privacy', function () {
+       return 'Privacy Policy - Development Version';
+   });
+   
+   Route::get('/terms', function () {
+       return 'Terms of Service - Development Version';
+   });
+   ```
+
+4. **Install Facebook SDK (Optional but Recommended):**
    ```bash
    composer require facebook/graph-sdk
    ```
@@ -182,13 +333,53 @@ CREATE TABLE facebook_post_logs (
 - `config/facebook.php`
 
 **Files to Modify:**
-- `.env` (add Facebook credentials)
+- `.env.local` (development credentials)
 - `.env.example` (add Facebook placeholders)
+- `routes/web.php` (add privacy/terms routes for development)
+
+**Development Setup:**
+```bash
+# 1. Install and run Caddy (recommended)
+brew install caddy  # or choco install caddy (Windows) or apt-get install caddy (Linux)
+
+# 2. Create Caddyfile in project root
+cat > Caddyfile << 'EOF'
+cameco.local {
+    reverse_proxy localhost:8000
+    
+    handle_path /@vite* {
+        reverse_proxy localhost:5173
+    }
+}
+EOF
+
+# 3. Run Caddy
+caddy run
+
+# 4. Create .env.local for development
+cp .env .env.local
+
+# 5. Add to .env.local
+FACEBOOK_INTEGRATION_ENABLED=false  # Change to true after Facebook App setup
+FACEBOOK_APP_ID=your_facebook_app_id
+FACEBOOK_APP_SECRET=your_facebook_app_secret
+FACEBOOK_PAGE_ID=your_facebook_page_id
+FACEBOOK_PAGE_ACCESS_TOKEN=your_long_lived_page_token
+APP_URL=http://cameco.local
+
+# 6. In browser, access: http://cameco.local (no port needed!)
+```
 
 **Verification:**
+- ✅ Caddy installed and running
+- ✅ Caddyfile created in project root
 - ✅ Config file created
-- ✅ Environment variables set
+- ✅ Environment variables set in .env.local
+- ✅ Laravel accessible at `http://cameco.local`
+- ✅ Vite hot reload accessible at `http://cameco.local/@vite`
 - ✅ Config values accessible: `config('facebook.app_id')`
+- ✅ Development mode detected: `config('facebook.development_mode')`
+- ✅ Privacy/Terms pages accessible at cameco.local
 - ✅ Facebook SDK installed (if using)
 
 ---
@@ -1713,26 +1904,183 @@ CREATE TABLE facebook_post_logs (
 
 ## Environment Variables Reference
 
+### Development (.env.local)
 ```env
-# Facebook Integration
+# Development Configuration
+APP_ENV=local
+APP_URL=http://cameco.local
+
+# Facebook Integration - Development Mode
+FACEBOOK_INTEGRATION_ENABLED=false  # Set to true after Facebook app setup
+FACEBOOK_APP_ID=your_facebook_app_id
+FACEBOOK_APP_SECRET=your_facebook_app_secret
+FACEBOOK_PAGE_ID=your_facebook_page_id
+FACEBOOK_PAGE_ACCESS_TOKEN=your_long_lived_page_access_token
+FACEBOOK_API_VERSION=v18.0
+
+# Additional Settings
+FACEBOOK_AUTO_POST_ENABLED=false
+FACEBOOK_INCLUDE_LINK=true
+FACEBOOK_JOB_POST_TEMPLATE=default
+
+# Note: This file should be in .gitignore (dev credentials only)
+# Also ensure Caddy is running with Caddyfile reverse proxy
+```
+
+### Production (.env)
+```env
+# Production Configuration
+APP_ENV=production
+APP_URL=https://hris.cathaymetal.com
+
+# Facebook Integration - Production Mode
 FACEBOOK_INTEGRATION_ENABLED=true
 FACEBOOK_APP_ID=your_facebook_app_id
 FACEBOOK_APP_SECRET=your_facebook_app_secret
 FACEBOOK_PAGE_ID=your_facebook_page_id
 FACEBOOK_PAGE_ACCESS_TOKEN=your_long_lived_page_access_token
 FACEBOOK_API_VERSION=v18.0
-FACEBOOK_AUTO_POST_ENABLED=false
+
+# Additional Settings
+FACEBOOK_AUTO_POST_ENABLED=true
 FACEBOOK_INCLUDE_LINK=true
 FACEBOOK_JOB_POST_TEMPLATE=default
+
+# Note: Store securely - do not commit to repository
 ```
+
+### Key Differences
+
+| Setting | Development | Production |
+|---------|-------------|-----------|
+| `APP_ENV` | `local` | `production` |
+| `APP_URL` | `http://cameco.local:8000` | `https://hris.cathaymetal.com` |
+| Facebook Domain | `cameco.local:8000` (via hosts file) | `hris.cathaymetal.com` (real domain) |
+| `FACEBOOK_INTEGRATION_ENABLED` | `false` (initially) | `true` |
+| `FACEBOOK_AUTO_POST_ENABLED` | `false` (for testing) | `true` |
+| Facebook App Mode | Development | Live |
+| URL Validation | Proper TLD required (.local, .test, etc) | Real domain required |
+
+### Setup Steps
+
+1. **Install Caddy:**
+   ```bash
+   # Choose your OS:
+   # Windows: choco install caddy
+   # Mac: brew install caddy
+   # Linux: sudo apt-get install caddy
+   ```
+
+2. **Create Caddyfile in project root:**
+   ```
+   cameco.local {
+       reverse_proxy localhost:8000
+   
+       handle_path /@vite* {
+           reverse_proxy localhost:5173
+       }
+   }
+   ```
+
+3. **Run Caddy:**
+   ```bash
+   caddy run  # Run from project root where Caddyfile is located
+   ```
+
+4. **Copy .env to .env.local:**
+   ```bash
+   cp .env .env.local
+   ```
+
+5. **Update .env.local with development credentials:**
+   ```env
+   APP_ENV=local
+   APP_URL=http://cameco.local
+   FACEBOOK_INTEGRATION_ENABLED=false
+   FACEBOOK_APP_ID=your_facebook_app_id
+   FACEBOOK_APP_SECRET=your_facebook_app_secret
+   FACEBOOK_PAGE_ID=your_facebook_page_id
+   FACEBOOK_PAGE_ACCESS_TOKEN=your_long_lived_page_token
+   ```
+
+6. **Add to .gitignore (if not already there):**
+   ```
+   .env.local
+   .env*.local
+   Caddyfile  # Optional: keep Caddyfile in repo or ignore it
+   ```
+
+7. **Test access:**
+   ```bash
+   # Open browser and navigate to:
+   http://cameco.local  # No port needed!
+   ```
+
+8. **Never commit .env.local** - it contains sensitive credentials!
 
 ---
 
 ## Execution Commands
 
+### Development Setup (Local Testing)
+
 ```bash
-# Phase 1: Configuration (manual setup on Facebook)
-# No commands - configure on developers.facebook.com
+# 1. Install Caddy (if not already installed)
+# Windows: choco install caddy
+# Mac: brew install caddy
+# Linux: sudo apt-get install caddy
+
+# 2. Create Caddyfile in project root
+cat > Caddyfile << 'EOF'
+cameco.local {
+    reverse_proxy localhost:8000
+    
+    handle_path /@vite* {
+        reverse_proxy localhost:5173
+    }
+}
+EOF
+
+# 3. Run Caddy (from project root)
+caddy run
+
+# 4. In a new terminal, create local environment file
+cp .env .env.local
+
+# 5. Edit .env.local with Facebook credentials and domain
+nano .env.local
+# Add:
+# APP_URL=http://cameco.local
+# FACEBOOK_APP_ID=your_app_id
+# FACEBOOK_APP_SECRET=your_app_secret
+# FACEBOOK_PAGE_ID=your_page_id
+# FACEBOOK_PAGE_ACCESS_TOKEN=your_token
+
+# 6. Ensure .env.local is in .gitignore
+echo '.env.local' >> .gitignore
+
+# 7. Run migrations after database schema is ready
+php artisan migrate
+
+# 8. Access application at: http://cameco.local (no port!)
+
+# 9. Test Facebook connection in tinker
+php artisan tinker
+>>> $service = app(\App\Services\Social\FacebookService::class)
+>>> $service->testConnection()
+// Should return success with page name and ID
+```
+
+### Phase-by-Phase Execution
+
+```bash
+# Phase 1: Configuration (manual setup on Facebook Developers)
+# Prerequisites: Caddy running with Caddyfile reverse proxy
+# 1. Create app at https://developers.facebook.com/apps/
+# 2. Set app mode to "Development"
+# 3. Add Website platform with http://cameco.local (ensure Caddy is running)
+# 4. Request pages_manage_posts and pages_read_engagement permissions
+# 5. Copy credentials to .env.local
 
 # Phase 2: Database
 php artisan make:migration add_facebook_tracking_to_job_postings_table
@@ -1742,13 +2090,13 @@ php artisan migrate
 
 # Phase 3: Service
 mkdir -p app/Services/Social
-# Create FacebookService.php manually
+# Create FacebookService.php manually with provided code
 
 # Phase 4: Controller & Routes
-# Modify JobPostingController and routes/web.php
+# Modify JobPostingController and routes/web.php with provided code
 
 # Phase 5: Frontend
-# Create React components
+# Create React components (provided in implementation)
 
 # Phase 6: Testing
 php artisan tinker
@@ -1759,6 +2107,24 @@ php artisan tinker
 
 # Verify routes
 php artisan route:list | grep facebook
+```
+
+### Switching to Production
+
+```bash
+# 1. Merge .env.local credentials to .env (production file)
+# 2. Change APP_ENV=production
+# 3. Update APP_URL to production domain
+# 4. Set FACEBOOK_INTEGRATION_ENABLED=true
+# 5. Update Facebook App settings with production URL
+# 6. Request production permissions from Facebook
+# 7. Deploy to production
+
+# Verify production setup
+php artisan tinker
+>>> $service = app(\App\Services\Social\FacebookService::class)
+>>> config('facebook.site_url')  // Should show production URL
+>>> $service->testConnection()   // Should connect to production page
 ```
 
 ---
