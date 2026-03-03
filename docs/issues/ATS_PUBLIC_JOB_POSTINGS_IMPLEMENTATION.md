@@ -5,7 +5,7 @@
 **Landing Page Update:** Add "Careers" button on `/` root page  
 **Priority:** HIGH  
 **Estimated Duration:** 3-4 days  
-**Current Status:** ⏳ PLANNING - No public job postings page exists yet
+**Current Status:** ✅ PHASE 1 IN PROGRESS - Public Job Postings Controller Implemented
 
 ---
 
@@ -263,6 +263,18 @@ class JobPostingsController extends Controller
 - ✅ Application submission creates candidate + application records
 - ✅ Resume upload and validation works
 - ✅ Duplicate application detection
+
+**Completion Notes (March 3, 2026):**
+- ✅ `app/Http/Controllers/Public/JobPostingsController.php` created with all 3 methods (index, show, apply)
+- ✅ Migration: Added `resume_path` and `cover_letter` columns to applications table
+- ✅ Migration: Added `profile_id` foreign key to candidates table for Profile relationship
+- ✅ Updated Application model fillable: Added 'resume_path', 'cover_letter'
+- ✅ Updated Candidate model: Fixed fillable to use 'profile_id', added profile() relationship
+- ✅ Updated Profile model: Added full_name accessor for candidate display
+- ✅ Fixed column reference in controller: Changed 'job_id' to 'job_posting_id'
+- ✅ All PHP syntax validation passed
+- ✅ Database migrations executed successfully
+- ✅ Git commit: feat(#ats-public): phase 1 - implement public job postings controller
 
 ---
 
@@ -2113,7 +2125,7 @@ php artisan test --filter=PublicJobPostingsTest
 
 | Phase | Duration | Tasks | Status |
 |-------|----------|-------|--------|
-| **Phase 1** | 0.5 days | Public Job Postings Controller | ⏳ Pending |
+| **Phase 1** | 0.5 days | Public Job Postings Controller | ✅ Complete |
 | **Phase 2** | 0.25 days | Routes Configuration | ⏳ Pending |
 | **Phase 3** | 1 day | Public Job Postings Index Page | ⏳ Pending |
 | **Phase 4** | 1 day | Job Detail & Application Page | ⏳ Pending |
@@ -2122,7 +2134,7 @@ php artisan test --filter=PublicJobPostingsTest
 | **Phase 7** | 0.25 days | Database & Model Setup | ⏳ Pending |
 | **Phase 8** | 0.5 days | Testing & QA | ⏳ Pending |
 | **Phase 9** | 0.25 days | Documentation & Deployment | ⏳ Pending |
-| **Total** | **5 days** | 22 tasks | ⏳ Not Started |
+| **Total** | **5 days** | 22 tasks | ⏳ In Progress |
 
 ### Key Files Summary
 
