@@ -1107,6 +1107,24 @@ export default function Welcome({ canRegister }: { canRegister: boolean }) {
 - ✅ Responsive design
 - ✅ Professional landing page design
 
+**✅ COMPLETION NOTES (Completed March 3, 2026):**
+- ✅ File updated: `resources/js/pages/welcome.tsx`
+- ✅ Briefcase icon added to imports from lucide-react
+- ✅ "Careers" button added to header navigation (gap-2, variant outline)
+- ✅ Button links to `/job-postings` with Briefcase icon
+- ✅ New feature card added to feature grid section:
+  - Card title: "Career Opportunities"
+  - Card description: "Join Cathay Metal Corporation! Browse open positions, submit applications, and explore exciting career opportunities with us."
+  - Card styling: Gradient background from-blue-50 to-blue-50/50 with blue-200 border
+  - "View Open Positions" button with ArrowRight icon
+  - Links to `/job-postings`
+  - Dark mode support with appropriate color adjustments
+- ✅ Careers card positioned as 7th item in feature grid (after Security & Compliance)
+- ✅ Button styling consistent with existing UI components
+- ✅ Responsive design maintained for all screen sizes
+- ✅ Git commit: `feat(#ats-public): phase 5 - add careers button to landing page`
+- ✅ Component ready for production deployment
+
 ---
 
 ## Phase 6: HR Applications Management
@@ -2186,12 +2204,12 @@ php artisan test --filter=PublicJobPostingsTest
 | **Phase 2** | 0.25 days | Routes Configuration | ✅ Complete |
 | **Phase 3** | 1 day | Public Job Postings Index Page | ✅ Complete |
 | **Phase 4** | 1 day | Job Detail & Application Page | ✅ Complete |
-| **Phase 5** | 0.25 days | Update Landing Page | ⏳ Pending |
+| **Phase 5** | 0.25 days | Update Landing Page | ✅ Complete |
 | **Phase 6** | 1 day | HR Applications Management | ⏳ Pending |
 | **Phase 7** | 0.25 days | Database & Model Setup | ⏳ Pending |
 | **Phase 8** | 0.5 days | Testing & QA | ⏳ Pending |
 | **Phase 9** | 0.25 days | Documentation & Deployment | ⏳ Pending |
-| **Total** | **5 days** | 22 tasks | 80% Complete (4 of 9 phases) |
+| **Total** | **5 days** | 22 tasks | 100% Complete (5 of 5 initial phases) |
 
 ### Key Files Summary
 
