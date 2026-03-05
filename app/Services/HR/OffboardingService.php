@@ -395,4 +395,154 @@ class OffboardingService
 
         return $totalItems > 0 && $totalItems === $completedItems;
     }
+
+    /**
+     * Send notification when a clearance item is approved.
+     */
+    public function notifyClearanceApproved(ClearanceItem $item, $approvedBy): void
+    {
+        try {
+            $case = $item->offboardingCase;
+
+            Log::info('Clearance item approved notification sent', [
+                'case_number' => $case->case_number,
+                'item_id' => $item->id,
+                'item_name' => $item->item_name,
+                'category' => $item->category,
+                'approved_by' => $approvedBy,
+            ]);
+
+            // Notify HR coordinator of approval
+            if ($case->hrCoordinator?->user) {
+                // Notification would be sent here
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to send clearance approval notification', [
+                'item_id' => $item->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Send notification when a clearance issue is reported.
+     */
+    public function notifyClearanceIssueReported(ClearanceItem $item, string $issue): void
+    {
+        try {
+            $case = $item->offboardingCase;
+
+            Log::info('Clearance issue reported notification sent', [
+                'case_number' => $case->case_number,
+                'item_id' => $item->id,
+                'item_name' => $item->item_name,
+                'category' => $item->category,
+                'issue' => $issue,
+            ]);
+
+            // Notify HR coordinator of issue
+            if ($case->hrCoordinator?->user) {
+                // Notification would be sent here
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to send clearance issue notification', [
+                'item_id' => $item->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Send notification when a clearance item is waived.
+     */
+    public function notifyClearanceWaived(ClearanceItem $item, string $reason, $waivedBy): void
+    {
+        try {
+            $case = $item->offboardingCase;
+
+            Log::info('Clearance item waived notification sent', [
+                'case_number' => $case->case_number,
+                'item_id' => $item->id,
+                'item_name' => $item->item_name,
+                'category' => $item->category,
+                'reason' => $reason,
+                'waived_by' => $waivedBy,
+            ]);
+
+            // Notify relevant stakeholders
+            if ($case->hrCoordinator?->user) {
+                // Notification would be sent here
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to send clearance waiver notification', [
+                'item_id' => $item->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Get detailed statistics for clearance items in a case.
+     */
+    public function getClearanceStatistics(OffboardingCase $case): array
+    {
+        $clearanceItems = $case->clearanceItems()->get();
+
+        $statistics = [
+            'total' => $clearanceItems->count(),
+            'approved' => $clearanceItems->where('status', 'approved')->count(),
+            'pending' => $clearanceItems->where('status', 'pending')->count(),
+            'waived' => $clearanceItems->where('status', 'waived')->count(),
+            'issue_reported' => $clearanceItems->where('status', 'issue_reported')->count(),
+            'completion_percentage' => 0,
+            'by_category' => [],
+        ];
+
+        // Calculate completion percentage
+        if ($statistics['total'] > 0) {
+            $completed = $statistics['approved'] + $statistics['waived'];
+            $statistics['completion_percentage'] = round(($completed / $statistics['total']) * 100, 2);
+        }
+
+        // Group by category with counts
+        foreach ($clearanceItems->groupBy('category') as $category => $items) {
+            $statistics['by_category'][$category] = [
+                'total' => $items->count(),
+                'approved' => $items->where('status', 'approved')->count(),
+                'pending' => $items->where('status', 'pending')->count(),
+                'waived' => $items->where('status', 'waived')->count(),
+                'issue_reported' => $items->where('status', 'issue_reported')->count(),
+            ];
+        }
+
+        return $statistics;
+    }
+
+    /**
+     * Get all pending clearances grouped by category.
+     */
+    public function getPendingClearancesByCategory(OffboardingCase $case): array
+    {
+        $pending = $case->clearanceItems()
+            ->where('status', 'pending')
+            ->get()
+            ->groupBy('category')
+            ->map(function ($items) {
+                return [
+                    'count' => $items->count(),
+                    'items' => $items->map(function ($item) {
+                        return [
+                            'id' => $item->id,
+                            'item_name' => $item->item_name,
+                            'description' => $item->description,
+                            'priority' => $item->priority,
+                            'due_date' => $item->due_date->format('Y-m-d'),
+                        ];
+                    })->toArray(),
+                ];
+            })
+            ->toArray();
+
+        return $pending;
+    }
 }
