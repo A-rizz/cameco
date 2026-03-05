@@ -43,7 +43,7 @@ class TaxBracketsSeeder extends Seeder
                 'tax_rate' => 0,
                 'excess_over' => 0,
             ],
-            // Bracket 2: ₱250,001 - ₱400,000 (15%)
+            // Bracket 2: ₱250,000.01 - ₱400,000 (15%)
             [
                 'level' => 2,
                 'income_from' => 250000.01,
@@ -52,7 +52,7 @@ class TaxBracketsSeeder extends Seeder
                 'tax_rate' => 15,
                 'excess_over' => 250000,
             ],
-            // Bracket 3: ₱400,001 - ₱800,000 (20%)
+            // Bracket 3: ₱400,000.01 - ₱800,000 (20%)
             [
                 'level' => 3,
                 'income_from' => 400000.01,
@@ -61,7 +61,7 @@ class TaxBracketsSeeder extends Seeder
                 'tax_rate' => 20,
                 'excess_over' => 400000,
             ],
-            // Bracket 4: ₱800,001 - ₱2,000,000 (25%)
+            // Bracket 4: ₱800,000.01 - ₱2,000,000 (25%)
             [
                 'level' => 4,
                 'income_from' => 800000.01,
@@ -70,7 +70,7 @@ class TaxBracketsSeeder extends Seeder
                 'tax_rate' => 25,
                 'excess_over' => 800000,
             ],
-            // Bracket 5: ₱2,000,001 - ₱8,000,000 (30%)
+            // Bracket 5: ₱2,000,000.01 - ₱8,000,000 (30%)
             [
                 'level' => 5,
                 'income_from' => 2000000.01,
@@ -79,7 +79,7 @@ class TaxBracketsSeeder extends Seeder
                 'tax_rate' => 30,
                 'excess_over' => 2000000,
             ],
-            // Bracket 6: ₱8,000,001+ (35%)
+            // Bracket 6: ₱8,000,000.01+ (35%)
             [
                 'level' => 6,
                 'income_from' => 8000000.01,
