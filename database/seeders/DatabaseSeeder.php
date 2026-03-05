@@ -95,6 +95,11 @@ class DatabaseSeeder extends Seeder
             $this->call(\Database\Seeders\PayrollPermissionsSeeder::class);
         }
 
+        // Seed Offboarding permissions
+        if (class_exists(\Database\Seeders\OffboardingPermissionsSeeder::class)) {
+            $this->call(\Database\Seeders\OffboardingPermissionsSeeder::class);
+        }
+
         // Seed Payroll Officer account
         if (class_exists(\Database\Seeders\PayrollOfficerAccountSeeder::class)) {
             $this->call(\Database\Seeders\PayrollOfficerAccountSeeder::class);

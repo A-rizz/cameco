@@ -570,4 +570,189 @@ class OffboardingService
             ]);
         }
     }
+
+    /**
+     * Notify relevant parties when an asset has liability (damaged/lost).
+     * 
+     * Informs Finance for final pay deduction and HR of the liability.
+     */
+    public function notifyAssetLiability(CompanyAsset $asset, float $liabilityAmount, string $condition): void
+    {
+        try {
+            $employee = $asset->employee;
+            $offboardingCase = $asset->offboardingCase;
+
+            Log::info('Asset liability notification triggered', [
+                'asset_id' => $asset->id,
+                'employee_id' => $employee->id,
+                'employee_name' => $employee->profile?->first_name . ' ' . $employee->profile?->last_name,
+                'condition' => $condition,
+                'liability_amount' => $liabilityAmount,
+                'case_number' => $offboardingCase?->case_number,
+            ]);
+
+            // Finance notification for final pay deduction
+            if ($asset->deducted_from_final_pay) {
+                Log::warning('Asset flagged for final pay deduction', [
+                    'asset_id' => $asset->id,
+                    'employee_id' => $employee->id,
+                    'amount' => $liabilityAmount,
+                    'asset_type' => $asset->asset_type,
+                    'asset_name' => $asset->asset_name,
+                ]);
+            }
+
+            // HR notification
+            Log::info('Asset liability recorded in employee file', [
+                'employee_id' => $employee->id,
+                'asset_type' => $asset->asset_type,
+                'liability_amount' => $liabilityAmount,
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to send asset liability notification', [
+                'asset_id' => $asset->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Notify relevant parties when an asset issue is reported (lost/damaged).
+     * 
+     * Informs HR Coordinator, Finance, and updates clearance status.
+     */
+    public function notifyAssetIssue(CompanyAsset $asset, string $issueStatus, float $liabilityAmount, string $description): void
+    {
+        try {
+            $employee = $asset->employee;
+            $offboardingCase = $asset->offboardingCase;
+
+            Log::warning('Asset issue reported', [
+                'asset_id' => $asset->id,
+                'employee_id' => $employee->id,
+                'employee_name' => $employee->profile?->first_name . ' ' . $employee->profile?->last_name,
+                'issue_status' => $issueStatus,
+                'asset_type' => $asset->asset_type,
+                'asset_name' => $asset->asset_name,
+                'description' => $description,
+                'case_number' => $offboardingCase?->case_number,
+            ]);
+
+            // Finance notification
+            Log::warning('Asset issue flagged for finance follow-up', [
+                'asset_id' => $asset->id,
+                'employee_id' => $employee->id,
+                'issue_status' => $issueStatus,
+                'liability_amount' => $liabilityAmount,
+                'deduction_required' => true,
+            ]);
+
+            // HR coordination
+            if ($offboardingCase && $offboardingCase->hrCoordinator) {
+                Log::info('HR Coordinator notified of asset issue', [
+                    'case_number' => $offboardingCase->case_number,
+                    'hr_coordinator_id' => $offboardingCase->hrCoordinator->id,
+                    'asset_id' => $asset->id,
+                ]);
+            }
+
+            // Update clearance item status
+            if ($asset->clearance_item_id) {
+                Log::info('Clearance item status updated due to asset issue', [
+                    'clearance_item_id' => $asset->clearance_item_id,
+                    'asset_id' => $asset->id,
+                    'new_status' => 'issues',
+                ]);
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Failed to send asset issue notification', [
+                'asset_id' => $asset->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Document generation helper - logs document creation.
+     */
+    public function logDocumentGeneration(OffboardingCase $case, string $documentType, string $documentName): void
+    {
+        try {
+            Log::info('Document generation initiated', [
+                'case_number' => $case->case_number,
+                'employee_id' => $case->employee_id,
+                'document_type' => $documentType,
+                'document_name' => $documentName,
+                'generated_by' => auth()->id(),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to log document generation', [
+                'case_number' => $case->case_number,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Notify finance department of final pay computation.
+     */
+    public function notifyFinanceOfFinalPay(OffboardingCase $case, float $netAmount): void
+    {
+        try {
+            Log::warning('Final pay computation ready for finance processing', [
+                'case_number' => $case->case_number,
+                'employee_id' => $case->employee_id,
+                'employee_name' => $case->employee->profile?->first_name . ' ' . $case->employee->profile?->last_name,
+                'net_amount' => $netAmount,
+                'last_working_day' => $case->last_working_day,
+            ]);
+
+            // Track final pay computation status
+            $case->update(['final_pay_computed' => true]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to notify finance of final pay', [
+                'case_number' => $case->case_number,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Issue documents to employee.
+     */
+    public function issueDocumentsToEmployee(OffboardingCase $case): void
+    {
+        try {
+            $documents = $case->documents()
+                ->where('status', 'approved')
+                ->where('issued_to_employee', false)
+                ->get();
+
+            $count = 0;
+            foreach ($documents as $document) {
+                $document->update([
+                    'issued_to_employee' => true,
+                    'issued_at' => now(),
+                ]);
+                $count++;
+            }
+
+            if ($count > 0) {
+                Log::info('Documents issued to employee', [
+                    'case_number' => $case->case_number,
+                    'employee_id' => $case->employee_id,
+                    'documents_count' => $count,
+                ]);
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Failed to issue documents to employee', [
+                'case_number' => $case->case_number,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
 }

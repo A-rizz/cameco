@@ -25,6 +25,49 @@ class ClearanceController extends Controller
     }
 
     /**
+     * Display an overview of clearance status for all active offboarding cases.
+     */
+    public function indexAll(Request $request): Response
+    {
+        $cases = OffboardingCase::with([
+            'employee.profile:id,first_name,last_name',
+            'employee.department:id,name',
+            'clearanceItems',
+        ])
+            ->whereNotIn('status', ['completed', 'cancelled'])
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(function ($case) {
+                $stats = $this->calculateClearanceStatistics($case->clearanceItems);
+                return [
+                    'id'              => $case->id,
+                    'case_number'     => $case->case_number,
+                    'status'          => $case->status,
+                    'separation_type' => $case->separation_type,
+                    'employee' => [
+                        'name'            => $case->employee->profile?->first_name . ' ' . $case->employee->profile?->last_name,
+                        'employee_number' => $case->employee->employee_number,
+                        'department'      => $case->employee->department?->name,
+                    ],
+                    'clearance_stats' => $stats,
+                    'clearance_url'   => '/hr/offboarding/clearance/' . $case->id,
+                ];
+            });
+
+        $totals = [
+            'total_cases'   => $cases->count(),
+            'total_pending' => $cases->sum(fn($c) => $c['clearance_stats']['pending']),
+            'total_issues'  => $cases->sum(fn($c) => $c['clearance_stats']['issues']),
+            'total_overdue' => $cases->sum(fn($c) => $c['clearance_stats']['overdue']),
+        ];
+
+        return Inertia::render('HR/Offboarding/Clearance/Overview', [
+            'cases'  => $cases->values(),
+            'totals' => $totals,
+        ]);
+    }
+
+    /**
      * Display clearance checklist for an offboarding case, grouped by category.
      */
     public function index($caseId): Response
@@ -49,7 +92,7 @@ class ClearanceController extends Controller
         // Check if user can waive items (HR role)
         $canWaive = $this->offboardingService->userCanWaiveClearances($this->getCurrentUser());
 
-        return Inertia::render('HR/Offboarding/Clearances/Index', [
+        return Inertia::render('HR/Offboarding/Clearance/Index', [
             'case' => [
                 'id' => $case->id,
                 'case_number' => $case->case_number,
