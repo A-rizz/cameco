@@ -326,7 +326,7 @@ class LoansController extends Controller
             $loan = EmployeeLoan::with(['loanDeductions' => fn($q) => $q->orderBy('installment_number', 'asc')])
                 ->findOrFail($id);
 
-            $payments = $loan->loanDeductions->map(function ($deduction) use ($loan) {
+            $payments = $loan->loanDeductions->map(function ($deduction) {
                 return [
                     'id' => $deduction->id,
                     'installment_number' => $deduction->installment_number,
