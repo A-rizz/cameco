@@ -158,7 +158,7 @@ class GovernmentContributionRatesSeeder extends Seeder
         ]);
         
         $this->command->info('Government contribution rates seeded successfully!');
-        $this->command->info('- SSS: 42 brackets');
+        $this->command->info('- SSS: 44 brackets');
         $this->command->info('- PhilHealth: 1 rate');
         $this->command->info('- Pag-IBIG: 2 rates');
     }
