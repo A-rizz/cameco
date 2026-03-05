@@ -283,6 +283,91 @@ class LoansController extends Controller
     }
 
     /**
+     * Delete/Destroy a loan
+     */
+    public function destroy(int $id)
+    {
+        $this->authorize('delete', Employee::class);
+
+        try {
+            $loan = EmployeeLoan::findOrFail($id);
+            
+            // Check if loan is active - only allow deletion of non-active loans
+            if ($loan->status === 'active') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot delete active loan. Please cancel first.',
+                ], 422);
+            }
+
+            // Delete associated deductions
+            $loan->loanDeductions()->delete();
+            
+            // Soft delete the loan
+            $loan->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Loan deleted successfully',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
+    /**
+     * Get loan payment/deduction history
+     */
+    public function getPayments(int $id)
+    {
+        $this->authorize('viewAny', Employee::class);
+
+        try {
+            $loan = EmployeeLoan::with(['loanDeductions' => fn($q) => $q->orderBy('installment_number', 'asc')])
+                ->findOrFail($id);
+
+            $payments = $loan->loanDeductions->map(function ($deduction) {
+                return [
+                    'id' => $deduction->id,
+                    'installment_number' => $deduction->installment_number,
+                    'due_date' => $deduction->due_date,
+                    'principal_deduction' => (float)$deduction->principal_deduction,
+                    'interest_deduction' => (float)$deduction->interest_deduction,
+                    'total_deduction' => (float)$deduction->total_deduction,
+                    'penalty_amount' => (float)$deduction->penalty_amount,
+                    'amount_deducted' => (float)$deduction->amount_deducted,
+                    'amount_paid' => (float)$deduction->amount_paid,
+                    'balance_after_payment' => (float)$deduction->balance_after_payment,
+                    'status' => $deduction->status,
+                    'is_paid' => $deduction->status === 'paid' || $deduction->amount_paid > 0,
+                    'paid_date' => $deduction->paid_date,
+                    'deducted_at' => $deduction->deducted_at,
+                    'reference_number' => $deduction->reference_number,
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'loan_id' => $loan->id,
+                    'loan_number' => $loan->loan_number,
+                    'loan_type' => $loan->loan_type,
+                    'total_installments' => $loan->number_of_installments,
+                    'installments_paid' => $loan->installments_paid,
+                    'principal_amount' => (float)$loan->principal_amount,
+                    'total_amount' => (float)($loan->total_loan_amount ?? ($loan->principal_amount + ($loan->principal_amount * ($loan->interest_rate / 100)))),
+                    'monthly_amortization' => (float)$loan->installment_amount,
+                    'remaining_balance' => (float)($loan->remaining_balance ?? max(0, (float)($loan->principal_amount - ($loan->installments_paid * $loan->installment_amount)))),
+                    'payments' => $payments,
+                ],
+                'message' => 'Payment history retrieved successfully',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
+    /**
      * Get loan type label
      */
     private function getLoanTypeLabel(string $type): string
