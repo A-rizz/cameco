@@ -90,18 +90,20 @@ class TaxBracketsSeeder extends Seeder
             ],
         ];
         
+        $personalExemption = 50000;      // Standard personal exemption (TRAIN)
+        $additionalExemptionPerDependent = 25000; // Per dependent (TRAIN)
+
         // Insert tax brackets for each status
         foreach ($taxStatuses as $status => $description) {
-            // Calculate exemptions based on status
-            $personalExemption = 50000; // Standard personal exemption (TRAIN)
-            $additionalExemption = 25000; // Per dependent (TRAIN)
-            
             // Extract number of dependents from status code
             $dependents = 0;
             if (preg_match('/\d+/', $status, $matches)) {
                 $dependents = (int) $matches[0];
             }
-            
+
+            // Total additional exemption varies by number of dependents
+            $additionalExemption = $additionalExemptionPerDependent * $dependents;
+
             foreach ($brackets as $bracket) {
                 DB::table('tax_brackets')->insert([
                     'tax_status' => $status,
@@ -114,15 +116,16 @@ class TaxBracketsSeeder extends Seeder
                     'excess_over' => $bracket['excess_over'],
                     'personal_exemption' => $personalExemption,
                     'additional_exemption' => $additionalExemption,
-                    'max_dependents' => 4,
+                    'max_dependents' => $dependents,
                     'effective_from' => $effectiveFrom,
                     'is_active' => true,
                     'notes' => sprintf(
-                        'TRAIN Law tax bracket for %s. Exemptions: ₱%s personal + ₱%s × %d dependents',
+                        'TRAIN Law tax bracket for %s. Exemptions: ₱%s personal + ₱%s additional (%d dependent(s) × ₱%s each)',
                         $description,
                         number_format($personalExemption),
                         number_format($additionalExemption),
-                        $dependents
+                        $dependents,
+                        number_format($additionalExemptionPerDependent)
                     ),
                     'created_at' => $now,
                     'updated_at' => $now,
