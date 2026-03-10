@@ -81,7 +81,8 @@ class CheckDeviceHealthCommand extends Command
             }
 
             // Display offline devices
-            $this->warn("⚠ {count($offlineDevices)} device(s) offline:");
+            $offlineCount = count($offlineDevices);
+            $this->warn("⚠ {$offlineCount} device(s) offline:");
             $this->table(
                 ['Device ID', 'Last Scan', 'Minutes Offline'],
                 array_map(fn($d) => [$d['device_id'], $d['last_scan'], $d['minutes_offline']], $offlineDevices)
