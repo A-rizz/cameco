@@ -35,11 +35,13 @@ return new class extends Migration
             $table->dropUnique('unique_payroll_period_employee');
         });
 
-        // Add 'superseded' to the calculation_status check constraint (PostgreSQL).
+        // Add 'superseded' to the calculation_status check constraint (PostgreSQL only).
         // Laravel creates enum columns as varchar + CHECK constraint on PostgreSQL.
-        // We must drop the old constraint and add a new one that includes 'superseded'.
-        DB::statement('ALTER TABLE employee_payroll_calculations DROP CONSTRAINT employee_payroll_calculations_calculation_status_check');
-        DB::statement("ALTER TABLE employee_payroll_calculations ADD CONSTRAINT employee_payroll_calculations_calculation_status_check CHECK (calculation_status IN ('pending','calculating','calculated','exception','adjusted','approved','locked','superseded'))");
+        // SQLite does not support ALTER TABLE DROP/ADD CONSTRAINT — skip on SQLite.
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement('ALTER TABLE employee_payroll_calculations DROP CONSTRAINT employee_payroll_calculations_calculation_status_check');
+            DB::statement("ALTER TABLE employee_payroll_calculations ADD CONSTRAINT employee_payroll_calculations_calculation_status_check CHECK (calculation_status IN ('pending','calculating','calculated','exception','adjusted','approved','locked','superseded'))");
+        }
     }
 
     /**
@@ -48,10 +50,12 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // Revert check constraint — remove 'superseded' value.
+        // Revert check constraint — remove 'superseded' value (PostgreSQL only).
         // WARNING: any rows with calculation_status='superseded' must be updated first.
-        DB::statement('ALTER TABLE employee_payroll_calculations DROP CONSTRAINT employee_payroll_calculations_calculation_status_check');
-        DB::statement("ALTER TABLE employee_payroll_calculations ADD CONSTRAINT employee_payroll_calculations_calculation_status_check CHECK (calculation_status IN ('pending','calculating','calculated','exception','adjusted','approved','locked'))");
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement('ALTER TABLE employee_payroll_calculations DROP CONSTRAINT employee_payroll_calculations_calculation_status_check');
+            DB::statement("ALTER TABLE employee_payroll_calculations ADD CONSTRAINT employee_payroll_calculations_calculation_status_check CHECK (calculation_status IN ('pending','calculating','calculated','exception','adjusted','approved','locked'))");
+        }
 
         // Re-add the strict one-per-period constraint.
         Schema::table('employee_payroll_calculations', function (Blueprint $table) {
