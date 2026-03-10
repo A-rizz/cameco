@@ -204,7 +204,7 @@ class PayslipsController extends Controller
             'payslip_number' => $payslip->payslip_number,
             'payroll_payment_id' => $payslip->payroll_payment_id,
             'employee_id' => $employee?->id,
-            'payroll_period_id' => $payslip->payroll_payment_id ? $payslip->payrollPayment->payroll_period_id : null,
+            'payroll_period_id' => $payslip->payroll_payment_id ? $payslip->payrollPayment?->payroll_period_id : null,
             'employee_number' => $employee?->employee_number ?? $payslip->employee_number,
             'employee_name' => $employee ? $employee->full_name : $payslip->employee_name,
             'position' => $employee?->position?->title ?? $payslip->position ?? 'Unknown',
