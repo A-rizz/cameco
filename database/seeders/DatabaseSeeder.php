@@ -35,6 +35,11 @@ class DatabaseSeeder extends Seeder
             ]
         );
         
+        // Seed Leave policies first
+        if (class_exists(\Database\Seeders\LeavePolicySeeder::class)) {
+            $this->call(\Database\Seeders\LeavePolicySeeder::class);
+        }
+
         // Seed roles and permissions (Spatie) and assign roles to users
         if (class_exists(\Database\Seeders\RolesAndPermissionsSeeder::class)) {
             $this->call(\Database\Seeders\RolesAndPermissionsSeeder::class);
@@ -70,9 +75,19 @@ class DatabaseSeeder extends Seeder
             $this->call(\Database\Seeders\TimekeepingPermissionsSeeder::class);
         }
 
+        // Seed Badge Management permissions
+        if (class_exists(\Database\Seeders\BadgeManagementPermissionsSeeder::class)) {
+            $this->call(\Database\Seeders\BadgeManagementPermissionsSeeder::class);
+        }
+
         // Seed Workforce Management permissions
         if (class_exists(\Database\Seeders\WorkforceManagementPermissionsSeeder::class)) {
             $this->call(\Database\Seeders\WorkforceManagementPermissionsSeeder::class);
+        }
+
+        // Seed Document Management permissions
+        if (class_exists(\Database\Seeders\DocumentManagementPermissionsSeeder::class)) {
+            $this->call(\Database\Seeders\DocumentManagementPermissionsSeeder::class);
         }
 
         // Seed Payroll permissions
@@ -80,9 +95,28 @@ class DatabaseSeeder extends Seeder
             $this->call(\Database\Seeders\PayrollPermissionsSeeder::class);
         }
 
+        // Seed Offboarding permissions
+        if (class_exists(\Database\Seeders\OffboardingPermissionsSeeder::class)) {
+            $this->call(\Database\Seeders\OffboardingPermissionsSeeder::class);
+        }
+
         // Seed Payroll Officer account
         if (class_exists(\Database\Seeders\PayrollOfficerAccountSeeder::class)) {
             $this->call(\Database\Seeders\PayrollOfficerAccountSeeder::class);
+        }
+
+        // Seed Office Admin role and permissions (must run after RolesAndPermissionsSeeder)
+        if (class_exists(\Database\Seeders\OfficeAdminSeeder::class)) {
+            $this->call(\Database\Seeders\OfficeAdminSeeder::class);
+        }
+
+        // Seed Employee role and permissions (must run after RolesAndPermissionsSeeder)
+        if (class_exists(\Database\Seeders\EmployeeRoleSeeder::class)) {
+            $this->call(\Database\Seeders\EmployeeRoleSeeder::class);
+        }
+
+        if (class_exists(\Database\Seeders\HRStaffAccountSeeder::class)) {
+            $this->call(\Database\Seeders\HRStaffAccountSeeder::class);
         }
 
         if (class_exists(\Database\Seeders\SLASeeder::class)) {
@@ -141,6 +175,64 @@ class DatabaseSeeder extends Seeder
         
         if (class_exists(\Database\Seeders\EmployeeSeeder::class)) {
             $this->call(\Database\Seeders\EmployeeSeeder::class);
+        }
+
+        // Seed Employee Accounts (must run after employees)
+        if (class_exists(\Database\Seeders\EmployeeAccountSeeder::class)) {
+            $this->call(\Database\Seeders\EmployeeAccountSeeder::class);
+        }
+
+        // Seed Leave Balances (must run after employees and leave policies)
+        if (class_exists(\Database\Seeders\LeaveBalanceSeeder::class)) {
+            $this->call(\Database\Seeders\LeaveBalanceSeeder::class);
+        }
+
+        // Seed Overtime Requests (must run after employees)
+        if (class_exists(\Database\Seeders\OvertimeRequestSeeder::class)) {
+            $this->call(\Database\Seeders\OvertimeRequestSeeder::class);
+        }
+
+        // Seed Workforce Management data
+        if (class_exists(\Database\Seeders\WorkforceSeeder::class)) {
+            $this->call(\Database\Seeders\WorkforceSeeder::class);
+        }
+
+        // Seed Document Management templates
+        if (class_exists(\Database\Seeders\DocumentTemplateSeeder::class)) {
+            $this->call(\Database\Seeders\DocumentTemplateSeeder::class);
+        }
+
+        // Seed Payroll Payment Methods
+        if (class_exists(\Database\Seeders\PaymentMethodsSeeder::class)) {
+            $this->call(\Database\Seeders\PaymentMethodsSeeder::class);
+        }
+
+        // Seed Payroll Periods (must run after employees)
+        if (class_exists(\Database\Seeders\PayrollPeriodsSeeder::class)) {
+            $this->call(\Database\Seeders\PayrollPeriodsSeeder::class);
+        }
+
+        // Payroll Calculation Test Data (dev/local only)
+        // Enable with: SEED_PAYROLL_TEST_DATA=true in .env
+        if (app()->environment('local', 'testing') && env('SEED_PAYROLL_TEST_DATA', false)) {
+            if (class_exists(\Database\Seeders\PayrollCalculationTestSeeder::class)) {
+                $this->call(\Database\Seeders\PayrollCalculationTestSeeder::class);
+            }
+        }
+
+        // Seed Payroll Payments (must run after periods, employees, and payment methods)
+        if (class_exists(\Database\Seeders\PayrollPaymentsSeeder::class)) {
+            $this->call(\Database\Seeders\PayrollPaymentsSeeder::class);
+        }
+
+        // Seed Cash Distribution Batches (must run after payments)
+        if (class_exists(\Database\Seeders\CashDistributionBatchSeeder::class)) {
+            $this->call(\Database\Seeders\CashDistributionBatchSeeder::class);
+        }
+
+        // Seed Payslips (must run after payments)
+        if (class_exists(\Database\Seeders\PayslipsSeeder::class)) {
+            $this->call(\Database\Seeders\PayslipsSeeder::class);
         }
 
     }

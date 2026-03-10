@@ -12,6 +12,7 @@ import {
 import { MessageSquare, FileText, Trash2 } from 'lucide-react';
 import { CandidateSourceBadge } from '@/components/ats/candidate-source-badge';
 import { CandidateStatusBadge } from '@/components/ats/candidate-status-badge';
+import { PermissionGate } from '@/components/permission-gate';
 import type { Candidate } from '@/types/ats-pages';
 
 interface CandidateTableProps {
@@ -86,14 +87,18 @@ export function CandidateTable({
                     >
                       <MessageSquare className="h-4 w-4" />
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-destructive hover:text-destructive"
-                      onClick={() => onDeleteClick?.(candidate)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <PermissionGate permission="hr.ats.candidates.delete">
+                      <div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => onDeleteClick?.(candidate)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </PermissionGate>
                   </div>
                 </TableCell>
               </TableRow>

@@ -13,11 +13,13 @@ import {
 import { dashboard } from '@/routes';
 import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid } from 'lucide-react';
+import { LayoutGrid } from 'lucide-react';
 import AppLogo from './app-logo';
 import { NavSystemAdmin } from '@/components/nav-system-admin';
 import { NavHR } from '@/components/nav-hr';
 import { NavPayroll } from '@/components/nav-payroll';
+import { NavAdmin } from '@/components/nav-admin';
+import { NavEmployee } from '@/components/nav-employee';
 
 const mainNavItems: NavItem[] = [
     {
@@ -28,16 +30,7 @@ const mainNavItems: NavItem[] = [
 ];
 
 const footerNavItems: NavItem[] = [
-    {
-        title: 'Repository',
-        href: 'https://github.com/laravel/react-starter-kit',
-        icon: Folder,
-    },
-    {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#react',
-        icon: BookOpen,
-    },
+
 ];
 
 export function AppSidebar() {
@@ -46,8 +39,12 @@ export function AppSidebar() {
     
     // Check user roles
     const isSuperadmin = userRoles.includes('Superadmin');
+    const isOfficeAdmin = userRoles.includes('Office Admin');
     const isHRManager = userRoles.includes('HR Manager');
+    const isHRStaff = userRoles.includes('HR Staff');
     const isPayrollOfficer = userRoles.includes('Payroll Officer');
+    const isEmployee = userRoles.includes('Employee');
+    const hasHRAccess = isHRManager || isHRStaff;
     
     return (
         <Sidebar collapsible="icon" variant="inset">
@@ -66,11 +63,17 @@ export function AppSidebar() {
             <SidebarContent>
                 <NavMain items={mainNavItems} />
                 
-                {/* HR Manager Navigation - Show only for HR Manager (not Superadmin unless they also have HR Manager role) */}
-                {isHRManager && <NavHR />}
+                {/* Office Admin Navigation - Show for Office Admin */}
+                {isOfficeAdmin && <NavAdmin />}
+                
+                {/* HR Navigation - Show for HR Manager and HR Staff */}
+                {hasHRAccess && <NavHR />}
                 
                 {/* Payroll Officer Navigation - Show only for Payroll Officer */}
                 {isPayrollOfficer && <NavPayroll />}
+                
+                {/* Employee Navigation - Show only for Employee role */}
+                {isEmployee && <NavEmployee />}
                 
                 {/* System Admin Navigation - Show only for Superadmin */}
                 {isSuperadmin && <NavSystemAdmin />}

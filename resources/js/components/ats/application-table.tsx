@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, Eye, Check, X, Calendar } from 'lucide-react';
 import { ApplicationStatusBadge } from './application-status-badge';
+import { PermissionGate } from '@/components/permission-gate';
 import type { Application } from '@/types/ats-pages';
 import { formatDate } from '@/lib/date-utils';
 
@@ -106,31 +107,33 @@ export function ApplicationTable({
                       <Eye className="mr-2 h-4 w-4" />
                       View
                     </DropdownMenuItem>
-                    {application.status !== 'shortlisted' &&
-                      application.status !== 'interviewed' &&
-                      application.status !== 'offered' &&
-                      application.status !== 'hired' && (
-                        <DropdownMenuItem onClick={() => onShortlistClick?.(application)}>
-                          <Check className="mr-2 h-4 w-4" />
-                          Shortlist
+                    <PermissionGate permission="hr.ats.applications.update">
+                      {application.status !== 'shortlisted' &&
+                        application.status !== 'interviewed' &&
+                        application.status !== 'offered' &&
+                        application.status !== 'hired' && (
+                          <DropdownMenuItem onClick={() => onShortlistClick?.(application)}>
+                            <Check className="mr-2 h-4 w-4" />
+                            Shortlist
+                          </DropdownMenuItem>
+                        )}
+                      {application.status !== 'rejected' &&
+                        application.status !== 'withdrawn' && (
+                          <DropdownMenuItem onClick={() => onRejectClick?.(application)}>
+                            <X className="mr-2 h-4 w-4" />
+                            Reject
+                          </DropdownMenuItem>
+                        )}
+                      {(application.status === 'shortlisted' ||
+                        application.status === 'interviewed') && (
+                        <DropdownMenuItem
+                          onClick={() => onScheduleInterviewClick?.(application)}
+                        >
+                          <Calendar className="mr-2 h-4 w-4" />
+                          Schedule Interview
                         </DropdownMenuItem>
                       )}
-                    {application.status !== 'rejected' &&
-                      application.status !== 'withdrawn' && (
-                        <DropdownMenuItem onClick={() => onRejectClick?.(application)}>
-                          <X className="mr-2 h-4 w-4" />
-                          Reject
-                        </DropdownMenuItem>
-                      )}
-                    {(application.status === 'shortlisted' ||
-                      application.status === 'interviewed') && (
-                      <DropdownMenuItem
-                        onClick={() => onScheduleInterviewClick?.(application)}
-                      >
-                        <Calendar className="mr-2 h-4 w-4" />
-                        Schedule Interview
-                      </DropdownMenuItem>
-                    )}
+                    </PermissionGate>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>

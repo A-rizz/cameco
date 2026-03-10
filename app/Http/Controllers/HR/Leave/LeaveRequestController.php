@@ -4,8 +4,19 @@ namespace App\Http\Controllers\HR\Leave;
 
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
+use App\Models\LeaveRequest;
 use App\Models\LeaveBalance;
+use App\Models\LeavePolicy;
+use App\Services\HR\Leave\LeaveApprovalService;
+use App\Services\HR\Leave\LeaveBalanceService;
+use App\Services\LeaveAccrualService;
+use App\Events\HR\Leave\LeaveRequestSubmitted;
+use App\Events\HR\Leave\LeaveRequestApproved;
+use App\Events\HR\Leave\LeaveRequestRejected;
+use App\Events\HR\Leave\LeaveRequestCancelled;
 use Illuminate\Http\Request;
+use App\Http\Requests\HR\Leave\StoreLeaveRequestRequest;
+use App\Http\Requests\HR\Leave\UpdateLeaveRequestRequest;
 use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Http\RedirectResponse;
@@ -60,6 +71,15 @@ use Illuminate\Http\RedirectResponse;
 class LeaveRequestController extends Controller
 {
     /**
+     * Constructor with service dependency injection
+     */
+    public function __construct(
+        protected LeaveApprovalService $approvalService,
+        protected LeaveBalanceService $balanceService,
+        protected LeaveAccrualService $accrualService
+    ) {}
+
+    /**
      * Display a listing of leave requests with filters.
      *
      * HR Staff View: Shows all leave requests from all employees
@@ -90,9 +110,37 @@ class LeaveRequestController extends Controller
         $dateTo = $request->input('date_to');
         $department = $request->input('department');
 
-        // Mock: Build list of leave requests submitted by employees
-        // In production, these would come from leave_requests table
-        $leaveRequests = $this->getMockLeaveRequests($status, $employeeId, $leaveType, $dateFrom, $dateTo, $department);
+        // Query real leave requests from DB
+        $query = LeaveRequest::with(['employee.profile', 'leavePolicy', 'supervisor.profile'])
+            ->when($status !== 'all', fn($q) => $q->where('status', $status))
+            ->when($employeeId, fn($q) => $q->where('employee_id', $employeeId))
+            ->when($leaveType !== 'all', fn($q) => $q->where('leave_policy_id', $leaveType))
+            ->when($dateFrom, fn($q) => $q->where('start_date', '>=', $dateFrom))
+            ->when($dateTo, fn($q) => $q->where('end_date', '<=', $dateTo))
+            ->when($department, fn($q) => $q->whereHas('employee', fn($qq) => $qq->where('department_id', $department)));
+
+        $leaveRequests = $query->latest('submitted_at')->get()->map(function ($r) {
+            return [
+                'id' => $r->id,
+                'employee_id' => $r->employee_id,
+                'employee_name' => $r->employee?->profile?->first_name . ' ' . $r->employee?->profile?->last_name,
+                'employee_number' => $r->employee?->employee_number,
+                'department' => $r->employee?->department?->name,
+                'leave_type' => $r->leavePolicy?->name,
+                'start_date' => $r->start_date->format('Y-m-d'),
+                'end_date' => $r->end_date->format('Y-m-d'),
+                'days_requested' => (float) $r->days_requested,
+                // include the leave policy's entitlement so the UI can show coverage days
+                'policy_days' => $r->leavePolicy?->annual_entitlement ? (float) $r->leavePolicy?->annual_entitlement : null,
+                'reason' => $r->reason,
+                'status' => $r->status,
+                'supervisor_name' => $r->supervisor?->profile?->first_name . ' ' . $r->supervisor?->profile?->last_name,
+                'submitted_at' => $r->submitted_at?->format('Y-m-d'),
+                'supervisor_approved_at' => $r->supervisor_approved_at?->format('Y-m-d'),
+                'manager_approved_at' => $r->manager_approved_at?->format('Y-m-d'),
+                'hr_processed_at' => $r->hr_processed_at?->format('Y-m-d'),
+            ];
+        })->toArray();
 
         // Mock: Get employees for the filter dropdown
         // HR Staff uses this to filter requests by specific employees
@@ -116,9 +164,9 @@ class LeaveRequestController extends Controller
             'employees' => $employees,
             'departments' => $departments,
             'meta' => [
-                'total_pending' => count(array_filter($leaveRequests, fn($r) => $r['status'] === 'Pending')),
-                'total_approved' => count(array_filter($leaveRequests, fn($r) => $r['status'] === 'Approved')),
-                'total_rejected' => count(array_filter($leaveRequests, fn($r) => $r['status'] === 'Rejected')),
+                    'total_pending' => count(array_filter($leaveRequests, fn($r) => strtolower($r['status'] ?? '') === 'pending')),
+                    'total_approved' => count(array_filter($leaveRequests, fn($r) => strtolower($r['status'] ?? '') === 'approved')),
+                    'total_rejected' => count(array_filter($leaveRequests, fn($r) => strtolower($r['status'] ?? '') === 'rejected')),
             ],
         ]);
     }
@@ -141,16 +189,34 @@ class LeaveRequestController extends Controller
      */
     public function create(Request $request): Response
     {
-        // Verify HR staff has permission to create leave requests
-        $this->authorize('create', Employee::class);
+        // Verify HR staff or HR manager has permission to create leave requests
+        $user = auth()->user();
+        $canCreate = false;
 
-        // Mock: Get all active employees for HR staff to assign leave to
-        // HR staff needs to know which employee is submitting the request
-        $employees = $this->getMockEmployees();
+        // Allow explicit HR roles (HR Staff and HR Manager) to create requests
+        if ($user && method_exists($user, 'hasAnyRole') && $user->hasAnyRole(['HR Staff', 'HR Manager'])) {
+            $canCreate = true;
+        }
 
-        // Mock: Get leave types configured in the system
-        // Examples: Vacation Leave, Sick Leave, Emergency Leave, Maternity, Paternity, etc.
-        $leaveTypes = $this->getMockLeaveTypes();
+        // Fallback to policy check
+        if (!$canCreate) {
+            $this->authorize('create', Employee::class);
+        }
+
+        // Get active employees and leave policies
+        $employees = Employee::active()->with('profile')->get()->map(fn($e) => [
+            'id' => $e->id,
+            'employee_number' => $e->employee_number,
+            'name' => $e->profile?->first_name . ' ' . $e->profile?->last_name,
+        ])->toArray();
+
+        $leaveTypes = LeavePolicy::active()->orderBy('name')->get()->map(fn($p) => [
+            'id' => $p->id,
+            'code' => $p->code,
+            'name' => $p->name,
+            // include entitlement so frontend can show how many days this policy covers
+            'annual_entitlement' => $p->annual_entitlement,
+        ])->toArray();
 
         return Inertia::render('HR/Leave/CreateRequest', [
             'employees' => $employees,
@@ -187,73 +253,142 @@ class LeaveRequestController extends Controller
      *
      * @return RedirectResponse Redirects to requests list with success/error message
      */
-    public function store(Request $request): RedirectResponse
+    public function store(StoreLeaveRequestRequest $request): RedirectResponse
     {
-        // Verify HR staff has permission to create leave requests
-        $this->authorize('create', Employee::class);
+        // Verify HR staff or HR manager has permission to update/approve leave requests
+        $user = auth()->user();
+        $canCreate = false;
 
-        // Validate the leave request data submitted by employee (via HR staff)
-        $validated = $request->validate([
-            'employee_id' => 'required|exists:employees,id',
-            'leave_type_id' => 'required|exists:leave_types,id',
-            'start_date' => 'required|date|after_or_equal:today',
-            'end_date' => 'required|date|after_or_equal:start_date',
-            'reason' => 'nullable|string|max:1000',
-            'hr_notes' => 'nullable|string|max:1000', // HR staff internal notes about the request
-        ]);
+        if ($user && method_exists($user, 'hasAnyRole') && $user->hasAnyRole(['HR Staff', 'HR Manager'])) {
+            $canCreate = true;
+        }
+
+        if (!$canCreate) {
+            $this->authorize('create', Employee::class);
+        }
+
+        // Use the FormRequest's validated data (prepareForValidation normalized any legacy ids)
+        $validated = $request->validated();
 
         // STEP 1: Load the employee making the leave request
         $employee = Employee::with(['profile', 'department'])->findOrFail($validated['employee_id']);
 
         // STEP 2: Validate employee has sufficient leave balance
-        $leaveBalance = LeaveBalance::where('employee_id', $employee->id)
-            ->whereYear('year', now()->year)
-            ->first();
+        // Leave policy id normalization is handled in StoreLeaveRequestRequest::prepareForValidation()
 
-        if (!$leaveBalance || $leaveBalance->remaining_days < 1) {
-            return back()->with('error', 'Employee has insufficient leave balance for this request.');
+        // NOTE: leave balance validation is a future enhancement once LeaveBalance model
+        // and table are fully implemented. For now ensure policy exists.
+        $policy = LeavePolicy::find($validated['leave_policy_id']);
+        if (!$policy) {
+            // return input + validation-style error so the UI can show field error
+            return back()->withInput()->withErrors(['leave_policy_id' => 'Invalid leave type selected.']);
         }
 
         // STEP 3: Calculate number of days requested
         $startDate = \Carbon\Carbon::parse($validated['start_date']);
         $endDate = \Carbon\Carbon::parse($validated['end_date']);
-        $daysRequested = $endDate->diffInDays($startDate) + 1; // +1 to include both start and end dates
+        // compute absolute difference (in case dates are accidentally swapped) and include both
+        // start and end dates (+1)
+        $daysRequested = (int) ($endDate->diffInDays($startDate, true) + 1);
 
-        if ($leaveBalance->remaining_days < $daysRequested) {
-            return back()->with('error', "Employee only has {$leaveBalance->remaining_days} days available, but {$daysRequested} days were requested.");
+        // STEP 3.5: Check leave balance (prevent filing when remaining is 0) unless policy is Emergency
+        $year = $startDate->year;
+        $policy = LeavePolicy::find($validated['leave_policy_id']);
+
+        // determine if this is an emergency leave policy (allow filing regardless of balance)
+        $policyName = strtolower((string) ($policy?->name ?? ''));
+        $policyCode = strtolower((string) ($policy?->code ?? ''));
+        $isEmergency = str_contains($policyName, 'emergency') || $policyCode === 'el';
+
+        // load existing balance if available
+        $balance = null;
+        try {
+            $balance = LeaveBalance::firstWhere([
+                'employee_id' => $validated['employee_id'],
+                'leave_policy_id' => $validated['leave_policy_id'],
+                'year' => $year,
+            ]);
+        } catch (\Exception $e) {
+            $balance = null;
         }
+
+        if ($balance) {
+            $remaining = (float) $balance->remaining;
+            // Block filing when remaining is zero (unless emergency)
+            if (!$isEmergency && $remaining <= 0) {
+                return back()->withInput()->withErrors(['leave_policy_id' => 'Employee has no remaining balance for this leave type.']);
+            }
+
+            // Also prevent requesting more days than remaining (unless emergency)
+            if (!$isEmergency && $daysRequested > $remaining) {
+                return back()->withInput()->withErrors(['start_date' => 'Requested days exceed remaining balance for this leave type. Reduce days or select Emergency Leave.']);
+            }
+        } else {
+            // No balance record exists — use policy entitlement as starting remaining
+            $entitlement = $policy?->annual_entitlement ? (float) $policy->annual_entitlement : 0.0;
+            if (!$isEmergency && $entitlement <= 0) {
+                return back()->withInput()->withErrors(['leave_policy_id' => 'This leave type has no entitlement configured for the year.']);
+            }
+            if (!$isEmergency && $daysRequested > $entitlement) {
+                return back()->withInput()->withErrors(['start_date' => 'Requested days exceed entitlement for this leave type. Reduce days or select Emergency Leave.']);
+            }
+        }
+
+        // NOTE: Leave balance validation is now implemented above (lines 282-323).
+        // HR staff will still process/deduct balances during approval, but initial validation
+        // is performed at request submission to prevent requests exceeding entitlement or balance.
 
         // STEP 4: Create leave request record in database
         // Status starts as "Pending" - awaiting supervisor approval
-        $leaveRequest = [
+        $leaveRequestData = [
             'employee_id' => $employee->id,
-            'employee_name' => $employee->profile->first_name . ' ' . $employee->profile->last_name,
-            'leave_type' => 'Vacation Leave', // In production, fetch from leave_types table
+            'leave_policy_id' => $validated['leave_policy_id'],
+            'leave_type' => $policy->name,
             'start_date' => $validated['start_date'],
             'end_date' => $validated['end_date'],
             'days_requested' => $daysRequested,
             'reason' => $validated['reason'] ?? '',
-            'status' => 'Pending', // Initial status: awaiting supervisor approval
-            'hr_submitted_by' => auth()->id(), // HR Staff who entered the request
-            'hr_notes' => $validated['hr_notes'] ?? '',
+            'status' => 'pending', // Initial status: awaiting supervisor approval
+            'submitted_by' => auth()->id(), // HR Staff who entered the request
             'submitted_at' => now(),
             'supervisor_id' => $employee->immediate_supervisor_id, // Route to supervisor for approval
-            'supervisor_name' => 'John Supervisor', // In production, fetch supervisor name
-            'approved_by' => null,
-            'approved_at' => null,
-            'rejection_reason' => null,
-            'rejected_at' => null,
+            'supervisor_comments' => null,
+            'supervisor_approved_at' => null,
+            'manager_id' => null,
+            'manager_comments' => null,
+            'manager_approved_at' => null,
+            'hr_notes' => $validated['hr_notes'] ?? '',
+            'hr_processed_by' => null,
+            'hr_processed_at' => null,
+            'cancellation_reason' => null,
+            'cancelled_at' => null,
         ];
 
-        // In production, save to database:
-        // $leaveRequestModel = LeaveRequest::create($leaveRequest);
+        // Persist to database
+        $leaveRequest = LeaveRequest::create($leaveRequestData);
 
-        // STEP 5: Send notification to supervisor
-        // Supervisor receives notification to review and approve/reject request
-        // Example: Mail::send(new LeaveRequestSubmittedNotification($employee, $leaveRequest));
+        // STEP 5: Determine approval route using the new service
+        $route = $this->approvalService->determineApprovalRoute($leaveRequest);
 
-        return redirect('/hr/leave/requests')
-            ->with('success', "Leave request for {$employee->profile->first_name} {$employee->profile->last_name} has been submitted successfully. Awaiting supervisor approval.");
+        // STEP 6: Check if can auto-approve
+        if ($route['route'] === 'auto') {
+            $autoApprovalResult = $this->approvalService->processAutoApproval($leaveRequest);
+            
+            if ($autoApprovalResult) {
+                // Dispatch auto-approval event
+                event(new LeaveRequestApproved($leaveRequest->fresh(), 'auto'));
+                
+                return redirect()->route('hr.leave.requests')
+                    ->with('success', "Leave request for {$employee->profile->first_name} {$employee->profile->last_name} has been auto-approved successfully!");
+            }
+        }
+
+        // STEP 7: Not auto-approved - dispatch submitted event
+        event(new LeaveRequestSubmitted($leaveRequest, $route));
+
+        // Always redirect to the leave requests list after filing
+        return redirect()->route('hr.leave.requests')
+            ->with('success', "Leave request for {$employee->profile->first_name} {$employee->profile->last_name} has been submitted successfully. {$route['message']}");
     }
 
     /**
@@ -274,8 +409,7 @@ class LeaveRequestController extends Controller
     {
         // In production: $leaveRequest = LeaveRequest::with(['employee', 'supervisor', 'approvedBy'])->findOrFail($id);
         
-        // Mock: Get leave request details
-        $leaveRequest = $this->getMockLeaveRequestDetail($id);
+        $leaveRequest = LeaveRequest::with(['employee.profile', 'leavePolicy', 'supervisor.profile'])->findOrFail($id);
 
         return Inertia::render('HR/Leave/ShowRequest', [
             'request' => $leaveRequest,
@@ -298,8 +432,7 @@ class LeaveRequestController extends Controller
     {
         // In production: $leaveRequest = LeaveRequest::findOrFail($id);
         
-        // Mock: Get leave request for approval
-        $leaveRequest = $this->getMockLeaveRequestDetail($id);
+        $leaveRequest = LeaveRequest::with(['employee.profile', 'leavePolicy'])->findOrFail($id);
 
         return Inertia::render('HR/Leave/ApproveRequest', [
             'request' => $leaveRequest,
@@ -307,51 +440,147 @@ class LeaveRequestController extends Controller
     }
 
     /**
-     * Process supervisor or manager approval/rejection of a leave request.
+     * Process approval/rejection of a leave request.
      *
-     * SUPERVISOR APPROVAL (First Level):
-     * When supervisor approves: Request moves to HR Manager for final approval
-     * When supervisor rejects: Request is marked rejected, employee notified via HR
+     * NEW WORKFLOW (with self-approval prevention and duration-based routing):
+     * - Checks if user can approve (prevents self-approval)
+     * - For 6+ days: HR Manager gives conditional approval, Office Admin gives final
+     * - For 3-5 days: HR Manager gives full approval (or Office Admin if requestor is HR Manager)
+     * - Deducts balance using LeaveBalanceService
+     * - Dispatches approval/rejection events
      *
-     * HR MANAGER APPROVAL (Final Level):
-     * When manager approves: Request is approved, HR staff can now process it
-     * When manager rejects: Request is marked rejected, employee notified via HR
-     *
-     * @param Request $request Contains:
-     *        - leave_request_id: The request being approved
-     *        - action: 'approve' or 'reject'
-     *        - approval_comments: Comments from approver
-     *        - status: Updated status based on approval
-     *
-     * @return RedirectResponse Redirects with success/error message
+     * @param UpdateLeaveRequestRequest $request
+     * @param int $id Leave request ID
+     * @return RedirectResponse
      */
-    public function update(Request $request, int $id): RedirectResponse
+    public function update(UpdateLeaveRequestRequest $request, int $id): RedirectResponse
     {
-        // Validate approval action
-        $validated = $request->validate([
-            'action' => 'required|in:approve,reject',
-            'approval_comments' => 'nullable|string|max:1000',
-        ]);
+        $validated = $request->validated();
+        $action = $validated['action'] ?? 'approve'; // 'approve', 'reject', 'cancel'
+        
+        $leaveRequest = LeaveRequest::with(['employee.user', 'leavePolicy'])->findOrFail($id);
+        $user = auth()->user();
 
-        // In production:
-        // $leaveRequest = LeaveRequest::findOrFail($id);
-        // 
-        // if ($validated['action'] === 'approve') {
-        //     $leaveRequest->status = 'Approved';
-        //     $leaveRequest->approved_by = auth()->id();
-        //     $leaveRequest->approved_at = now();
-        // } else {
-        //     $leaveRequest->status = 'Rejected';
-        //     $leaveRequest->rejection_reason = $validated['approval_comments'];
-        //     $leaveRequest->rejected_at = now();
-        // }
-        // 
-        // $leaveRequest->save();
-        // 
-        // // Notify HR staff of approval decision
-        // // HR staff will then notify employee of result
+        // Determine user's primary role for approval
+        $role = null;
+        if ($user->hasRole('Office Admin')) {
+            $role = 'Office Admin';
+        } elseif ($user->hasRole('HR Manager')) {
+            $role = 'HR Manager';
+        }
 
-        return back()->with('success', 'Leave request has been processed.');
+        // Check if user can approve this request (prevents self-approval)
+        if ($action === 'approve' && $role) {
+            $canApprove = $this->approvalService->canUserApprove($leaveRequest, $user->id, $role);
+            
+            if (!$canApprove) {
+                return back()->with('error', 'You cannot approve this leave request.');
+            }
+        }
+
+        if ($action === 'approve') {
+            $days = $leaveRequest->days_requested;
+            
+            // Check if HR Manager approving 6+ day leave (conditional approval)
+            if ($days >= 6 && $user->hasRole('HR Manager')) {
+                $leaveRequest->update([
+                    'approved_by_manager_id' => $user->id,
+                    'manager_approved_at' => now(),
+                    // Status remains 'pending' until Office Admin approves
+                ]);
+                
+                return back()->with('success', 'Leave request conditionally approved. Forwarded to Office Admin for final approval.');
+            }
+            
+            // Office Admin approval (or HR Manager for 3-5 days)
+            $updateData = [
+                'status' => 'approved',
+                'approved_at' => now(),
+            ];
+            
+            if ($user->hasRole('HR Manager')) {
+                $updateData['approved_by_manager_id'] = $user->id;
+                $updateData['manager_approved_at'] = now();
+            } elseif ($user->hasRole('Office Admin')) {
+                $updateData['approved_by_admin_id'] = $user->id;
+                $updateData['admin_approved_at'] = now();
+            }
+            
+            $leaveRequest->update($updateData);
+            
+            // Deduct balance using LeaveAccrualService
+            try {
+                $startDate = \Carbon\Carbon::parse($leaveRequest->start_date);
+                $duration = $startDate->diffInDays(\Carbon\Carbon::parse($leaveRequest->end_date)) + 1;
+                
+                $this->accrualService->deductLeave(
+                    $leaveRequest->employee,
+                    $leaveRequest->leavePolicy,
+                    $duration,
+                    $startDate
+                );
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Leave balance deduction failed', [
+                    'leave_request_id' => $leaveRequest->id,
+                    'error' => $e->getMessage(),
+                ]);
+                return back()->with('error', 'Failed to deduct leave balance: ' . $e->getMessage());
+            }
+            
+            // Dispatch event
+            event(new LeaveRequestApproved($leaveRequest->fresh(), $user->hasRole('HR Manager') ? 'manager' : 'admin'));
+            
+            return back()->with('success', 'Leave request approved successfully! Leave balance has been deducted.');
+        }
+        
+        if ($action === 'reject') {
+            $leaveRequest->update([
+                'status' => 'rejected',
+                'rejected_at' => now(),
+                'rejection_reason' => $validated['reason'] ?? null,
+            ]);
+            
+            // Dispatch event
+            event(new LeaveRequestRejected($leaveRequest->fresh(), $user, $validated['reason'] ?? null));
+            
+            return back()->with('success', 'Leave request rejected.');
+        }
+        
+        if ($action === 'cancel') {
+            // Restore balance if leave was already approved and deducted
+            if ($leaveRequest->status === 'approved') {
+                try {
+                    $startDate = \Carbon\Carbon::parse($leaveRequest->start_date);
+                    $duration = $startDate->diffInDays(\Carbon\Carbon::parse($leaveRequest->end_date)) + 1;
+                    
+                    $this->accrualService->restoreLeave(
+                        $leaveRequest->employee,
+                        $leaveRequest->leavePolicy,
+                        $duration,
+                        $startDate
+                    );
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error('Leave balance restoration failed', [
+                        'leave_request_id' => $leaveRequest->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                    return back()->with('error', 'Failed to restore leave balance: ' . $e->getMessage());
+                }
+            }
+            
+            $leaveRequest->update([
+                'status' => 'cancelled',
+                'cancelled_at' => now(),
+                'cancellation_reason' => $validated['reason'] ?? null,
+            ]);
+            
+            // Dispatch event
+            event(new LeaveRequestCancelled($leaveRequest->fresh(), $user, $validated['reason'] ?? null));
+            
+            return back()->with('success', 'Leave request cancelled. Leave balance has been restored.');
+        }
+
+        return back()->with('error', 'Invalid action specified.');
     }
 
     /**
@@ -370,28 +599,16 @@ class LeaveRequestController extends Controller
      */
     public function processApproval(Request $request, int $id): RedirectResponse
     {
-        // Verify only HR staff with proper permissions can process approvals
-        $this->authorize('delete', Employee::class); // Using delete as proxy for "process" permission
+        $leaveRequest = LeaveRequest::findOrFail($id);
+        
+        // Verify user has permission to approve leave requests
+        $this->authorize('approve', $leaveRequest);
 
-        // In production:
-        // $leaveRequest = LeaveRequest::with('employee')->findOrFail($id);
-        // 
-        // // Update leave balance - deduct approved days
-        // $leaveBalance = LeaveBalance::where('employee_id', $leaveRequest->employee_id)
-        //     ->whereYear('year', now()->year)
-        //     ->first();
-        // 
-        // if ($leaveBalance) {
-        //     $leaveBalance->used_days += $leaveRequest->days_requested;
-        //     $leaveBalance->remaining_days -= $leaveRequest->days_requested;
-        //     $leaveBalance->save();
-        // }
-        // 
-        // // Update request status to "Completed"
-        // $leaveRequest->status = 'Completed';
-        // $leaveRequest->processed_by = auth()->id();
-        // $leaveRequest->processed_at = now();
-        // $leaveRequest->save();
+        // mark processed by HR
+        $leaveRequest->hr_processed_by = auth()->id();
+        $leaveRequest->hr_processed_at = now();
+        // keep status as approved
+        $leaveRequest->save();
         // 
         // // Generate leave slip and send to employee
         // // Store in employee's document archive
@@ -414,15 +631,17 @@ class LeaveRequestController extends Controller
      */
     public function destroy(Request $request, int $id): RedirectResponse
     {
-        // Verify HR staff has permission
-        $this->authorize('delete', Employee::class);
+        $leaveRequest = LeaveRequest::findOrFail($id);
+        
+        // Verify user has permission to delete/cancel leave requests
+        $this->authorize('delete', $leaveRequest);
 
         // Validate cancellation
         $validated = $request->validate([
             'cancellation_reason' => 'nullable|string|max:1000',
         ]);
 
-        // In production:
+        // In production (uncommented):
         // $leaveRequest = LeaveRequest::findOrFail($id);
         // 
         // if (in_array($leaveRequest->status, ['Completed', 'Processed'])) {
