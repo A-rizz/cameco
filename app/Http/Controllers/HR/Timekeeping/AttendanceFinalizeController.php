@@ -25,8 +25,8 @@ class AttendanceFinalizeController extends Controller
     {
         $validated = $request->validate([
             'period_id' => 'nullable|integer|exists:payroll_periods,id',
-            'from'      => 'nullable|date_format:Y-m-d|required_if:period_id,',
-            'to'        => 'nullable|date_format:Y-m-d|required_if:period_id,|after_or_equal:from',
+            'from'      => 'nullable|date_format:Y-m-d|required_without:period_id',
+            'to'        => 'nullable|date_format:Y-m-d|required_without:period_id|after_or_equal:from',
         ]);
 
         // Resolve date range
