@@ -19,7 +19,6 @@ class Employee extends Model
         'user_id',
         'profile_id',
         'employee_number',
-        'email',
         'department_id',
         'position_id',
         'employment_type',
@@ -144,6 +143,79 @@ class Employee extends Model
     }
 
     /**
+     * Get all RFID badge mappings for this employee.
+     * Added for Phase 2 Task 2.3: Badge Management Controller
+     */
+    public function rfidCardMappings()
+    {
+        return $this->hasMany(RfidCardMapping::class);
+    }
+
+    /**
+     * Get daily attendance summaries for this employee.
+     * 
+     * Returns aggregated daily attendance records with time tracking,
+     * leave status, and business rule flags (late, absent, overtime).
+     * 
+     * Phase 1 Task 1.1: Real attendance data integration
+     */
+    public function dailyAttendanceSummaries(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Models\DailyAttendanceSummary::class)
+            ->orderBy('attendance_date', 'desc');
+    }
+
+    // ========== Payroll Module Relationships ==========
+
+    /**
+     * Get the current active payroll information for this employee
+     */
+    public function payrollInfo()
+    {
+        return $this->hasOne(EmployeePayrollInfo::class)->where('is_active', true);
+    }
+
+    /**
+     * Get all payroll information history for this employee
+     */
+    public function payrollHistory()
+    {
+        return $this->hasMany(EmployeePayrollInfo::class);
+    }
+
+    /**
+     * Get active salary component assignments for this employee
+     */
+    public function employeeSalaryComponents()
+    {
+        return $this->hasMany(EmployeeSalaryComponent::class);
+    }
+
+    /**
+     * Get all active allowances for this employee
+     */
+    public function allowances()
+    {
+        return $this->hasMany(EmployeeAllowance::class)->where('is_active', true);
+    }
+
+    /**
+     * Get all active deductions for this employee
+     */
+    public function deductions()
+    {
+        return $this->hasMany(EmployeeDeduction::class)->where('is_active', true);
+    }
+
+    /**
+     * Get all active loans for this employee
+     */
+    public function loans()
+    {
+        return $this->hasMany(EmployeeLoan::class)->where('status', 'active');
+    }
+
+    /**
      * Scope a query to only include active employees.
      */
     public function scopeActive($query)
@@ -224,5 +296,13 @@ class Employee extends Model
     public function isRegularized(): bool
     {
         return $this->date_regularized !== null;
+    }
+
+    /**
+     * Get all offboarding cases for this employee.
+     */
+    public function offboardingCases()
+    {
+        return $this->hasMany(OffboardingCase::class);
     }
 }

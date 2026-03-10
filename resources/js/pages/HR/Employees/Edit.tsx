@@ -2,7 +2,8 @@ import AppLayout from '@/layouts/app-layout';
 import { Head, Link, router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Save } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { usePermission } from '@/components/permission-gate';
 import axios from 'axios';
 import { 
     PersonalInfoSection, 
@@ -112,6 +113,19 @@ export default function EditEmployee({
     positions = [], 
     supervisors = [] 
 }: EditEmployeeProps) {
+    const { hasPermission } = usePermission();
+    
+    // Redirect if user doesn't have update permission
+    useEffect(() => {
+        if (!hasPermission('hr.employees.update')) {
+            router.visit(`/hr/employees/${employee.id}`, {
+                onError: () => {
+                    console.error('Access denied: Missing hr.employees.update permission');
+                }
+            });
+        }
+    }, [hasPermission, employee.id]);
+    
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errors, setErrors] = useState<Partial<Record<keyof EmployeeFormData, string>>>({});
 

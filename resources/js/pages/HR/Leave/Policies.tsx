@@ -1,12 +1,14 @@
 import { useState } from 'react';
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Edit2, Shield, Plus } from 'lucide-react';
+import { Calendar, Edit2, Shield, Plus, Eye } from 'lucide-react';
 import { LeavePolicyFormModal } from '@/components/hr/leave-policy-form-modal';
 import { LeavePolicyDetailsModal } from '@/components/hr/leave-policy-details-modal';
+import { PermissionGate } from '@/components/permission-gate';
+import { useToast } from '@/hooks/use-toast';
 
 interface LeavePolicy {
     id: number;
@@ -56,21 +58,29 @@ function getLeaveTypeIcon(type: string) {
 
 export default function LeavePolicies({ policies }: LeavePoliciesProps) {
     const policiesData = Array.isArray(policies) ? policies : [];
+    const { toast } = useToast();
     
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
     const [selectedPolicy, setSelectedPolicy] = useState<any>(null);
-    const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
+    const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
 
     const handleCreatePolicy = () => {
         setSelectedPolicy(null);
-        setModalMode('create');
+        setFormMode('create');
         setIsFormModalOpen(true);
     };
 
     const handleEditPolicy = (policy: any) => {
         setSelectedPolicy(policy);
-        setModalMode('edit');
+        setFormMode('edit');
+        setIsFormModalOpen(true);
+    };
+
+    const handleEditFromDetails = (policy: any) => {
+        setIsDetailsModalOpen(false);
+        setSelectedPolicy(policy);
+        setFormMode('edit');
         setIsFormModalOpen(true);
     };
 
@@ -79,10 +89,14 @@ export default function LeavePolicies({ policies }: LeavePoliciesProps) {
         setIsDetailsModalOpen(true);
     };
 
-    const handleEditFromDetails = () => {
-        setIsDetailsModalOpen(false);
-        setModalMode('edit');
-        setIsFormModalOpen(true);
+    const handleFormSuccess = () => {
+        setIsFormModalOpen(false);
+        setSelectedPolicy(null);
+        toast({
+            title: formMode === 'create' ? 'Policy Created' : 'Policy Updated',
+            description: `Leave policy has been ${formMode === 'create' ? 'created' : 'updated'} successfully.`,
+        });
+        router.reload({ only: ['policies'] });
     };
 
     return (
@@ -93,13 +107,15 @@ export default function LeavePolicies({ policies }: LeavePoliciesProps) {
                 <div className="space-y-2">
                     <div className="flex items-center justify-between">
                         <h1 className="text-3xl font-bold tracking-tight">Leave Policies</h1>
-                        <Button onClick={handleCreatePolicy}>
-                            <Plus className="h-4 w-4 mr-2" />
-                            Create Policy
-                        </Button>
+                        <PermissionGate permission="hr.leave-policies.create">
+                            <Button onClick={handleCreatePolicy}>
+                                <Plus className="h-4 w-4 mr-2" />
+                                Create Policy
+                            </Button>
+                        </PermissionGate>
                     </div>
                     <p className="text-muted-foreground">
-                        Configure and manage organization-wide leave policies
+                        Manage organization-wide leave policies and entitlements
                     </p>
                 </div>
 
@@ -157,19 +173,21 @@ export default function LeavePolicies({ policies }: LeavePoliciesProps) {
                                             size="sm"
                                             variant="outline"
                                             className="flex-1"
-                                            onClick={() => handleEditPolicy(policy)}
-                                        >
-                                            <Edit2 className="h-4 w-4 mr-1" />
-                                            Edit
-                                        </Button>
-                                        <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            className="flex-1"
                                             onClick={() => handleViewDetails(policy)}
                                         >
+                                            <Eye className="h-4 w-4 mr-1" />
                                             View Details
                                         </Button>
+                                        <PermissionGate permission="hr.leave-policies.update">
+                                            <Button
+                                                size="sm"
+                                                variant="default"
+                                                onClick={() => handleEditPolicy(policy)}
+                                            >
+                                                <Edit2 className="h-4 w-4 mr-1" />
+                                                Edit
+                                            </Button>
+                                        </PermissionGate>
                                     </div>
                                 </CardContent>
                             </Card>
@@ -181,27 +199,35 @@ export default function LeavePolicies({ policies }: LeavePoliciesProps) {
                                     <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
                                     <p className="text-muted-foreground">No leave policies configured</p>
                                     <p className="text-xs text-muted-foreground mt-1">
-                                        Create leave policies to manage organization-wide leave rules
+                                        Create your first leave policy to get started
                                     </p>
-                                    <Button className="mt-4" onClick={handleCreatePolicy}>
-                                        Create Policy
-                                    </Button>
+                                    <PermissionGate permission="hr.leave-policies.create">
+                                        <Button onClick={handleCreatePolicy} className="mt-4">
+                                            <Plus className="h-4 w-4 mr-2" />
+                                            Create Policy
+                                        </Button>
+                                    </PermissionGate>
                                 </CardContent>
                             </Card>
                         </div>
                     )}
                 </div>
 
-                {/* Modals */}
+                {/* Form Modal - Create/Edit */}
                 {isFormModalOpen && (
                     <LeavePolicyFormModal
                         isOpen={isFormModalOpen}
-                        onClose={() => setIsFormModalOpen(false)}
+                        onClose={() => {
+                            setIsFormModalOpen(false);
+                            setSelectedPolicy(null);
+                        }}
                         policy={selectedPolicy}
-                        mode={modalMode}
+                        mode={formMode}
+                        onSuccess={handleFormSuccess}
                     />
                 )}
 
+                {/* Details Modal */}
                 {isDetailsModalOpen && selectedPolicy && (
                     <LeavePolicyDetailsModal
                         isOpen={isDetailsModalOpen}

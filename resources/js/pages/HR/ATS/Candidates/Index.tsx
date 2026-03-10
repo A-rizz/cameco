@@ -15,9 +15,10 @@ import { CandidateTable } from '@/components/ats/candidate-table';
 import { AddCandidateModal, type CandidateFormData } from '@/components/ats/add-candidate-modal';
 import { AddNoteModal } from '@/components/ats/add-note-modal';
 import { CandidateFilters } from '@/components/ats/candidate-filters';
+import { PermissionGate } from '@/components/permission-gate';
 import type { PageProps } from '@inertiajs/core';
 import type { Candidate, CandidateSummary, CandidateFilters as CandidateFiltersType } from '@/types/ats-pages';
-
+import axios from 'axios';
 interface CandidatesIndexProps extends PageProps {
   candidates: Candidate[];
   statistics: CandidateSummary;
@@ -96,39 +97,91 @@ export default function CandidatesIndex({
     setIsDeleteDialogOpen(true);
   };
 
-  const handleConfirmDelete = async () => {
-    setIsDeleteLoading(true);
-    try {
-      console.log('Delete candidate:', actionCandidate?.id);
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      console.log(`Candidate ${actionCandidate?.first_name} ${actionCandidate?.last_name} deleted successfully`);
-    } finally {
-      setIsDeleteLoading(false);
-      setIsDeleteDialogOpen(false);
-      setActionCandidate(undefined);
-    }
-  };
+const handleConfirmDelete = async () => {
+  if (!actionCandidate) return;
+
+  setIsDeleteLoading(true);
+
+  try {
+    await axios.delete(`/hr/ats/candidates/${actionCandidate.id}`);
+
+    alert(`Candidate ${actionCandidate.first_name} ${actionCandidate.last_name} deleted successfully`);
+
+    // Refresh frontend list
+    window.location.reload();
+
+  } catch (error: any) {
+    console.error("Error deleting candidate:", error.response?.data || error);
+    alert("Failed to delete candidate. Check console for details.");
+  } finally {
+    setIsDeleteLoading(false);
+    setIsDeleteDialogOpen(false);
+    setActionCandidate(undefined);
+  }
+};
 
   const handleAddCandidateClick = () => {
     setIsAddCandidateModalOpen(true);
   };
 
-  const handleAddCandidateSubmit = async (candidateData: CandidateFormData) => {
-    console.log('Add candidate:', candidateData);
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    console.log('Candidate added successfully');
-  };
+const handleAddCandidateSubmit = async (data: CandidateFormData) => {
+  try {
+    const formData = new FormData();
+
+    Object.keys(data).forEach((key) => {
+      const value = (data as any)[key];
+      if (value !== null && value !== undefined) {
+        formData.append(key, value);
+      }
+    });
+
+    // IMPORTANT: if resume is a File, append separately
+    if (data.resume instanceof File) {
+      formData.append("resume", data.resume);
+    }
+
+    await axios.post('/hr/ats/candidates', formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+
+    alert('Candidate created successfully!');
+    window.location.reload();
+    setIsAddCandidateModalOpen(false);
+
+  } catch (error: any) {
+    const message =
+      error.response?.data?.message ||
+      "An unexpected error occurred. Please try again.";
+
+    alert(message);
+    console.error("Error submitting candidate:", error.response?.data || error.message);
+  }
+};
+
+
+
 
   const handleAddNoteClick = (candidate: Candidate) => {
     setNoteCandidate(candidate);
     setIsAddNoteModalOpen(true);
   };
 
-  const handleAddNoteSubmit = async (noteData: { note: string; is_private: boolean }) => {
-    console.log('Add note for candidate:', noteCandidate?.id, noteData);
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    console.log('Note added successfully');
-  };
+const handleAddNoteSubmit = async (noteData: { note: string; is_private: boolean }) => {
+  if (!noteCandidate) return;
+
+  try {
+    await axios.post(`/hr/ats/candidates/${noteCandidate.id}/notes`, noteData);
+
+    alert("Note added successfully!");
+    window.location.reload(); // reload to show notes
+    setIsAddNoteModalOpen(false);
+  } catch (error: any) {
+    console.error(error);
+    alert(error.response?.data?.message || "Something went wrong.");
+  }
+};
 
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
@@ -143,10 +196,14 @@ export default function CandidatesIndex({
               Manage your candidates and track their application progress
             </p>
           </div>
-          <Button className="gap-2" onClick={handleAddCandidateClick}>
-            <Plus className="h-4 w-4" />
-            Add Candidate
-          </Button>
+          <PermissionGate permission="hr.ats.candidates.create">
+            <div>
+              <Button className="gap-2" onClick={handleAddCandidateClick}>
+                <Plus className="h-4 w-4" />
+                Add Candidate
+              </Button>
+            </div>
+          </PermissionGate>
         </div>
 
         {/* Statistics Cards */}

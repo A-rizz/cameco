@@ -1,8 +1,9 @@
 import AppLayout from '@/layouts/app-layout';
-import { Head, router } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { usePermission } from '@/components/permission-gate';
 import {
     Table,
     TableBody,
@@ -25,7 +26,7 @@ import {
     type Department,
 } from '@/components/hr/position-form-modal';
 import { Briefcase, Plus, Edit, Archive, MoreHorizontal } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 
 // ============================================================================
 // Type Definitions
@@ -50,10 +51,24 @@ export default function PositionIndex({
     departments,
     statistics = {}
 }: PositionIndexProps) {
+    const { hasPermission } = usePermission();
+    const page = usePage();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedPosition, setSelectedPosition] = useState<Position | null>(null);
     const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
     const [selectedDepartmentFilter, setSelectedDepartmentFilter] = useState<number | null>(null);
+
+    // Detect if accessed from Admin or HR context
+    const isAdminContext = page.url.startsWith('/admin');
+    const routePrefix = isAdminContext ? '/admin' : '/hr';
+
+    useEffect(() => {
+        // Check if user has either HR manage or Admin view permission
+        const hasAccess = hasPermission('hr.positions.manage') || hasPermission('admin.positions.view');
+        if (!hasAccess) {
+            router.visit(isAdminContext ? '/admin/dashboard' : '/hr/dashboard');
+        }
+    }, [hasPermission, isAdminContext]);
 
     // Group positions by department
     const positionsByDepartment = useMemo(() => {
@@ -99,8 +114,8 @@ export default function PositionIndex({
 
     const handleModalSubmit = async (data: Omit<Position, 'id' | 'employee_count'>) => {
         const url = modalMode === 'create'
-            ? '/hr/positions'
-            : `/hr/positions/${selectedPosition?.id}`;
+            ? `${routePrefix}/positions`
+            : `${routePrefix}/positions/${selectedPosition?.id}`;
 
         const method = modalMode === 'create' ? 'post' : 'put';
 
@@ -113,7 +128,7 @@ export default function PositionIndex({
 
     const handleArchive = (position: Position) => {
         if (confirm(`Are you sure you want to archive "${position.title}"?`)) {
-            router.delete(`/hr/positions/${position.id}`);
+            router.delete(`${routePrefix}/positions/${position.id}`);
         }
     };
 

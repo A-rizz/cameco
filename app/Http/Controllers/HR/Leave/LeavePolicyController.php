@@ -4,6 +4,7 @@ namespace App\Http\Controllers\HR\Leave;
 
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
+use App\Models\LeavePolicy;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -19,84 +20,111 @@ class LeavePolicyController extends Controller
         // Temporarily disabled for testing
         // $this->authorize('viewAny', Employee::class);
 
-        // Fetch or define leave policies
-        // These would typically come from a LeavePolicy model in ISSUE-5
-        $policies = [
-            [
-                'id' => 1,
-                'code' => 'VL',
-                'name' => 'Vacation Leave',
-                'description' => 'Annual vacation or holiday leave for personal rest and relaxation',
-                'annual_entitlement' => 15.0,
-                'max_carryover' => 5.0,
-                'can_carry_forward' => true,
-                'is_paid' => true,
-            ],
-            [
-                'id' => 2,
-                'code' => 'SL',
-                'name' => 'Sick Leave',
-                'description' => 'Leave for illness or medical treatment',
-                'annual_entitlement' => 10.0,
-                'max_carryover' => 0.0,
-                'can_carry_forward' => false,
-                'is_paid' => true,
-            ],
-            [
-                'id' => 3,
-                'code' => 'EL',
-                'name' => 'Emergency Leave',
-                'description' => 'Leave for urgent personal or family emergencies',
-                'annual_entitlement' => 5.0,
-                'max_carryover' => 0.0,
-                'can_carry_forward' => false,
-                'is_paid' => true,
-            ],
-            [
-                'id' => 4,
-                'code' => 'ML',
-                'name' => 'Maternity/Paternity Leave',
-                'description' => 'Leave for new parents',
-                'annual_entitlement' => 90.0,
-                'max_carryover' => 0.0,
-                'can_carry_forward' => false,
-                'is_paid' => true,
-            ],
-            [
-                'id' => 5,
-                'code' => 'PL',
-                'name' => 'Privilege Leave',
-                'description' => 'General personal leave',
-                'annual_entitlement' => 8.0,
-                'max_carryover' => 2.0,
-                'can_carry_forward' => true,
-                'is_paid' => true,
-            ],
-            [
-                'id' => 6,
-                'code' => 'BL',
-                'name' => 'Bereavement Leave',
-                'description' => 'Leave for death of a family member',
-                'annual_entitlement' => 3.0,
-                'max_carryover' => 0.0,
-                'can_carry_forward' => false,
-                'is_paid' => true,
-            ],
-            [
-                'id' => 7,
-                'code' => 'SP',
-                'name' => 'Special Leave',
-                'description' => 'Leave for special circumstances',
-                'annual_entitlement' => 0.0,
-                'max_carryover' => 0.0,
-                'can_carry_forward' => false,
-                'is_paid' => false,
-            ],
-        ];
+        // Fetch policies from database
+        $policies = LeavePolicy::active()->orderBy('name')->get()->map(function ($p) {
+            return [
+                'id' => $p->id,
+                'code' => $p->code,
+                'name' => $p->name,
+                'description' => $p->description,
+                'annual_entitlement' => (float) $p->annual_entitlement,
+                'max_carryover' => (float) $p->max_carryover,
+                'can_carry_forward' => (bool) $p->can_carry_forward,
+                'is_paid' => (bool) $p->is_paid,
+            ];
+        })->toArray();
 
         return Inertia::render('HR/Leave/Policies', [
             'policies' => $policies,
             'canEdit' => auth()->user()->can('hr.employees.update'),
         ]);
+    }
+
+    /**
+     * Store a newly created leave policy.
+     */
+    public function store(Request $request)
+    {
+        $this->authorize('create', LeavePolicy::class);
+
+        $validated = $request->validate([
+            'code' => 'required|string|max:20|unique:leave_policies,code',
+            'name' => 'required|string|max:100',
+            'description' => 'nullable|string|max:500',
+            'annual_entitlement' => 'required|numeric|min:0|max:365',
+            'max_carryover' => 'nullable|numeric|min:0|max:365',
+            'can_carry_forward' => 'boolean',
+            'is_paid' => 'boolean',
+        ]);
+
+        $policy = LeavePolicy::create($validated);
+
+        activity()
+            ->performedOn($policy)
+            ->causedBy(auth()->user())
+            ->withProperties(['attributes' => $validated])
+            ->log('Created leave policy: ' . $policy->name);
+
+        return redirect()->route('hr.leave.policies')->with('success', 'Leave policy created successfully.');
+    }
+
+    /**
+     * Update the specified leave policy.
+     */
+    public function update(Request $request, LeavePolicy $policy)
+    {
+        $this->authorize('update', $policy);
+
+        $validated = $request->validate([
+            'code' => 'required|string|max:20|unique:leave_policies,code,' . $policy->id,
+            'name' => 'required|string|max:100',
+            'description' => 'nullable|string|max:500',
+            'annual_entitlement' => 'required|numeric|min:0|max:365',
+            'max_carryover' => 'nullable|numeric|min:0|max:365',
+            'can_carry_forward' => 'boolean',
+            'is_paid' => 'boolean',
+        ]);
+
+        $oldAttributes = $policy->getAttributes();
+        $policy->update($validated);
+
+        activity()
+            ->performedOn($policy)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'old' => $oldAttributes,
+                'attributes' => $validated
+            ])
+            ->log('Updated leave policy: ' . $policy->name);
+
+        return redirect()->route('hr.leave.policies')->with('success', 'Leave policy updated successfully.');
+    }
+
+    /**
+     * Remove the specified leave policy.
+     */
+    public function destroy(LeavePolicy $policy)
+    {
+        $this->authorize('delete', $policy);
+
+        // Check if policy has active leave balances
+        $activeBalances = $policy->leaveBalances()->where('remaining_days', '>', 0)->count();
+        
+        if ($activeBalances > 0) {
+            return back()->withErrors([
+                'policy' => 'Cannot delete leave policy with active leave balances. Please archive instead.'
+            ]);
+        }
+
+        $policyName = $policy->name;
+        $policy->delete();
+
+        activity()
+            ->performedOn($policy)
+            ->causedBy(auth()->user())
+            ->withProperties(['attributes' => $policy->getAttributes()])
+            ->log('Deleted leave policy: ' . $policyName);
+
+        return redirect()->route('hr.leave.policies')->with('success', 'Leave policy deleted successfully.');
     }
 }

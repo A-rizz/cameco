@@ -10,12 +10,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Plus, Edit, Trash2, Globe, Lock, Clock } from 'lucide-react';
+import { Plus, Edit, Trash2, Globe, Lock, Clock, Facebook } from 'lucide-react';
 import { JobStatusBadge } from '@/components/ats/job-status-badge';
 import { JobPostingFilters } from '@/components/ats/job-posting-filters';
+import { Badge } from '@/components/ui/badge';
+import { FacebookPreviewModal } from '@/components/ats/FacebookPreviewModal';
+import { FacebookLogsModal } from '@/components/ats/FacebookLogsModal';
 import { JobPostingCreateEditModal } from './CreateEditModal';
 import type { PageProps } from '@inertiajs/core';
 import type { JobPosting, JobPostingFormData, JobPostingFilters as JobPostingFiltersType, JobPostingSummary } from '@/types/ats-pages';
+import axios from 'axios';
 
 interface Department {
   id: number;
@@ -52,9 +56,14 @@ export default function JobPostingsIndex({
   const [appliedFilters, setAppliedFilters] = useState<JobPostingFiltersType>(
     initialFilters || {}
   );
+  const [jobPostings, setJobPostings] = useState<JobPosting[]>(job_postings);
   const [actionJob, setActionJob] = useState<JobPosting | undefined>(undefined);
   const [actionType, setActionType] = useState<'publish' | 'close' | 'delete' | null>(null);
   const [isActionLoading, setIsActionLoading] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewJob, setPreviewJob] = useState<JobPosting | undefined>(undefined);
+  const [isLogsOpen, setIsLogsOpen] = useState(false);
+  const [logsJob, setLogsJob] = useState<JobPosting | undefined>(undefined);
 
   const handleCreateClick = () => {
     setEditingJob(undefined);
@@ -71,11 +80,34 @@ export default function JobPostingsIndex({
     setIsModalOpen(false);
   };
 
-  const handleFormSubmit = (data: JobPostingFormData) => {
-    // In a real implementation, this would send the data to the server
-    console.log('Form submitted:', data, 'Editing:', editingJob?.id);
+const handleFormSubmit = async (data: JobPostingFormData) => {
+  try {
+    if (editingJob && editingJob.id) {
+      // Use POST with _method=PUT because Laravel resource routes sometimes block raw PUT
+      await axios.post(`/hr/ats/job-postings/${editingJob.id}`, {
+        ...data,
+        _method: 'PUT',
+      });
+      console.log('Job posting updated:', data);
+      alert('Job posting updated successfully!');
+      window.location.reload();
+    } else {
+      await axios.post('/hr/ats/job-postings', data);
+      console.log('Job posting created:', data);
+      alert('Job posting created successfully!');
+      window.location.reload();
+    }
+
     handleModalClose();
-  };
+    // Optionally refresh job postings list
+  } catch (error: any) {
+    const message =
+      error.response?.data?.message ||
+      'An unexpected error occurred. Please try again.';
+    alert(message);
+    console.error('Error submitting form:', error.response?.data || error.message);
+  }
+};
 
   const handleFilterChange = (newFilters: JobPostingFiltersType) => {
     setAppliedFilters(newFilters);
@@ -97,29 +129,93 @@ export default function JobPostingsIndex({
     setActionType('delete');
   };
 
-  const handleConfirmAction = async () => {
-    if (!actionJob || !actionType) return;
+const handleConfirmAction = async () => {
+  if (!actionJob || !actionType) return;
 
-    setIsActionLoading(true);
-    try {
-      // In a real implementation, this would send a request to the server
-      console.log(`${actionType} job:`, actionJob.id);
-      
-      // Simulate API call delay
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      
-      // Show success feedback
-      console.log(`Job ${actionJob.title} ${actionType}d successfully`);
-    } finally {
-      setIsActionLoading(false);
-      setActionJob(undefined);
-      setActionType(null);
+  setIsActionLoading(true);
+
+  try {
+    if (actionType === 'delete') {
+      // Use POST with _method=DELETE to match Laravel route
+      await axios.post(`/hr/ats/job-postings/${actionJob.id}`, {
+        _method: 'DELETE',
+      });
+      console.log(`Job ${actionJob.title} deleted successfully`);
+
+      // Update local state
+      setJobPostings((prev: JobPosting[]) =>
+        prev.filter((job: JobPosting) => job.id !== actionJob.id)
+      );
+    } else if (actionType === 'publish') {
+      await axios.post(`/hr/ats/job-postings/${actionJob.id}/publish`);
+      console.log(`Job ${actionJob.title} published successfully`);
+    } else if (actionType === 'close') {
+      await axios.post(`/hr/ats/job-postings/${actionJob.id}/close`);
+      console.log(`Job ${actionJob.title} closed successfully`);
     }
-  };
+
+    alert(`Job ${actionJob.title} ${actionType}d successfully`);
+    window.location.reload(); 
+  } catch (error: any) {
+    console.error('Error performing action:', error.response?.data || error.message);
+    const message = error.response?.data?.message || 'An error occurred';
+    alert(message);
+  } finally {
+    setIsActionLoading(false);
+    setActionJob(undefined);
+    setActionType(null);
+  }
+};
+
 
   const handleCancelAction = () => {
     setActionJob(undefined);
     setActionType(null);
+  };
+
+  const handlePostToFacebook = (job: JobPosting) => {
+    if (job.facebook_post_id) {
+      alert('This job has already been posted to Facebook.');
+      return;
+    }
+    
+    // Open preview modal instead of immediate confirmation
+    setPreviewJob(job);
+    setIsPreviewOpen(true);
+  };
+
+  const handleConfirmFacebookPost = async () => {
+    if (!previewJob) return;
+
+    try {
+      const response = await axios.post(`/hr/ats/job-postings/${previewJob.id}/post-to-facebook`);
+      
+      if (response.data.success) {
+        alert('Posted to Facebook successfully!');
+        setIsPreviewOpen(false);
+        setPreviewJob(undefined);
+        window.location.reload();
+      }
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Failed to post to Facebook';
+      alert(message);
+      setIsPreviewOpen(false);
+    }
+  };
+
+  const handleClosePreview = () => {
+    setIsPreviewOpen(false);
+    setPreviewJob(undefined);
+  };
+
+  const handleViewLogs = (job: JobPosting) => {
+    setLogsJob(job);
+    setIsLogsOpen(true);
+  };
+
+  const handleCloseLogs = () => {
+    setIsLogsOpen(false);
+    setLogsJob(undefined);
   };
 
   const getActionDialogContent = () => {
@@ -260,7 +356,15 @@ export default function JobPostingsIndex({
                         {job.department_name || `Dept #${job.department_id}`}
                       </p>
                     </div>
-                    <JobStatusBadge status={job.status} />
+                    <div className="flex flex-col gap-2">
+                      <JobStatusBadge status={job.status} />
+                      {job.facebook_post_id && (
+                        <Badge variant="secondary" className="gap-1">
+                          <Facebook className="h-3 w-3" />
+                          Posted to Facebook
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 </CardHeader>
 
@@ -287,6 +391,28 @@ export default function JobPostingsIndex({
                       </div>
                     )}
                   </div>
+
+                  {/* Facebook Post Link */}
+                  {job.facebook_post_url && (
+                    <div className="space-y-2">
+                      <a 
+                        href={job.facebook_post_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline text-sm flex items-center gap-1"
+                      >
+                        <Facebook className="h-3 w-3" />
+                        View on Facebook →
+                      </a>
+                      <button
+                        onClick={() => handleViewLogs(job)}
+                        className="text-blue-600 hover:underline text-sm flex items-center gap-1"
+                      >
+                        <Facebook className="h-3 w-3" />
+                        View Post History & Metrics
+                      </button>
+                    </div>
+                  )}
 
                   {/* Actions */}
                   <div className="flex gap-2 border-t pt-4">
@@ -328,6 +454,19 @@ export default function JobPostingsIndex({
                       onClick={() => handleCloseClick(job)}
                     >
                       Close Job
+                    </Button>
+                  )}
+                  
+                  {/* Facebook Post Button */}
+                  {job.status === 'open' && !job.facebook_post_id && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full gap-2"
+                      onClick={() => handlePostToFacebook(job)}
+                    >
+                      <Facebook className="h-4 w-4" />
+                      Post to Facebook
                     </Button>
                   )}
                 </CardContent>
@@ -398,6 +537,25 @@ export default function JobPostingsIndex({
         onClose={handleModalClose}
         onSubmit={handleFormSubmit}
       />
+
+      {/* Facebook Preview Modal */}
+      {previewJob && (
+        <FacebookPreviewModal
+          isOpen={isPreviewOpen}
+          onClose={handleClosePreview}
+          jobPosting={previewJob}
+          onConfirm={handleConfirmFacebookPost}
+        />
+      )}
+
+      {/* Facebook Logs Modal */}
+      {logsJob && (
+        <FacebookLogsModal
+          isOpen={isLogsOpen}
+          onClose={handleCloseLogs}
+          jobPosting={logsJob}
+        />
+      )}
     </AppLayout>
   );
 }

@@ -30,6 +30,7 @@ class Profile extends Model
         'mother_date_of_birth',
         'phone',
         'mobile',
+        'email',
         'current_address',
         'permanent_address',
         'emergency_contact_name',
@@ -51,5 +52,13 @@ class Profile extends Model
     public function employee()
     {
         return $this->hasOne(Employee::class);
+    }
+
+    /**
+     * Get full name attribute
+     */
+    public function getFullNameAttribute(): string
+    {
+        return "{$this->first_name} {$this->last_name}";
     }
 }
