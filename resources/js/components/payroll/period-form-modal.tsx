@@ -299,7 +299,7 @@ export function PeriodFormModal({
             const deductionConfig = { ...(deductionTiming[deductionKey as keyof typeof deductionTiming] || {}) };
 
             if (field === 'timing') {
-                if (value === '') {
+                if (value === 'system_default' || value === '') {
                     // Clear the override
                     if (deductionTiming[deductionKey as keyof typeof deductionTiming]) {
                         delete deductionTiming[deductionKey as keyof typeof deductionTiming];
@@ -355,6 +355,16 @@ export function PeriodFormModal({
 
         try {
             setIsLoading(true);
+
+            // Filter out "system_default" values from deduction_timing
+            const cleanedDeductionTiming = formData.deduction_timing 
+                ? Object.fromEntries(
+                    Object.entries(formData.deduction_timing).filter(
+                        ([_, config]) => config && config.timing !== 'system_default'
+                    )
+                  )
+                : undefined;
+
             await onSubmit({
                 name: formData.name.trim(),
                 period_type: formData.period_type,
@@ -362,6 +372,7 @@ export function PeriodFormModal({
                 end_date: formData.end_date,
                 cutoff_date: formData.cutoff_date,
                 pay_date: formData.pay_date,
+                deduction_timing: cleanedDeductionTiming,
             });
             onClose();
         } catch (err) {
@@ -571,7 +582,7 @@ export function PeriodFormModal({
                             <div className="space-y-3">
                                 {DEDUCTION_TYPES.map((deductionType) => {
                                     const currentOverride = formData.deduction_timing?.[deductionType.key as keyof typeof formData.deduction_timing];
-                                    const currentTiming = currentOverride?.timing ?? '';
+                                    const currentTiming = currentOverride?.timing ?? 'system_default';
                                     const currentPeriod = currentOverride?.apply_on_period ?? 2;
 
                                     return (
@@ -588,7 +599,7 @@ export function PeriodFormModal({
                                                     <SelectValue placeholder="System Default" />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem value="">System Default</SelectItem>
+                                                    <SelectItem value="system_default">System Default</SelectItem>
                                                     <SelectItem value="per_cutoff">Every Cutoff</SelectItem>
                                                     <SelectItem value="monthly_only">Monthly Only</SelectItem>
                                                     <SelectItem value="split_monthly">Split Monthly</SelectItem>
