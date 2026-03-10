@@ -331,9 +331,9 @@ Based on migration `2026_03_03_100004_create_government_reports_table.php`:
 
 ### Acceptance Criteria
 - [x] `EmployeeGovernmentContribution` model created with all fillable, casts, and relationships ✅ 2026-03-10
-- [ ] `GovernmentRemittance` model created with all fillable, casts, and relationships
-- [ ] `GovernmentReport` model created with all fillable, casts, and relationships
-- [ ] All 3 models can be instantiated without errors
+- [x] `GovernmentRemittance` model created with all fillable, casts, and relationships ✅ 2026-03-10
+- [x] `GovernmentReport` model created with all fillable, casts, and relationships ✅ 2026-03-10
+- [x] All 3 models can be instantiated without errors ✅ 2026-03-10
 - [ ] Tables exist in database (run `php artisan migrate` if needed)
 
 ---
