@@ -59,6 +59,18 @@ Route::middleware(['auth', 'verified', EnsureEmployee::class])
                 ->middleware('permission:employee.payslips.view')
                 ->name('index');
             
+            // View annual summary (total gross, deductions, net pay by year)
+            // NOTE: Must be BEFORE /{id} route to avoid shadowing by dynamic ID parameter
+            Route::get('/annual-summary/{year}', [\App\Http\Controllers\Employee\PayslipController::class, 'annualSummary'])
+                ->middleware('permission:employee.payslips.view')
+                ->name('annual-summary');
+            
+            // Download BIR 2316 tax certification (total income and tax withheld by year)
+            // NOTE: Must be BEFORE /{id} route to avoid shadowing by dynamic ID parameter
+            Route::get('/bir-2316/download', [\App\Http\Controllers\Employee\PayslipController::class, 'downloadBIR2316'])
+                ->middleware('permission:employee.payslips.download')
+                ->name('bir-2316');
+            
             // View specific payslip details (salary breakdown, deductions, net pay)
             Route::get('/{id}', [\App\Http\Controllers\Employee\PayslipController::class, 'show'])
                 ->middleware('permission:employee.payslips.view')
@@ -68,11 +80,6 @@ Route::middleware(['auth', 'verified', EnsureEmployee::class])
             Route::get('/{id}/download', [\App\Http\Controllers\Employee\PayslipController::class, 'download'])
                 ->middleware('permission:employee.payslips.download')
                 ->name('download');
-            
-            // View annual summary (total gross, deductions, net pay by year)
-            Route::get('/annual-summary/{year}', [\App\Http\Controllers\Employee\PayslipController::class, 'annualSummary'])
-                ->middleware('permission:employee.payslips.view')
-                ->name('annual-summary');
         });
 
         // ============================================================
