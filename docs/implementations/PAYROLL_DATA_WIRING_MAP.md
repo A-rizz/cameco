@@ -57,7 +57,7 @@ PayrollCalculationService::calculateEmployee()
 
 **Service:** `EmployeePayrollInfoService::getActivePayrollInfo()`
 
----
+    ---
 
 ### 2. `government_contribution_rates` ⚠️ Seeded, NOT YET Wired
 
