@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use App\Models\GovernmentContributionRate;
 use App\Models\TaxBracket;
+use App\Models\PayrollConfiguration;
 
 /**
  * PayrollCalculationService
@@ -135,41 +136,58 @@ class PayrollCalculationService
             // Step 8: Calculate gross pay
             $grossPay = $basicPay + $overtimePay + $componentAmounts + $totalAllowances;
 
-            // Step 9 & 10: Government contributions and tax — monthly obligations, 2nd half only.
-            // SSS, PhilHealth, Pag-IBIG, and withholding tax are each a monthly obligation.
-            // Deducting on every semi-monthly period would double-charge the employee.
+            // Step 9 & 10: Government contributions and tax — configurable timing
             $periodHalf = $this->getPeriodHalf($period);
+            $deductionConfig = $this->getDeductionTimingConfig($period);
 
-            if ($periodHalf === 2) {
-                // Bracket lookups use basic_salary (the full monthly figure stored in payroll_info),
-                // so we pass $payrollInfo directly — no projection needed for contribution amounts.
-                $sssContribution        = $this->calculateSSSContribution($payrollInfo);
-                $philhealthContribution = $this->calculatePhilHealthContribution($payrollInfo);
-                $pagibigContribution    = $this->calculatePagIBIGContribution($payrollInfo);
-
-                // Withholding tax: annualise the MONTHLY gross (not the half-period gross).
-                // basicPay is already half the monthly salary, so ×2 projects back to monthly.
-                $monthlyGross   = ($basicPay * 2) + $totalAllowances;
-                $monthlyTaxable = $monthlyGross - $sssContribution - $philhealthContribution - $pagibigContribution;
-                $withholdingTax = $this->calculateWithholdingTax($monthlyTaxable, $payrollInfo->tax_status);
+            // SSS Contribution
+            if ($this->shouldApplyDeduction($deductionConfig['sss'], $periodHalf)) {
+                $sssContribution = $this->calculateSSSContribution($payrollInfo);
+                $sssContribution *= $this->getDeductionMultiplier($deductionConfig['sss']);
             } else {
-                // 1st half: no government deductions — paid as salary advance only.
-                $sssContribution        = 0.0;
+                $sssContribution = 0.0;
+            }
+
+            // PhilHealth Contribution
+            if ($this->shouldApplyDeduction($deductionConfig['philhealth'], $periodHalf)) {
+                $philhealthContribution = $this->calculatePhilHealthContribution($payrollInfo);
+                $philhealthContribution *= $this->getDeductionMultiplier($deductionConfig['philhealth']);
+            } else {
                 $philhealthContribution = 0.0;
-                $pagibigContribution    = 0.0;
-                $withholdingTax         = 0.0;
+            }
+
+            // Pag-IBIG Contribution
+            if ($this->shouldApplyDeduction($deductionConfig['pagibig'], $periodHalf)) {
+                $pagibigContribution = $this->calculatePagIBIGContribution($payrollInfo);
+                $pagibigContribution *= $this->getDeductionMultiplier($deductionConfig['pagibig']);
+            } else {
+                $pagibigContribution = 0.0;
+            }
+
+            // Withholding Tax
+            if ($this->shouldApplyDeduction($deductionConfig['withholding_tax'], $periodHalf)) {
+                // Calculate tax based on monthly gross projection
+                $monthlyGross   = ($basicPay * 2) + $totalAllowances;
+                $monthlyTaxable = $monthlyGross - ($sssContribution / $this->getDeductionMultiplier($deductionConfig['sss']))
+                                                   - ($philhealthContribution / $this->getDeductionMultiplier($deductionConfig['philhealth']))
+                                                   - ($pagibigContribution / $this->getDeductionMultiplier($deductionConfig['pagibig']));
+                $withholdingTax = $this->calculateWithholdingTax($monthlyTaxable, $payrollInfo->tax_status);
+                $withholdingTax *= $this->getDeductionMultiplier($deductionConfig['withholding_tax']);
+            } else {
+                $withholdingTax = 0.0;
             }
 
             // Step 11: Get active deductions
             $deductions = $this->allowanceDeductionService->getActiveDeductions($employee);
             $totalDeductions = $deductions->sum('amount');
 
-            // Step 12: Calculate loan deductions — monthly obligation, 2nd half only.
-            // scheduleLoanDeductions() creates one installment per calendar month. Calling
-            // processLoanDeduction() on both halves would consume two installments per month.
-            $loanDeductions = $periodHalf === 2
-                ? $this->loanManagementService->processLoanDeduction($employee, $period)
-                : 0.0;
+            // Step 12: Calculate loan deductions — configurable timing
+            if ($this->shouldApplyDeduction($deductionConfig['loans'], $periodHalf)) {
+                $loanDeductions = $this->loanManagementService->processLoanDeduction($employee, $period);
+                $loanDeductions *= $this->getDeductionMultiplier($deductionConfig['loans']);
+            } else {
+                $loanDeductions = 0.0;
+            }
 
             // Step 13: Calculate late/undertime deductions
             $lateDeduction = $this->calculateLateDeduction($lateMinutes, $payrollInfo);
@@ -387,6 +405,73 @@ class PayrollCalculationService
     private function getPeriodHalf(PayrollPeriod $period): int
     {
         return Carbon::parse($period->period_start)->day <= 15 ? 1 : 2;
+    }
+
+    /**
+     * Get deduction timing configuration
+     *
+     * @return array
+     */
+    private function getDeductionTimingConfig(?PayrollPeriod $period = null): array
+    {
+        $globalConfig = PayrollConfiguration::get('deduction_timing', []);
+        
+        // Default fallback if no config exists
+        $defaults = array_merge([
+            'sss' => ['timing' => 'monthly_only', 'apply_on_period' => 2],
+            'philhealth' => ['timing' => 'monthly_only', 'apply_on_period' => 2],
+            'pagibig' => ['timing' => 'monthly_only', 'apply_on_period' => 2],
+            'withholding_tax' => ['timing' => 'monthly_only', 'apply_on_period' => 2],
+            'loans' => ['timing' => 'monthly_only', 'apply_on_period' => 2],
+        ], $globalConfig);
+
+        // Period-level overrides take precedence over global config
+        if ($period && !empty($period->calculation_config['deduction_timing'])) {
+            $periodOverrides = $period->calculation_config['deduction_timing'];
+            foreach ($periodOverrides as $key => $override) {
+                if (isset($defaults[$key]) && is_array($override) && !empty($override['timing'])) {
+                    $defaults[$key] = array_merge($defaults[$key], $override);
+                }
+            }
+        }
+
+        return $defaults;
+    }
+
+    /**
+     * Determine if a deduction should be applied for the given period
+     *
+     * @param array $deductionConfig  Config for specific deduction type
+     * @param int $periodHalf         1 or 2 (which half of month)
+     * @return bool
+     */
+    private function shouldApplyDeduction(array $deductionConfig, int $periodHalf): bool
+    {
+        $timing = $deductionConfig['timing'] ?? 'monthly_only';
+        $applyOnPeriod = $deductionConfig['apply_on_period'] ?? 2;
+
+        return match ($timing) {
+            'per_cutoff' => true,
+            'monthly_only' => $periodHalf === $applyOnPeriod,
+            'split_monthly' => true,
+            default => $periodHalf === 2,
+        };
+    }
+
+    /**
+     * Get the multiplier for split monthly deductions
+     *
+     * @param array $deductionConfig  Config for specific deduction type
+     * @return float  1.0 for full amount, 0.5 for half amount
+     */
+    private function getDeductionMultiplier(array $deductionConfig): float
+    {
+        $timing = $deductionConfig['timing'] ?? 'monthly_only';
+
+        return match ($timing) {
+            'split_monthly' => 0.5,
+            default => 1.0,
+        };
     }
 
     /**
