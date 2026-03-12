@@ -40,8 +40,9 @@ class CleanupDeduplicationCacheCommand extends Command
     {
         $this->info('Starting deduplication cache cleanup...');
 
-        // Require explicit confirmation unless --force is provided.
-        if (! $this->option('force')) {
+        // Require explicit confirmation unless --force is provided or running non-interactively
+        // (e.g. called via Artisan::call() from a web request or scheduled task).
+        if (! $this->option('force') && $this->input->isInteractive()) {
             $this->warn('This command will soft-delete (mark as deleted) expired deduplication entries from the attendance_events table.');
             if (! $this->confirm('Do you wish to continue?', false)) {
                 $this->comment('Cleanup cancelled by user.');

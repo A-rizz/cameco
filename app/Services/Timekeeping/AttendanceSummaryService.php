@@ -306,7 +306,7 @@ class AttendanceSummaryService
      * @param \Carbon\Carbon $date Date
      * @return \Carbon\Carbon|null
      */
-    private function getScheduledStart(WorkSchedule $schedule, Carbon $date): ?Carbon
+    private function getScheduledStart(?WorkSchedule $schedule, Carbon $date): ?Carbon
     {
         if (!$schedule) {
             return null;
@@ -333,7 +333,7 @@ class AttendanceSummaryService
      * @param \Carbon\Carbon $date Date
      * @return \Carbon\Carbon|null
      */
-    private function getScheduledEnd(WorkSchedule $schedule, Carbon $date): ?Carbon
+    private function getScheduledEnd(?WorkSchedule $schedule, Carbon $date): ?Carbon
     {
         if (!$schedule) {
             return null;
