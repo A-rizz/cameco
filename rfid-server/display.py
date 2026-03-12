@@ -17,6 +17,9 @@ import tkinter as tk
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+from PIL import Image, ImageTk
+import photo_cache
+
 from config import TIMEZONE, DISPLAY_FULLSCREEN, DISPLAY_CLEAR_AFTER
 
 # ── Colour palette ──────────────────────────────────────────────────────────
@@ -107,6 +110,15 @@ class TapDisplay:
         )
         self.time_lbl.place(relx=0.5, rely=0.88, anchor='center')
 
+        # Employee photo — shown in success/timeout states
+        self.photo_lbl = tk.Label(
+            self.root, bg=BG_IDLE, image='',
+            width=200, height=200,
+        )
+        self.photo_lbl.place(relx=0.5, rely=0.50, anchor='center')
+        # Keep a reference so Tkinter GC doesn't collect the image
+        self._photo_image: ImageTk.PhotoImage | None = None
+
     # ── Public API (called from reader.py via root.after) ────────────────────
 
     def show_tap(self, result: dict) -> None:
@@ -145,6 +157,8 @@ class TapDisplay:
 
     def _render_syncing(self, result: dict) -> None:
         self._set_bg(BG_SYNCING)
+        self._reset_label_layout()
+        self._set_photo(None, BG_SYNCING)
         self.action_lbl.config(text='TAP RECEIVED',  fg=FG_INDIGO, bg=BG_SYNCING, font=('Segoe UI', 52, 'bold'))
         self.name_lbl.config( text='Verifying...',   fg=FG_WHITE,  bg=BG_SYNCING)
         self.id_lbl.config(   text='',               fg=FG_INDIGO, bg=BG_SYNCING)
@@ -154,29 +168,48 @@ class TapDisplay:
         self.device_lbl.config(bg=BG_SYNCING)
 
     def _render_success(self, result: dict) -> None:
-        action = result.get('predicted_action', 'TAP RECORDED')
-        first  = result.get('first_name') or ''
-        last   = result.get('last_name')  or ''
-        name   = f"{first} {last}".strip() or result.get('card_uid', '')
-        emp_no = result.get('employee_number') or f"Card: {result['card_uid']}"
-        ts     = result.get('timestamp', '')[:19].replace('T', '  ')
+        action    = result.get('predicted_action', 'TAP RECORDED')
+        name      = (result.get('name') or
+                     f"{result.get('first_name', '')} {result.get('last_name', '')}".strip() or
+                     result.get('card_uid', ''))
+        emp_no    = result.get('employee_number') or f"Card: {result['card_uid']}"
+        ts        = result.get('timestamp', '')[:19].replace('T', '  ')
+        photo_url = result.get('photo_url')
 
         is_timeout = action == 'TIME OUT'
         bg  = BG_TIMEOUT if is_timeout else BG_SUCCESS
         fg  = FG_BLUE    if is_timeout else FG_GREEN
 
         self._set_bg(bg)
-        self.action_lbl.config(text=action,  fg=fg,      bg=bg, font=('Segoe UI', 64, 'bold'))
-        self.name_lbl.config( text=name,     fg=FG_WHITE, bg=bg)
-        self.id_lbl.config(   text=emp_no,   fg=fg,       bg=bg)
-        self.time_lbl.config( text=ts,       fg=fg,       bg=bg)
-        self.clock_lbl.config(bg=bg)
+        # Reposition labels to leave room for the photo in the centre
+        self.action_lbl.place(relx=0.5, rely=0.24, anchor='center')
+        self.name_lbl.place(  relx=0.5, rely=0.74, anchor='center')
+        self.id_lbl.place(    relx=0.5, rely=0.84, anchor='center')
+        self.time_lbl.place(  relx=0.5, rely=0.92, anchor='center')
+
+        self.action_lbl.config(text=action,  fg=fg,       bg=bg, font=('Segoe UI', 64, 'bold'))
+        self.name_lbl.config(  text=name,    fg=FG_WHITE, bg=bg)
+        self.id_lbl.config(    text=emp_no,  fg=fg,       bg=bg)
+        self.time_lbl.config(  text=ts,      fg=fg,       bg=bg)
+        self.clock_lbl.config( bg=bg)
         self.device_lbl.config(bg=bg)
+        self.photo_lbl.config( bg=bg)
+
+        # Always show placeholder area immediately, then replace with real photo if available
+        self._set_photo(None, bg, show_empty=True)
+        if result.get('employee_number'):
+            photo_cache.get_photo(
+                result['employee_number'],
+                photo_url,   # may be None — photo_cache returns placeholder in that case
+                lambda img: self.root.after(0, lambda: self._set_photo(img, bg)),
+            )
 
     def _render_duplicate(self, card_uid: str) -> None:
         if self._clear_job is not None:
             self.root.after_cancel(self._clear_job)
         self._set_bg(BG_DUPLICATE)
+        self._reset_label_layout()
+        self._set_photo(None, BG_DUPLICATE)
         self.action_lbl.config(text='ALREADY RECORDED', fg=FG_STONE,  bg=BG_DUPLICATE, font=('Segoe UI', 52, 'bold'))
         self.name_lbl.config( text='Tap registered within the last 15 seconds.', fg=FG_WHITE, bg=BG_DUPLICATE)
         self.id_lbl.config(   text=f'Card: {card_uid}',                           fg=FG_STONE, bg=BG_DUPLICATE)
@@ -189,6 +222,8 @@ class TapDisplay:
         card_uid = result.get('card_uid', '')
 
         self._set_bg(BG_UNKNOWN)
+        self._reset_label_layout()
+        self._set_photo(None, BG_UNKNOWN)
         self.action_lbl.config(text='UNKNOWN CARD',  fg=FG_RED,   bg=BG_UNKNOWN, font=('Segoe UI', 52, 'bold'))
         self.name_lbl.config( text='Card not registered or deactivated.', fg=FG_WHITE, bg=BG_UNKNOWN)
         self.id_lbl.config(   text=f'UID: {card_uid}',                    fg=FG_RED,   bg=BG_UNKNOWN)
@@ -198,6 +233,8 @@ class TapDisplay:
 
     def _render_error(self, message: str) -> None:
         self._set_bg(BG_ERROR)
+        self._reset_label_layout()
+        self._set_photo(None, BG_ERROR)
         self.action_lbl.config(text='SYSTEM ERROR', fg=FG_AMBER, bg=BG_ERROR, font=('Segoe UI', 52, 'bold'))
         self.name_lbl.config( text=message[:80],   fg=FG_WHITE,  bg=BG_ERROR)
         self.id_lbl.config(   text='',             fg=FG_AMBER,  bg=BG_ERROR)
@@ -208,6 +245,8 @@ class TapDisplay:
     def _render_idle(self) -> None:
         self._clear_job = None
         self._set_bg(BG_IDLE)
+        self._reset_label_layout()
+        self._set_photo(None, BG_IDLE)
         self.action_lbl.config(text='PLEASE TAP YOUR CARD', fg=FG_IDLE, bg=BG_IDLE, font=('Segoe UI', 52, 'bold'))
         self.name_lbl.config( text='',  fg=FG_WHITE, bg=BG_IDLE)
         self.id_lbl.config(   text='',  fg=FG_IDLE,  bg=BG_IDLE)
@@ -217,6 +256,36 @@ class TapDisplay:
 
     def _set_bg(self, color: str) -> None:
         self.root.configure(bg=color)
+
+    def _reset_label_layout(self) -> None:
+        """Restore labels to their default (no-photo) positions."""
+        self.action_lbl.place(relx=0.5, rely=0.38, anchor='center')
+        self.name_lbl.place(  relx=0.5, rely=0.58, anchor='center')
+        self.id_lbl.place(    relx=0.5, rely=0.71, anchor='center')
+        self.time_lbl.place(  relx=0.5, rely=0.88, anchor='center')
+
+    def _set_photo(self, img: 'Image.Image | None', bg: str, show_empty: bool = False) -> None:
+        """Update the photo label on the main Tkinter thread.
+
+        When img is None and show_empty is False the label is hidden via
+        place_forget() so it no longer overlaps other text widgets.
+        Pass show_empty=True (success/timeout state) to keep the placeholder
+        area visible while the async photo load is in flight.
+        """
+        self.photo_lbl.config(bg=bg)
+        if img is None:
+            self.photo_lbl.config(image='')
+            self._photo_image = None
+            if show_empty:
+                self.photo_lbl.place(relx=0.5, rely=0.50, anchor='center')
+            else:
+                self.photo_lbl.place_forget()
+            return
+        # Real image — ensure label is visible
+        self.photo_lbl.place(relx=0.5, rely=0.50, anchor='center')
+        tk_img = ImageTk.PhotoImage(img)
+        self._photo_image = tk_img   # keep reference
+        self.photo_lbl.config(image=tk_img)
 
     # ── Clock + device label ─────────────────────────────────────────────────
 

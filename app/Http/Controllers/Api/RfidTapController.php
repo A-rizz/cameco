@@ -32,7 +32,7 @@ class RfidTapController extends Controller
         $localId  = (int) $validated['local_id'];
 
         return DB::transaction(function () use ($cardUid, $tappedAt, $localId, $device) {
-            $mapping = RfidCardMapping::with('employee')
+            $mapping = RfidCardMapping::with('employee.profile')
                 ->where('card_uid', $cardUid)
                 ->whereNull('deleted_at')
                 ->first();
@@ -42,7 +42,11 @@ class RfidTapController extends Controller
                 return response()->json(['status' => 'unknown', 'local_id' => $localId]);
             }
 
-            $employee = $mapping->employee;
+            $employee  = $mapping->employee;
+            $profile   = $employee->profile;
+            $photoPath = $profile?->profile_picture_path;
+            $photoUrl  = $photoPath ? asset('storage/' . ltrim($photoPath, '/')) : null;
+            $fullName  = trim(($profile?->first_name ?? '') . ' ' . ($profile?->last_name ?? '')) ?: $employee->employee_number;
 
             // Deduplication: reject if the same card tapped this device within 15 seconds
             $recentTap = RfidLedger::where('device_id', $device->device_id)
@@ -55,8 +59,9 @@ class RfidTapController extends Controller
                 return response()->json([
                     'status'           => 'duplicate',
                     'local_id'         => $localId,
-                    'employee_name'    => trim($employee->first_name . ' ' . $employee->last_name),
+                    'employee_name'    => $fullName,
                     'employee_number'  => $employee->employee_number,
+                    'photo_url'        => $photoUrl,
                     'predicted_action' => 'DUPLICATE TAP',
                 ]);
             }
@@ -77,8 +82,9 @@ class RfidTapController extends Controller
             return response()->json([
                 'status'           => 'ok',
                 'local_id'         => $localId,
-                'employee_name'    => trim($employee->first_name . ' ' . $employee->last_name),
+                'employee_name'    => $fullName,
                 'employee_number'  => $employee->employee_number,
+                'photo_url'        => $photoUrl,
                 'predicted_action' => $predictedAction,
             ]);
         });

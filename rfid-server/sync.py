@@ -103,11 +103,11 @@ class SyncThread(threading.Thread):
                     _display.show_tap({
                         'status':           'ok',
                         'card_uid':         row['card_uid'],
+                        'name':             response.get('employee_name', ''),
                         'employee_number':  response.get('employee_number'),
-                        'first_name':       response.get('employee_name', '').split(' ')[0] if response.get('employee_name') else None,
-                        'last_name':        ' '.join(response.get('employee_name', '').split(' ')[1:]) or None,
                         'predicted_action': response.get('predicted_action', 'TAP RECORDED'),
                         'timestamp':        row['tapped_at'],
+                        'photo_url':        response.get('photo_url'),
                     })
                 elif status == 'duplicate':
                     print(f"[SYNC]  Duplicate tap ignored for {row['card_uid']}")
