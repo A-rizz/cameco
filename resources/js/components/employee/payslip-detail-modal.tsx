@@ -82,8 +82,11 @@ export function PayslipDetailModal({
     onClose,
     payslip,
 }: PayslipDetailModalProps) {
-    const deductionsTotal = payslip.deductions.reduce((sum, d) => sum + d.amount, 0);
-    const allowancesTotal = payslip.allowances.reduce((sum, a) => sum + a.amount, 0);
+    const deductions = Array.isArray(payslip.deductions) ? payslip.deductions : [];
+    const allowances = Array.isArray(payslip.allowances) ? payslip.allowances : [];
+
+    const deductionsTotal = deductions.reduce((sum, d) => sum + (d.amount || 0), 0);
+    const allowancesTotal = allowances.reduce((sum, a) => sum + (a.amount || 0), 0);
 
     const handlePrint = () => {
         window.print();
@@ -152,14 +155,14 @@ export function PayslipDetailModal({
                                 isBold
                             />
 
-                            {payslip.allowances.length > 0 && (
+                            {allowances.length > 0 && (
                                 <>
                                     <Separator className="my-2" />
                                     <div className="space-y-0">
                                         <p className="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">
                                             Allowances
                                         </p>
-                                        {payslip.allowances.map((allowance, idx) => (
+                                        {allowances.map((allowance, idx) => (
                                             <ComponentRow
                                                 key={idx}
                                                 label={allowance.name}
@@ -195,10 +198,10 @@ export function PayslipDetailModal({
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-0 border-t border-gray-200 pt-4 dark:border-gray-700">
-                            {payslip.deductions.length > 0 ? (
+                            {deductions.length > 0 ? (
                                 <>
                                     <div className="space-y-0">
-                                        {payslip.deductions.map((deduction, idx) => (
+                                        {deductions.map((deduction, idx) => (
                                             <ComponentRow
                                                 key={idx}
                                                 label={deduction.name}

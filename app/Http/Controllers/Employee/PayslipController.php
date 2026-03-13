@@ -51,10 +51,11 @@ class PayslipController extends Controller
 
             // Available years from actual payslip records
             $availableYears = Payslip::where('employee_id', $employee->id)
-                ->selectRaw('YEAR(period_start) as year')
+                ->selectRaw('EXTRACT(YEAR FROM period_start) as year')
                 ->distinct()
                 ->orderByDesc('year')
                 ->pluck('year')
+                ->map(static fn ($yearValue) => (int) $yearValue)
                 ->toArray();
 
             if (empty($availableYears)) {
@@ -481,12 +482,27 @@ class PayslipController extends Controller
             $allowances[] = ['name' => 'Other Allowances', 'amount' => (float) $earningsData['other_allowances']];
         }
 
-        // If earnings_data has an 'allowances' sub-array, use that instead
+        // If earnings_data has an 'allowances' sub-array/object, normalize to indexed SalaryComponent[].
         if (!empty($earningsData['allowances']) && is_array($earningsData['allowances'])) {
-            return array_map(fn($a) => [
-                'name'   => $a['name'] ?? 'Allowance',
-                'amount' => (float) ($a['amount'] ?? 0),
-            ], $earningsData['allowances']);
+            $normalizedAllowances = [];
+
+            foreach ($earningsData['allowances'] as $key => $allowance) {
+                if (is_array($allowance)) {
+                    $normalizedAllowances[] = [
+                        'name'   => $allowance['name'] ?? (is_string($key) ? $key : 'Allowance'),
+                        'amount' => (float) ($allowance['amount'] ?? 0),
+                    ];
+                    continue;
+                }
+
+                // Handle key-value map format, e.g. {"Rice Subsidy": 1500}
+                $normalizedAllowances[] = [
+                    'name'   => is_string($key) ? $key : 'Allowance',
+                    'amount' => (float) $allowance,
+                ];
+            }
+
+            return array_values($normalizedAllowances);
         }
 
         return $allowances;
