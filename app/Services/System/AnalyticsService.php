@@ -62,11 +62,13 @@ class AnalyticsService
             ->get()
             ->groupBy('user_id')
             ->map(function ($logs) {
-                $user = $logs->first()->user;
+                $firstLog = $logs->first();
+                $user = $firstLog?->user;
+
                 return [
-                    'user_id' => $user->id,
-                    'user_name' => $user->name,
-                    'email' => $user->email,
+                    'user_id' => $user?->id ?? $firstLog?->user_id,
+                    'user_name' => $user?->name ?? 'Unknown User',
+                    'email' => $user?->email,
                     'login_count' => $logs->count(),
                     'last_login' => $logs->max('created_at'),
                     'first_login' => $logs->min('created_at'),
