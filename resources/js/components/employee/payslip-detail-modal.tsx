@@ -39,6 +39,7 @@ interface Payslip {
     deductions: SalaryComponent[];
     net_pay: number;
     year_to_date_gross: number;
+    year_to_date_deductions: number;
     year_to_date_net: number;
     pdf_url?: string;
 }
@@ -254,7 +255,7 @@ export function PayslipDetailModal({
                             <Separator className="my-2" />
                             <ComponentRow
                                 label="YTD Deductions"
-                                amount={deductionsTotal}
+                                amount={payslip.year_to_date_deductions || 0}
                             />
                             <Separator className="my-3 border-gray-300 dark:border-gray-600" />
                             <ComponentRow

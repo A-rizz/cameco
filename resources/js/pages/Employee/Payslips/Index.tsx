@@ -46,6 +46,7 @@ interface PayslipRecord {
     deductions: SalaryComponent[];
     net_pay: number;
     year_to_date_gross: number;
+    year_to_date_deductions: number;
     year_to_date_net: number;
     pdf_url?: string;
 }

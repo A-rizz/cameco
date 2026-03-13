@@ -478,6 +478,13 @@ class PayslipController extends Controller
     {
         $allowances = [];
 
+        if (isset($earningsData['allowances']) && is_numeric($earningsData['allowances'])) {
+            $allowances[] = [
+                'name'   => 'Allowances',
+                'amount' => (float) $earningsData['allowances'],
+            ];
+        }
+
         if (!empty($earningsData['other_allowances']) && $earningsData['other_allowances'] > 0) {
             $allowances[] = ['name' => 'Other Allowances', 'amount' => (float) $earningsData['other_allowances']];
         }
@@ -519,18 +526,34 @@ class PayslipController extends Controller
     private function buildDeductionsArray(array $deductionsData): array
     {
         $labelMap = [
-            'sss_contribution'       => 'SSS',
+            'sss_contribution'        => 'SSS',
+            'sss'                     => 'SSS',
             'philhealth_contribution' => 'PhilHealth',
-            'pagibig_contribution'   => 'Pag-IBIG',
-            'withholding_tax'        => 'Withholding Tax',
-            'total_loan_deductions'  => 'Loan Deductions',
-            'tardiness_deduction'    => 'Tardiness',
+            'philhealth'              => 'PhilHealth',
+            'pagibig_contribution'    => 'Pag-IBIG',
+            'pagibig'                 => 'Pag-IBIG',
+            'withholding_tax'         => 'Withholding Tax',
+            'tax'                     => 'Withholding Tax',
+            'total_loan_deductions'   => 'Loan Deductions',
+            'loan'                    => 'Loan Deductions',
+            'advance'                 => 'Salary Advance',
+            'leave'                   => 'Leave Deduction',
+            'attendance'              => 'Attendance Deduction',
+            'tardiness_deduction'     => 'Tardiness',
+            'miscellaneous_deductions'=> 'Other Deductions',
+            'other'                   => 'Other Deductions',
         ];
 
         $deductions = [];
+        $seenLabels = [];
         foreach ($labelMap as $key => $label) {
             if (!empty($deductionsData[$key]) && $deductionsData[$key] > 0) {
-                $deductions[] = ['name' => $label, 'amount' => (float) $deductionsData[$key]];
+                if (isset($seenLabels[$label])) {
+                    $deductions[$seenLabels[$label]]['amount'] += (float) $deductionsData[$key];
+                } else {
+                    $seenLabels[$label] = count($deductions);
+                    $deductions[] = ['name' => $label, 'amount' => (float) $deductionsData[$key]];
+                }
             }
         }
 
@@ -549,6 +572,14 @@ class PayslipController extends Controller
     {
         $earningsData   = $payslip->earnings_data ?? [];
         $deductionsData = $payslip->deductions_data ?? [];
+        $deductions = $this->buildDeductionsArray($deductionsData);
+
+        if (empty($deductions) && (float) $payslip->total_deductions > 0) {
+            $deductions[] = [
+                'name' => 'Total Deductions',
+                'amount' => (float) $payslip->total_deductions,
+            ];
+        }
 
         $pdfUrl = null;
         if (!empty($payslip->file_path) && \Illuminate\Support\Facades\Storage::exists($payslip->file_path)) {
@@ -569,12 +600,25 @@ class PayslipController extends Controller
             'pay_period_end'     => $payslip->period_end?->format('Y-m-d'),
             'pay_date'           => $payslip->payment_date?->format('Y-m-d'),
             'status'             => $this->mapPayslipStatus($payslip->status),
-            'basic_salary'       => (float) ($earningsData['basic_monthly_salary'] ?? $earningsData['basic_salary'] ?? 0),
+            'basic_salary'       => (float) (
+                $earningsData['basic_pay']
+                ?? $earningsData['basic_monthly_salary']
+                ?? $earningsData['basic_salary']
+                ?? $earningsData['basic']
+                ?? $earningsData['base_pay']
+                ?? 0
+            ),
             'allowances'         => $this->buildAllowancesArray($earningsData),
             'gross_pay'          => (float) $payslip->total_earnings,
-            'deductions'         => $this->buildDeductionsArray($deductionsData),
+            'deductions'         => $deductions,
             'net_pay'            => (float) $payslip->net_pay,
             'year_to_date_gross' => (float) ($payslip->ytd_gross ?? 0),
+            'year_to_date_deductions' => (float) (
+                ($payslip->ytd_tax ?? 0)
+                + ($payslip->ytd_sss ?? 0)
+                + ($payslip->ytd_philhealth ?? 0)
+                + ($payslip->ytd_pagibig ?? 0)
+            ),
             'year_to_date_net'   => (float) ($payslip->ytd_net ?? 0),
             'pdf_url'            => $pdfUrl,
         ];
