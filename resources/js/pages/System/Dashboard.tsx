@@ -1,34 +1,15 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
-import SuperadminOnboardingCard from '@/components/system/superadmin-onboarding-card';
 import { SystemHealthWidgets, CronJobsCard } from '@/components/system/system-health-widgets';
 import SLAWidgets from '@/components/system/sla-widgets';
 import { ModuleGrid } from '@/components/module-grid';
 import { ModuleCategory } from '@/types/modules';
 
-interface ChecklistItem {
-    id: string;
-    title: string;
-    description: string;
-    completed: boolean;
-    action_url?: string;
-    action_label?: string;
-    required: boolean;
-}
-
 interface SystemOnboarding {
     id: number;
     status: string;
     checklist_json?: string | Record<string, unknown>;
-}
-
-interface UserOnboarding {
-    id: number | null;
-    user_id: number;
-    status: string;
-    checklist_json?: ChecklistItem[];
-    completion_percentage?: number;
 }
 
 interface SystemHealthData {
@@ -146,9 +127,7 @@ interface SystemDashboardProps {
         name: string | null;
     };
     systemOnboarding: SystemOnboarding | null;
-    userOnboarding: UserOnboarding | null;
     onboardingStatus: string;
-    showSetupModal: boolean;
     canCompleteOnboarding: boolean;
     welcomeText: string;
     systemHealth: SystemHealthData | null;
@@ -185,8 +164,6 @@ const breadcrumbs: BreadcrumbItem[] = [
 export default function Dashboard({
     company,
     welcomeText,
-    userOnboarding,
-    showSetupModal,
     systemHealth,
     cronMetrics,
     slaMetrics,
@@ -203,17 +180,6 @@ export default function Dashboard({
                     </h1>
                     <p className="text-muted-foreground">{welcomeText}</p>
                 </div>
-
-                {/* User Onboarding Section - Show if profile is incomplete */}
-                {userOnboarding && showSetupModal && (
-                    <div className="mb-2">
-                        <SuperadminOnboardingCard 
-                            onboarding={userOnboarding}
-                            compact={false}
-                            dismissible={false}
-                        />
-                    </div>
-                )}
 
                 {/* System Health Monitoring - Premium positioning */}
                 {systemHealth && (

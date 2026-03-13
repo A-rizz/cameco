@@ -369,6 +369,12 @@ class DashboardController extends Controller
 		$userOnboarding = null;
 		try {
 			$userOnboarding = app(UserOnboardingService::class)->getForUser($request->user()->id);
+			if ($userOnboarding && isset($userOnboarding->checklist_json) && is_string($userOnboarding->checklist_json)) {
+				$decodedChecklist = json_decode($userOnboarding->checklist_json, true);
+				if (json_last_error() === JSON_ERROR_NONE && is_array($decodedChecklist)) {
+					$userOnboarding->checklist_json = $decodedChecklist;
+				}
+			}
 		} catch (\Throwable $e) {
 			$userOnboarding = null;
 		}
