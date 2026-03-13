@@ -56,13 +56,20 @@ class DashboardController extends Controller
                 ->with('leavePolicy:id,name,code')
                 ->get()
                 ->map(function ($balance) {
+                    $earned = (float) $balance->earned;
+                    $used = (float) $balance->used;
+                    $remaining = (float) $balance->remaining;
+                    $carriedForward = (float) $balance->carried_forward;
+
                     return [
                         'leave_type' => $balance->leavePolicy->name ?? 'Unknown',
-                        'code' => $balance->leavePolicy->code ?? 'N/A',
-                        'earned' => (float) $balance->earned,
-                        'used' => (float) $balance->used,
-                        'remaining' => (float) $balance->remaining,
-                        'carried_forward' => (float) $balance->carried_forward,
+                        'leave_code' => $balance->leavePolicy->code ?? 'N/A',
+                        'available' => $remaining,
+                        'used' => $used,
+                        'total' => $earned + $carriedForward,
+                        'earned' => $earned,
+                        'remaining' => $remaining,
+                        'carried_forward' => $carriedForward,
                     ];
                 });
 
@@ -296,6 +303,7 @@ class DashboardController extends Controller
             'date' => $nextPayday->format('Y-m-d'),
             'formatted_date' => $nextPayday->format('F d, Y'),
             'days_until' => max(0, $daysUntil),
+            'period' => $nextPayday->day <= 15 ? '1st Half' : '2nd Half',
         ];
     }
 
