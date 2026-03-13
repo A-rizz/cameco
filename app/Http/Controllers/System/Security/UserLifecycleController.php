@@ -9,6 +9,7 @@ use App\Traits\LogsSecurityAudits;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Inertia;
+use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
 
 class UserLifecycleController extends Controller
@@ -105,8 +106,11 @@ class UserLifecycleController extends Controller
 		]);
 
 		try {
+			$username = $this->generateUniqueUsername($validated['name'], $validated['email']);
+
 			$user = User::create([
 				'name'      => $validated['name'],
+				'username'  => $username,
 				'email'     => $validated['email'],
 				'password'  => Hash::make($validated['password']),
 				'is_active' => true,
@@ -117,7 +121,7 @@ class UserLifecycleController extends Controller
 				$user->assignRole($roleNames);
 			}
 
-			$this->logSecurityAudit('user.created', [
+			$this->logAudit('user.created', 'info', [
 				'user_id'    => $user->id,
 				'user_email' => $user->email,
 				'roles'      => $validated['roles'] ?? [],
@@ -187,13 +191,13 @@ class UserLifecycleController extends Controller
 
 				if (!$isActive) {
 					// Log deactivation with reason
-					$this->logSecurityAudit('user.deactivated', [
+					$this->logAudit('user.deactivated', 'warning', [
 						'user_id' => $user->id,
 						'user_email' => $user->email,
 						'reason' => $request->validated('reason_for_deactivation'),
 					]);
 				} else {
-					$this->logSecurityAudit('user.activated', [
+					$this->logAudit('user.activated', 'info', [
 						'user_id' => $user->id,
 						'user_email' => $user->email,
 					]);
@@ -205,7 +209,7 @@ class UserLifecycleController extends Controller
 				$roles = Role::whereIn('id', $request->validated('roles'))->pluck('name');
 				$user->syncRoles($roles);
 
-				$this->logSecurityAudit('user.roles_updated', [
+				$this->logAudit('user.roles_updated', 'info', [
 					'user_id' => $user->id,
 					'user_email' => $user->email,
 					'roles' => $roles->toArray(),
@@ -217,7 +221,7 @@ class UserLifecycleController extends Controller
 				$user->password = Hash::make($request->validated('new_password'));
 				$user->save();
 
-				$this->logSecurityAudit('user.password_reset', [
+				$this->logAudit('user.password_reset', 'warning', [
 					'user_id' => $user->id,
 					'user_email' => $user->email,
 					'by_superadmin' => true,
@@ -243,7 +247,7 @@ class UserLifecycleController extends Controller
 				\Illuminate\Support\Str::random(60)
 			);
 
-			$this->logSecurityAudit('user.password_reset_requested', [
+			$this->logAudit('user.password_reset_requested', 'info', [
 				'user_id' => $user->id,
 				'user_email' => $user->email,
 				'requested_by' => $request->user()->id,
@@ -274,7 +278,7 @@ class UserLifecycleController extends Controller
 		try {
 			$user->update(['is_active' => false]);
 
-			$this->logSecurityAudit('user.deactivated', [
+			$this->logAudit('user.deactivated', 'warning', [
 				'user_id' => $user->id,
 				'user_email' => $user->email,
 				'reason' => $request->validated('reason'),
@@ -297,7 +301,7 @@ class UserLifecycleController extends Controller
 		try {
 			$user->update(['is_active' => true]);
 
-			$this->logSecurityAudit('user.activated', [
+			$this->logAudit('user.activated', 'info', [
 				'user_id' => $user->id,
 				'user_email' => $user->email,
 				'activated_by' => $request->user()->id,
@@ -322,5 +326,26 @@ class UserLifecycleController extends Controller
 			->paginate(50);
 
 		return response()->json($logs);
+	}
+
+	protected function generateUniqueUsername(string $name, string $email): string
+	{
+		$base = Str::slug(Str::before($email, '@'), '') ?: Str::slug($name, '');
+		$base = strtolower($base);
+
+		if ($base === '') {
+			$base = 'user';
+		}
+
+		$username = Str::limit($base, 40, '');
+		$counter = 1;
+
+		while (User::where('username', $username)->exists()) {
+			$suffix = (string) $counter;
+			$username = Str::limit($base, 40 - strlen($suffix), '') . $suffix;
+			$counter++;
+		}
+
+		return $username;
 	}
 }

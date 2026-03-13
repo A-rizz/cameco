@@ -76,6 +76,13 @@ export default function UsersPage({
 	stats,
 	filters,
 }: UsersPageProps) {
+	const safeUsers = (users.data ?? []).filter(
+		(user): user is User => Boolean(user && typeof user.id === 'number'),
+	);
+	const safeRoles = (roles ?? []).filter(
+		(role): role is Role => Boolean(role && typeof role.id === 'number'),
+	);
+
 	const [search, setSearch] = useState(filters.search);
 	const [status, setStatus] = useState(filters.status);
 	const [role, setRole] = useState(filters.role);
@@ -95,14 +102,18 @@ export default function UsersPage({
 	});
 
 	const handleEditOpen = (user: User) => {
-		const roleIds = roles.filter((r) => user.roles.includes(r.name)).map((r) => r.id);
+		const roleIds = safeRoles.filter((r) => user.roles.includes(r.name)).map((r) => r.id);
 		editForm.setData({ name: user.name, email: user.email, roles: roleIds });
 		setEditingUser(user);
 	};
 
 	const handleEditSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
-		editForm.put(`/system/users/${editingUser!.id}`, {
+		if (!editingUser) {
+			return;
+		}
+
+		editForm.put(`/system/users/${editingUser.id}`, {
 			onSuccess: () => {
 				setEditingUser(null);
 				editForm.reset();
@@ -127,7 +138,10 @@ export default function UsersPage({
 	};
 
 	const handleConfirmDeactivate = () => {
-		if (!confirmDeactivateUser) return;
+		if (!confirmDeactivateUser) {
+			return;
+		}
+
 		router.post(
 			`/system/users/${confirmDeactivateUser.id}/deactivate`,
 			{ reason: deactivateReason },
@@ -288,7 +302,7 @@ export default function UsersPage({
 									</SelectTrigger>
 									<SelectContent>
 										<SelectItem value="all">All Roles</SelectItem>
-										{roles.map((r) => (
+										{safeRoles.map((r) => (
 											<SelectItem key={r.id} value={r.name}>
 												{r.name}
 											</SelectItem>
@@ -314,7 +328,7 @@ export default function UsersPage({
 						</h2>
 					</div>
 
-					{users.data.length === 0 ? (
+					{safeUsers.length === 0 ? (
 						<Card>
 							<CardContent className="py-12 text-center text-muted-foreground">
 								No users found matching your filters
@@ -322,7 +336,7 @@ export default function UsersPage({
 						</Card>
 					) : (
 						<div className="space-y-4">
-							{users.data.map((user) => (
+							{safeUsers.map((user) => (
 								<Card key={user.id} className="hover:shadow-md transition-shadow">
 									<CardHeader className="pb-3">
 										<div className="flex items-start justify-between">
@@ -434,7 +448,7 @@ export default function UsersPage({
 					{/* Pagination */}
 					{users.last_page > 1 && (
 						<div className="flex justify-center gap-2">
-							{Array.from({ length: users.last_page }).map((_, i) => {
+								{Array.from({ length: users.last_page }).map((_, i) => {
 								const page = i + 1;
 								const isActive = page === users.current_page;
 								return (
@@ -461,13 +475,15 @@ export default function UsersPage({
 			{/* Edit User Modal */}
 			<Dialog open={editingUser !== null} onOpenChange={(open) => { if (!open) { setEditingUser(null); editForm.reset(); } }}>
 				<DialogContent className="max-w-lg">
-					<DialogHeader>
-						<DialogTitle>Edit User</DialogTitle>
-						<DialogDescription>
-							Update {editingUser?.name ?? 'user'}'s account details and roles.
-						</DialogDescription>
-					</DialogHeader>
-					<form onSubmit={handleEditSubmit} className="space-y-4">
+					{editingUser && (
+						<>
+							<DialogHeader>
+								<DialogTitle>Edit User</DialogTitle>
+								<DialogDescription>
+									Update {editingUser.name}'s account details and roles.
+								</DialogDescription>
+							</DialogHeader>
+							<form onSubmit={handleEditSubmit} className="space-y-4">
 						{(editForm.errors as Record<string, string>).error && (
 							<div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
 								{(editForm.errors as Record<string, string>).error}
@@ -495,7 +511,7 @@ export default function UsersPage({
 						<div className="space-y-2">
 							<Label>Assign Roles</Label>
 							<div className="rounded-md border p-3 space-y-2 max-h-40 overflow-y-auto">
-								{roles.map((r) => (
+								{safeRoles.map((r) => (
 									<div key={r.id} className="flex items-center gap-2">
 										<Checkbox
 											id={`edit-role-${r.id}`}
@@ -519,45 +535,51 @@ export default function UsersPage({
 								{editForm.processing ? 'Saving...' : 'Save Changes'}
 							</Button>
 						</DialogFooter>
-					</form>
+							</form>
+						</>
+					)}
 				</DialogContent>
 			</Dialog>
 
 			{/* Deactivate Confirmation Dialog */}
 			<Dialog open={confirmDeactivateUser !== null} onOpenChange={(open) => { if (!open) { setConfirmDeactivateUser(null); setDeactivateReason(''); } }}>
 				<DialogContent className="max-w-md">
-					<DialogHeader>
-						<DialogTitle>Deactivate User</DialogTitle>
-						<DialogDescription>
-							Deactivate <strong>{confirmDeactivateUser?.name}</strong>? They will no longer be able to log in.
-						</DialogDescription>
-					</DialogHeader>
-					<div className="space-y-2">
-						<Label htmlFor="deactivate-reason">Reason for deactivation</Label>
-						<Input
-							id="deactivate-reason"
-							value={deactivateReason}
-							onChange={(e) => setDeactivateReason(e.target.value)}
-							placeholder="e.g. Resigned, contract ended..."
-						/>
-					</div>
-					<DialogFooter>
-						<Button
-							variant="outline"
-							onClick={() => { setConfirmDeactivateUser(null); setDeactivateReason(''); }}
-						>
-							Cancel
-						</Button>
-						<Button
-							variant="destructive"
-							onClick={handleConfirmDeactivate}
-							disabled={!deactivateReason.trim()}
-							className="gap-2"
-						>
-							<UserX className="h-4 w-4" />
-							Deactivate
-						</Button>
-					</DialogFooter>
+					{confirmDeactivateUser && (
+						<>
+							<DialogHeader>
+								<DialogTitle>Deactivate User</DialogTitle>
+								<DialogDescription>
+									Deactivate <strong>{confirmDeactivateUser.name}</strong>? They will no longer be able to log in.
+								</DialogDescription>
+							</DialogHeader>
+							<div className="space-y-2">
+								<Label htmlFor="deactivate-reason">Reason for deactivation</Label>
+								<Input
+									id="deactivate-reason"
+									value={deactivateReason}
+									onChange={(e) => setDeactivateReason(e.target.value)}
+									placeholder="e.g. Resigned, contract ended..."
+								/>
+							</div>
+							<DialogFooter>
+								<Button
+									variant="outline"
+									onClick={() => { setConfirmDeactivateUser(null); setDeactivateReason(''); }}
+								>
+									Cancel
+								</Button>
+								<Button
+									variant="destructive"
+									onClick={handleConfirmDeactivate}
+									disabled={!deactivateReason.trim()}
+									className="gap-2"
+								>
+									<UserX className="h-4 w-4" />
+									Deactivate
+								</Button>
+							</DialogFooter>
+						</>
+					)}
 				</DialogContent>
 			</Dialog>
 				{/* Create User Modal */}
@@ -630,7 +652,7 @@ export default function UsersPage({
 									{roles.length === 0 ? (
 										<p className="text-sm text-muted-foreground">No roles available</p>
 									) : (
-										roles.map((r) => (
+										safeRoles.map((r) => (
 											<div key={r.id} className="flex items-center gap-2">
 												<Checkbox
 													id={`create-role-${r.id}`}
