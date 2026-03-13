@@ -23,7 +23,7 @@ import {
     Send,
 } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
-import { format, differenceInBusinessDays, parseISO } from 'date-fns';
+import { format, differenceInBusinessDays, parseISO, isBefore, isValid } from 'date-fns';
 import axios from 'axios';
 import { LeaveCoverageWarning } from '@/components/employee/leave-coverage-warning';
 
@@ -57,6 +57,17 @@ interface CoverageData {
         dates: string;
     }>;
 }
+
+type AxiosValidationError = {
+    response?: {
+        status?: number;
+        data?: {
+            message?: string;
+            error?: string;
+            errors?: Record<string, string[]>;
+        };
+    };
+};
 
 interface CreateRequestProps {
     leaveTypes: LeaveType[];
@@ -96,6 +107,7 @@ export default function CreateRequest({
     const [numberOfDays, setNumberOfDays] = useState<number>(0);
     const [balanceError, setBalanceError] = useState<string>('');
     const [submitting, setSubmitting] = useState<boolean>(false);
+    const [submitError, setSubmitError] = useState<string>('');
 
     // Selected leave type details
     const selectedLeaveTypeData = leaveTypes?.find(
@@ -133,6 +145,14 @@ export default function CreateRequest({
         async (start: string, end: string) => {
             if (!start || !end) return;
 
+            const startParsed = parseISO(start);
+            const endParsed = parseISO(end);
+            if (!isValid(startParsed) || !isValid(endParsed) || isBefore(endParsed, startParsed)) {
+                setCoverageData(null);
+                setCoverageError('');
+                return;
+            }
+
             setLoadingCoverage(true);
             setCoverageError('');
 
@@ -145,9 +165,15 @@ export default function CreateRequest({
                 setCoverageData(response.data);
             } catch (error: unknown) {
                 console.error('Failed to calculate coverage', error);
-                const axiosError = error as { response?: { data?: { error?: string } } };
+                const axiosError = error as AxiosValidationError;
+                if (axiosError.response?.status === 422) {
+                    // Validation can briefly fail while user is editing dates; avoid noisy error state.
+                    setCoverageData(null);
+                    setCoverageError('');
+                    return;
+                }
                 setCoverageError(
-                    axiosError.response?.data?.error || 'Failed to calculate coverage. Please try again.'
+                    axiosError.response?.data?.error || axiosError.response?.data?.message || 'Failed to calculate coverage. Please try again.'
                 );
                 setCoverageData(null);
             } finally {
@@ -245,6 +271,7 @@ export default function CreateRequest({
             return;
         }
 
+        setSubmitError('');
         setSubmitting(true);
 
         try {
@@ -272,12 +299,17 @@ export default function CreateRequest({
             });
         } catch (error: unknown) {
             console.error('Failed to submit leave request', error);
-            const axiosError = error as { response?: { data?: { message?: string; error?: string } } };
+            const axiosError = error as AxiosValidationError;
+            const validationErrors = axiosError.response?.data?.errors;
+            const firstValidationError = validationErrors
+                ? Object.values(validationErrors).flat()[0]
+                : undefined;
             const errorMessage =
+                firstValidationError ||
                 axiosError.response?.data?.message ||
                 axiosError.response?.data?.error ||
                 'Failed to submit leave request. Please try again.';
-            alert(errorMessage);
+            setSubmitError(errorMessage);
         } finally {
             setSubmitting(false);
         }
@@ -412,6 +444,18 @@ export default function CreateRequest({
                                             <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
                                             <span className="text-sm font-medium text-red-700 dark:text-red-300">
                                                 {balanceError}
+                                            </span>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Submission Error */}
+                                {submitError && (
+                                    <div className="rounded-md bg-red-50 dark:bg-red-900/20 p-4 border border-red-200 dark:border-red-800">
+                                        <div className="flex items-center gap-2">
+                                            <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+                                            <span className="text-sm font-medium text-red-700 dark:text-red-300">
+                                                {submitError}
                                             </span>
                                         </div>
                                     </div>
@@ -596,7 +640,7 @@ export default function CreateRequest({
                                         <ul className="space-y-2 text-xs text-gray-600 dark:text-gray-400">
                                             <li className="flex items-start gap-2">
                                                 <span className="text-blue-600 dark:text-blue-400">•</span>
-                                                <span>Submit requests at least 3 days in advance</span>
+                                                <span>Standard leave is 3 days advance; sick and emergency leave may be filed for immediate dates</span>
                                             </li>
                                             <li className="flex items-start gap-2">
                                                 <span className="text-blue-600 dark:text-blue-400">•</span>

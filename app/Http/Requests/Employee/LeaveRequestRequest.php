@@ -160,7 +160,7 @@ class LeaveRequestRequest extends FormRequest
         $validator->after(function ($validator) {
             // Additional cross-field validation
             
-            // Validate minimum advance notice (3 days minimum, except emergencies)
+            // Validate minimum advance notice (3 days minimum, except emergency/sick leave)
             if ($this->has('start_date') && $this->has('leave_policy_id')) {
                 $startDate = \Carbon\Carbon::parse($this->input('start_date'));
                 $today = \Carbon\Carbon::today();
@@ -171,12 +171,13 @@ class LeaveRequestRequest extends FormRequest
                 
                 if ($policy) {
                     $isEmergency = str_contains(strtolower($policy->name), 'emergency') || strtolower($policy->code) === 'el';
+                    $isSickLeave = str_contains(strtolower($policy->name), 'sick') || strtolower($policy->code) === 'sl';
                     $minAdvanceNotice = $policy->min_advance_notice_days ?? 3;
 
-                    if (!$isEmergency && $daysAdvance < $minAdvanceNotice) {
+                    if (!$isEmergency && !$isSickLeave && $daysAdvance < $minAdvanceNotice) {
                         $validator->errors()->add(
                             'start_date',
-                            "Leave requests must be submitted at least {$minAdvanceNotice} days in advance. Please select a later date or contact HR Staff for emergency leave."
+                            "Leave requests must be submitted at least {$minAdvanceNotice} days in advance. For urgent illness, use Sick Leave; for emergencies, use Emergency Leave."
                         );
                     }
                 }
