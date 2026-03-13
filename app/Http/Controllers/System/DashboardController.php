@@ -28,12 +28,6 @@ class DashboardController extends Controller
 	{
 		// Safely query counts, returning 0 if table doesn't exist or query fails
 		try {
-			$pendingPatches = \App\Models\SystemPatchApproval::where('status', 'pending')->count();
-		} catch (\Exception $e) {
-			$pendingPatches = 0;
-		}
-
-		try {
 			$failedCrons = \App\Models\ScheduledJob::where('last_exit_code', '!=', 0)
 				->whereNotNull('last_exit_code')
 				->count();
@@ -56,14 +50,14 @@ class DashboardController extends Controller
 		return [
 			[
 				'id' => 'system-admin',
-				'title' => 'System & Server Administration',
-				'description' => 'Core system health, storage, and maintenance management',
+				'title' => 'System Administration',
+				'description' => 'Core system health, logs, storage, backup, cron, and device management',
 				'modules' => [
 					[
 						'id' => 'health',
 						'icon' => 'Activity',
 						'title' => 'System Health',
-						'description' => 'Monitor CPU, memory, disk usage, and system performance',
+						'description' => 'Monitor CPU, memory, disk usage, and overall platform health',
 						'href' => '/system/health',
 						'badge' => ['count' => 0, 'label' => 'alerts'],
 						'isDisabled' => false,
@@ -72,8 +66,8 @@ class DashboardController extends Controller
 					[
 						'id' => 'storage',
 						'icon' => 'HardDrive',
-						'title' => 'Storage Management',
-						'description' => 'View and manage disk space, partitions, and storage resources',
+						'title' => 'Storage',
+						'description' => 'View and manage disk space and storage resources',
 						'href' => '/system/storage',
 						'badge' => ['count' => 0, 'label' => 'alerts'],
 						'isDisabled' => false,
@@ -82,7 +76,7 @@ class DashboardController extends Controller
 					[
 						'id' => 'backups',
 						'icon' => 'Database',
-						'title' => 'Backups & Recovery',
+						'title' => 'Backups',
 						'description' => 'Schedule, monitor, and manage system backups',
 						'href' => '/system/backups',
 						'badge' => ['count' => $pendingBackups, 'label' => 'pending'],
@@ -92,20 +86,20 @@ class DashboardController extends Controller
 					[
 						'id' => 'security-audit',
 						'icon' => 'Shield',
-						'title' => 'Security Audit Logs',
+						'title' => 'Security Audit',
 						'description' => 'Review security events and access logs',
-						'href' => '/system/security-audit',
+						'href' => '/system/security/audit',
 						'badge' => ['count' => $securityAlerts, 'label' => 'critical'],
 						'isDisabled' => false,
 						'comingSoon' => false,
 					],
 					[
-						'id' => 'patches',
-						'icon' => 'FileBox',
-						'title' => 'Patch Management',
-						'description' => 'Approve and deploy system patches and updates',
-						'href' => '/system/patches',
-						'badge' => ['count' => $pendingPatches, 'label' => 'pending'],
+						'id' => 'error-logs',
+						'icon' => 'AlertCircle',
+						'title' => 'Error Logs',
+						'description' => 'Review system error logs for failures and anomalies',
+						'href' => '/system/logs/errors',
+						'badge' => ['count' => 0, 'label' => 'errors'],
 						'isDisabled' => false,
 						'comingSoon' => false,
 					],
@@ -120,12 +114,12 @@ class DashboardController extends Controller
 						'comingSoon' => false,
 					],
 					[
-						'id' => 'updates',
-						'icon' => 'Download',
-						'title' => 'System Updates',
-						'description' => 'Check, download, and deploy system updates and patches',
-						'href' => '/system/updates',
-						'badge' => ['count' => 0, 'label' => 'available'],
+						'id' => 'timekeeping-devices',
+						'icon' => 'Cpu',
+						'title' => 'Timekeeping Devices',
+						'description' => 'Manage and monitor enrolled timekeeping devices',
+						'href' => '/system/timekeeping/devices',
+						'badge' => ['count' => 0, 'label' => 'devices'],
 						'isDisabled' => false,
 						'comingSoon' => false,
 					],
@@ -134,7 +128,7 @@ class DashboardController extends Controller
 			[
 				'id' => 'security-access',
 				'title' => 'Security & Access',
-				'description' => 'User management, permissions, and security policies',
+				'description' => 'User management and role-based permissions',
 				'modules' => [
 					[
 						'id' => 'users',
@@ -156,58 +150,18 @@ class DashboardController extends Controller
 						'isDisabled' => false,
 						'comingSoon' => false,
 					],
-					[
-						'id' => 'security-policies',
-						'icon' => 'AlertCircle',
-						'title' => 'Security Policies',
-						'description' => 'Define password policies, session timeouts, and security rules',
-						'href' => '/system/security/policies',
-						'badge' => ['count' => 0, 'label' => 'policies'],
-						'isDisabled' => false,
-						'comingSoon' => false,
-					],
-					[
-						'id' => 'ip-rules',
-						'icon' => 'Lock',
-						'title' => 'IP Allowlist/Blocklist',
-						'description' => 'Manage IP whitelists and blacklists for access control',
-						'href' => '/system/security/ip-rules',
-						'badge' => ['count' => 0, 'label' => 'rules'],
-						'isDisabled' => false,
-						'comingSoon' => false,
-					],
-					[
-						'id' => 'api-keys',
-						'icon' => 'Key',
-						'title' => 'API Keys & Tokens',
-						'description' => 'Manage API authentication and integration tokens',
-						'href' => '#',
-						'badge' => ['count' => 0, 'label' => 'active'],
-						'isDisabled' => true,
-						'comingSoon' => true,
-					],
-					[
-						'id' => 'audit-trail',
-						'icon' => 'BarChart3',
-						'title' => 'Audit Trail',
-						'description' => 'Review all system administrative actions',
-						'href' => '#',
-						'badge' => ['count' => 0, 'label' => 'events'],
-						'isDisabled' => true,
-						'comingSoon' => true,
-					],
 				],
 			],
 			[
 				'id' => 'organization',
-				'title' => 'Organization Control',
+				'title' => 'Organization',
 				'description' => 'Department, team, and organizational structure management',
 				'modules' => [
 					[
 						'id' => 'overview',
 						'icon' => 'LayoutDashboard',
-						'title' => 'Organization Overview',
-						'description' => 'Dashboard with company metrics and onboarding status',
+						'title' => 'Overview',
+						'description' => 'View organization-level metrics and structure overview',
 						'href' => '/system/organization/overview',
 						'badge' => ['count' => 0, 'label' => 'status'],
 						'isDisabled' => false,
@@ -233,79 +187,12 @@ class DashboardController extends Controller
 						'isDisabled' => false,
 						'comingSoon' => false,
 					],
-					[
-						'id' => 'divisions',
-						'icon' => 'BarChart3',
-						'title' => 'Divisions',
-						'description' => 'Organize company divisions and business units',
-						'href' => '#',
-						'badge' => ['count' => 0, 'label' => 'divisions'],
-						'isDisabled' => true,
-						'comingSoon' => true,
-					],
-					[
-						'id' => 'company-settings',
-						'icon' => 'Settings',
-						'title' => 'Company Settings',
-						'description' => 'Configure global company information and branding',
-						'href' => '#',
-						'badge' => ['count' => 0, 'label' => 'pending'],
-						'isDisabled' => true,
-						'comingSoon' => true,
-					],
-				],
-			],
-			[
-				'id' => 'hr-operations',
-				'title' => 'HR Operations',
-				'description' => 'Human resources and employee management',
-				'modules' => [
-					[
-						'id' => 'employees',
-						'icon' => 'Users',
-						'title' => 'Employee Directory',
-						'description' => 'Manage employee records and profiles',
-						'href' => '#',
-						'badge' => ['count' => 0, 'label' => 'active'],
-						'isDisabled' => true,
-						'comingSoon' => true,
-					],
-					[
-						'id' => 'payroll',
-						'icon' => 'DollarSign',
-						'title' => 'Payroll Management',
-						'description' => 'Process payroll, salaries, and benefits',
-						'href' => '#',
-						'badge' => ['count' => 0, 'label' => 'pending'],
-						'isDisabled' => true,
-						'comingSoon' => true,
-					],
-					[
-						'id' => 'leave-management',
-						'icon' => 'Clock',
-						'title' => 'Leave Management',
-						'description' => 'Manage employee leave and time off',
-						'href' => '#',
-						'badge' => ['count' => 0, 'label' => 'pending'],
-						'isDisabled' => true,
-						'comingSoon' => true,
-					],
-					[
-						'id' => 'performance',
-						'icon' => 'BarChart3',
-						'title' => 'Performance Reviews',
-						'description' => 'Track and manage employee performance',
-						'href' => '#',
-						'badge' => ['count' => 0, 'label' => 'pending'],
-						'isDisabled' => true,
-						'comingSoon' => true,
-					],
 				],
 			],
 			[
 				'id' => 'monitoring-reporting',
-				'title' => 'Monitoring & Reporting',
-				'description' => 'System analytics, dashboards, and reports',
+				'title' => 'Reports',
+				'description' => 'System analytics and security reporting',
 				'modules' => [
 					[
 						'id' => 'usage-analytics',
@@ -326,16 +213,6 @@ class DashboardController extends Controller
 						'badge' => ['count' => 0, 'label' => 'reports'],
 						'isDisabled' => false,
 						'comingSoon' => false,
-					],
-					[
-						'id' => 'alerts',
-						'icon' => 'AlertCircle',
-						'title' => 'Alert Management',
-						'description' => 'Configure system alerts and notifications',
-						'href' => '#',
-						'badge' => ['count' => 0, 'label' => 'active'],
-						'isDisabled' => true,
-						'comingSoon' => true,
 					],
 				],
 			],

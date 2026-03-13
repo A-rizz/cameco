@@ -23,6 +23,11 @@ The goal is not only to make pages render, but to ensure:
 
 - [ ] Fresh setup completes with one command sequence and no fatal errors
 - [ ] Superadmin can log in and navigate all major modules without crash
+- [ ] HR Staff can log in and access HR pages allowed by role
+- [ ] HR Manager can log in and access approval and management flows
+- [ ] Office Admin can log in and access office-admin scoped modules only
+- [ ] Employee can log in and access employee self-service modules only
+- [ ] Payroll Officer can log in and execute payroll workflows without permission errors
 - [ ] `scheduled_jobs` rows map to valid Artisan commands only
 - [ ] All scheduled commands in `routes/console.php` are visible in `schedule:list`
 - [ ] Manual run from Superadmin Cron UI updates `last_run_at`, `last_exit_code`, run counters
@@ -31,6 +36,52 @@ The goal is not only to make pages render, but to ensure:
 - [ ] Seeder chain is deterministic, idempotent, and free of class-name mismatches
 - [ ] No interactive command prompt blocks web-triggered or scheduler-triggered command execution
 - [ ] Key maintenance commands run in `--no-interaction` mode without errors
+
+---
+
+## Role Coverage Matrix
+
+The production-like seeded environment must include the following role personas and baseline access:
+
+- Superadmin:
+  - System dashboard, cron management, health, backups, patches, security audit, user lifecycle, role/policy/IP management
+- HR Staff:
+  - Employee records, attendance/timekeeping operations, leave operations, document workflows
+- HR Manager:
+  - HR Staff capabilities plus approval-centric and managerial views
+- Office Admin:
+  - Office-admin scoped operations and limited admin utilities
+- Employee:
+  - Self-service views (profile, personal documents/requests, personal attendance/payslip access where applicable)
+- Payroll Officer:
+  - Payroll period execution, payroll calculations, payroll approvals/review flows as configured
+
+---
+
+## Role Seeder Baseline
+
+The following seeders should collectively produce a usable multi-role system state:
+
+- `RolesAndPermissionsSeeder`
+- `ATSPermissionsSeeder`
+- `TimekeepingPermissionsSeeder`
+- `BadgeManagementPermissionsSeeder`
+- `WorkforceManagementPermissionsSeeder`
+- `DocumentManagementPermissionsSeeder`
+- `PayrollPermissionsSeeder`
+- `OffboardingPermissionsSeeder`
+- `OfficeAdminSeeder`
+- `EmployeeRoleSeeder`
+- `PayrollOfficerAccountSeeder`
+- `HRStaffAccountSeeder`
+- `EmployeeAccountSeeder`
+
+Implementation notes:
+
+- [ ] Confirm each role exists in DB and has expected permission set
+- [ ] Confirm each seeded account is assigned the intended role(s)
+- [ ] Confirm no role is left without a usable login account in non-production seed profile
+- [ ] Confirm permission-gated frontend routes do not expose unauthorized modules
 
 ---
 
@@ -57,11 +108,38 @@ Ensure seeded state is internally consistent and always bootable.
 - [ ] Ensure all critical seeders are idempotent (`firstOrCreate`, `updateOrCreate`, or guarded inserts)
 - [ ] Verify seeded cron commands exactly match scheduled commands and real registered Artisan signatures
 - [ ] Re-seed with `migrate:fresh --seed` and verify no class-not-found warnings
+- [ ] Validate role/account seeders create all required personas (Superadmin, HR Staff, HR Manager, Office Admin, Employee, Payroll Officer)
 
 ### Validation
 - [ ] `php artisan migrate:fresh --seed` exits `0`
 - [ ] Superadmin + HR users exist with expected roles
 - [ ] `scheduled_jobs` contains only valid commands
+- [ ] Role/account matrix is complete and login-capable for all required personas
+
+---
+
+## Phase 1B - RBAC and Persona Readiness (P0)
+
+### Objective
+Ensure every key persona can actually use the system after seeding, with correct access boundaries.
+
+### Implementation
+- [ ] Build a role-to-module access checklist for:
+  - Superadmin
+  - HR Staff
+  - HR Manager
+  - Office Admin
+  - Employee
+  - Payroll Officer
+- [ ] Verify backend middleware and policy checks align with seeded permissions
+- [ ] Verify sidebar/menu rendering matches effective permissions for each persona
+- [ ] Add/adjust missing seed data for role-dependent pages (dashboard cards, counts, workflow rows)
+
+### Validation
+- [ ] Each persona can sign in and load dashboard without runtime errors
+- [ ] Each persona can access expected pages and is blocked from unauthorized pages
+- [ ] Payroll Officer can run payroll actions without missing permission exceptions
+- [ ] Employee role cannot access admin/system-only routes
 
 ---
 
@@ -179,6 +257,8 @@ php artisan schedule:list
 - [ ] `scheduled_jobs.last_run_at` updates after scheduler/manual execution
 - [ ] `rfid_card_mappings` has active UID mapping for target employees
 - [ ] `daily_attendance_summary` generation works for active employees
+- [ ] Each required role has at least one active login-capable user
+- [ ] Role-permission mapping matches route middleware expectations
 
 ---
 
