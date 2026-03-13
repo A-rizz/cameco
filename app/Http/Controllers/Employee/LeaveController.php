@@ -270,7 +270,7 @@ class LeaveController extends Controller
         try {
             // Get active leave policies
             $leavePolicies = LeavePolicy::where('is_active', true)
-                ->select('id', 'name', 'code', 'color', 'requires_document', 'min_advance_notice_days', 'max_consecutive_days')
+                ->select('id', 'name', 'code', 'description', 'annual_entitlement')
                 ->get();
 
             // Get current year balances
@@ -295,13 +295,13 @@ class LeaveController extends Controller
                     'id' => $policy->id,
                     'name' => $policy->name,
                     'code' => $policy->code,
-                    'color' => $policy->color ?? '#64748b',
+                    'color' => '#64748b',
                     'available_balance' => $balance['available'] ?? 0,
                     'pending' => $balance['pending'] ?? 0,
-                    'requires_document' => $policy->requires_document ?? false,
-                    'description' => '',
-                    'min_advance_notice_days' => $policy->min_advance_notice_days ?? 3,
-                    'max_consecutive_days' => $policy->max_consecutive_days ?? 30,
+                    'requires_document' => false,
+                    'description' => $policy->description ?? '',
+                    'min_advance_notice_days' => 3,
+                    'max_consecutive_days' => (int) ($policy->annual_entitlement ?? 30),
                 ];
             });
 
@@ -591,11 +591,14 @@ class LeaveController extends Controller
             );
 
             $coveragePercentage = $coverage['coverage_percentage'] ?? 100;
-            $status = $this->determineCoverageStatus($coveragePercentage);
+            $hasScheduleData = $coverage['has_schedule_data'] ?? true;
+            $status = $hasScheduleData
+                ? $this->determineCoverageStatus($coveragePercentage)
+                : 'unavailable';
 
             // Get alternative dates with better coverage (if coverage is low)
             $alternativeDates = [];
-            if ($coveragePercentage < 80) {
+            if ($hasScheduleData && $coveragePercentage < 80) {
                 // Check next 2 weeks for better dates
                 $alternativeDates = $this->findAlternativeDates(
                     $startDate,
@@ -608,6 +611,7 @@ class LeaveController extends Controller
                 'coverage_percentage' => round($coveragePercentage, 1),
                 'status' => $status,
                 'message' => $this->getCoverageMessage($status, $coveragePercentage),
+                'coverage_available' => $hasScheduleData,
                 'alternative_dates' => $alternativeDates,
             ]);
         } catch (\Exception $e) {
@@ -645,6 +649,8 @@ class LeaveController extends Controller
     private function getCoverageMessage(string $status, float $percentage): string
     {
         switch ($status) {
+            case 'unavailable':
+                return 'Department coverage is not available yet for these dates because no staffing schedule has been published. You can still submit the request, but HR will review it once schedules are available.';
             case 'optimal':
                 return "Your dates have minimal impact on department coverage ({$percentage}%). Your request will likely be approved quickly.";
             case 'acceptable':
@@ -676,6 +682,11 @@ class LeaveController extends Controller
                 $testStart,
                 $departmentId
             );
+
+            if (($coverage['has_schedule_data'] ?? true) === false) {
+                $checkDate->addDay();
+                continue;
+            }
 
             $percentage = $coverage['coverage_percentage'] ?? 100;
 

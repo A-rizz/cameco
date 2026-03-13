@@ -42,13 +42,14 @@ interface LeaveType {
 
 interface CoverageData {
     coverage_percentage: number;
-    status: 'optimal' | 'acceptable' | 'warning' | 'critical';
+    status: 'optimal' | 'acceptable' | 'warning' | 'critical' | 'unavailable';
     message: string;
+    coverage_available?: boolean;
     alternative_dates?: Array<{
         start_date: string;
         end_date: string;
         coverage_percentage: number;
-        status: 'optimal' | 'acceptable' | 'warning' | 'critical';
+        status: 'optimal' | 'acceptable' | 'warning' | 'critical' | 'unavailable';
     }>;
     team_members_on_leave?: Array<{
         name: string;

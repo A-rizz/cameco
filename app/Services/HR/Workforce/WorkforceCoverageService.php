@@ -72,11 +72,14 @@ class WorkforceCoverageService
         $assignedStaff = $assignments->count();
         $overtimeStaff = $assignments->where('is_overtime', true)->count();
         $conflictedStaff = $assignments->where('has_conflict', true)->count();
+        $hasScheduleData = $assignedStaff > 0;
 
         // Determine coverage status based on typical 10-person requirement
         $targetStaff = 10;
         $coveragePercentage = ($assignedStaff / $targetStaff) * 100;
-        $status = $this->determineCoverageStatus($coveragePercentage);
+        $status = $hasScheduleData
+            ? $this->determineCoverageStatus($coveragePercentage)
+            : 'unavailable';
 
         return [
             'date' => $date->toDateString(),
@@ -85,6 +88,7 @@ class WorkforceCoverageService
             'target_staff' => $targetStaff,
             'coverage_percentage' => round($coveragePercentage, 1),
             'coverage_status' => $status,
+            'has_schedule_data' => $hasScheduleData,
             'overtime_staff' => $overtimeStaff,
             'conflicted_staff' => $conflictedStaff,
             'by_shift_type' => $this->getShiftTypeCoverage($assignments),
