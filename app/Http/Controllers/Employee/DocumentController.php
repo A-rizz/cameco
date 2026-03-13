@@ -463,7 +463,7 @@ public function requestHistory(Request $request)
             'document_type' => $this->formatDocumentType($request->document_type),
             'document_type_key' => $request->document_type,
             'purpose' => $request->purpose ?? 'Not specified',
-            'period' => $request->period,
+            'period' => $this->extractRequestedPeriod($request->notes ?? null),
             'status' => $request->status,
             'status_display' => $this->getRequestStatusDisplay($request->status),
             'requested_at' => \Carbon\Carbon::parse($request->requested_at)->format('M d, Y h:i A'),
@@ -515,6 +515,22 @@ private function formatDocumentType(string $type): string
         'government_compliance' => 'Government Compliance Document',
         default => ucwords(str_replace('_', ' ', $type)),
     };
+}
+
+/**
+ * Extract requested period from request notes.
+ */
+private function extractRequestedPeriod(?string $notes): ?string
+{
+    if (!$notes) {
+        return null;
+    }
+
+    if (preg_match('/Requested period:\s*([0-9]{4}-[0-9]{2})/i', $notes, $matches) === 1) {
+        return $matches[1];
+    }
+
+    return null;
 }
 
 /**
