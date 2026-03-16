@@ -416,7 +416,7 @@ export function BadgeIssuanceModal({
                         </div>
 
                         {/* Section 2: Badge Information */}
-                        {selectedEmployee && isExistingBadgeWarningDismissed !== false && (
+                        {selectedEmployee && (!hasExistingBadge || isExistingBadgeWarningDismissed) && (
                             <div className="space-y-4 border rounded-lg p-4 bg-muted/50">
                                 <h3 className="font-semibold text-sm">2. Badge Information</h3>
 
@@ -544,7 +544,7 @@ export function BadgeIssuanceModal({
                         )}
 
                         {/* Section 3: Verification */}
-                        {selectedEmployee && isExistingBadgeWarningDismissed !== false && (
+                        {selectedEmployee && (!hasExistingBadge || isExistingBadgeWarningDismissed) && (
                             <div className="space-y-4 border rounded-lg p-4 bg-muted/50">
                                 <h3 className="font-semibold text-sm">3. Verification (Optional)</h3>
 
