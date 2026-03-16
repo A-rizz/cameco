@@ -10,6 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import {
     Select,
     SelectContent,
@@ -22,7 +23,7 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
-import { AlertCircle, Loader2, QrCode, AlertTriangle } from 'lucide-react';
+import { AlertCircle, Loader2, QrCode, AlertTriangle, Check, Users } from 'lucide-react';
 import { BadgeScannerModal } from './badge-scanner-modal';
 import { format } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
@@ -74,7 +75,6 @@ export function BadgeIssuanceModal({
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
     const [showScanner, setShowScanner] = useState(false);
-    const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
     const [expirationDate, setExpirationDate] = useState<Date | undefined>();
 
     const [formData, setFormData] = useState<BadgeFormData>({
@@ -93,8 +93,11 @@ export function BadgeIssuanceModal({
     const filteredEmployees = employees.filter((emp) =>
         emp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         emp.employee_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        emp.department.toLowerCase().includes(searchQuery.toLowerCase())
+        emp.department.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        emp.position.toLowerCase().includes(searchQuery.toLowerCase())
     );
+
+    const employeesWithActiveBadgesCount = employees.filter((emp) => emp.badge?.is_active).length;
 
     // Validate card UID format
     const validateCardUid = (uid: string) => {
@@ -173,7 +176,6 @@ export function BadgeIssuanceModal({
             employee_id: employee.id,
         }));
         setSearchQuery('');
-        setShowEmployeeDropdown(false);
         setIsExistingBadgeWarningDismissed(false);
     };
 
@@ -242,24 +244,42 @@ export function BadgeIssuanceModal({
                     <div className="space-y-6">
                         {/* Section 1: Employee Selection */}
                         <div className="space-y-3 border rounded-lg p-4 bg-muted/50">
-                            <h3 className="font-semibold text-sm">1. Employee Selection</h3>
+                            <h3 className="font-semibold text-sm">1. Select Employee</h3>
+
+                            <div className="flex items-center justify-between rounded-md border bg-white px-3 py-2 text-xs text-muted-foreground">
+                                <span className="inline-flex items-center gap-1.5">
+                                    <Users className="h-3.5 w-3.5" />
+                                    {employees.length} active employees
+                                </span>
+                                <span>{employeesWithActiveBadgesCount} already have active badges</span>
+                            </div>
 
                             {selectedEmployee ? (
-                                <div className="flex items-center gap-4 p-3 bg-white rounded-lg border">
-                                    {selectedEmployee.photo && (
+                                <div className="flex items-center gap-4 rounded-lg border bg-white p-3 shadow-sm">
+                                    {selectedEmployee.photo ? (
                                         <img
                                             src={selectedEmployee.photo}
                                             alt={selectedEmployee.name}
-                                            className="h-10 w-10 rounded-full object-cover"
+                                            className="h-12 w-12 rounded-full object-cover"
                                         />
+                                    ) : (
+                                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+                                            {selectedEmployee.name
+                                                .split(' ')
+                                                .map((part) => part[0])
+                                                .join('')
+                                                .slice(0, 2)
+                                                .toUpperCase()}
+                                        </div>
                                     )}
                                     <div className="flex-1">
-                                        <p className="font-semibold text-sm">{selectedEmployee.name}</p>
+                                        <p className="text-sm font-semibold">{selectedEmployee.name}</p>
+                                        <p className="text-xs text-muted-foreground">{selectedEmployee.employee_id}</p>
                                         <p className="text-xs text-muted-foreground">
-                                            {selectedEmployee.employee_id} • {selectedEmployee.department} •{' '}
-                                            {selectedEmployee.position}
+                                            {selectedEmployee.department} • {selectedEmployee.position}
                                         </p>
                                     </div>
+                                    <Check className="h-4 w-4 text-green-600" />
                                     <Button
                                         type="button"
                                         variant="ghost"
@@ -273,44 +293,64 @@ export function BadgeIssuanceModal({
                                             setIsExistingBadgeWarningDismissed(false);
                                         }}
                                     >
-                                        Change
+                                        Change Employee
                                     </Button>
                                 </div>
                             ) : (
-                                <Popover open={showEmployeeDropdown} onOpenChange={setShowEmployeeDropdown}>
-                                    <PopoverTrigger asChild>
-                                        <Input
-                                            placeholder="Search employee by name, ID, or department..."
+                                <div className={`overflow-hidden rounded-lg border bg-white ${errors.employee_id ? 'border-red-500' : ''}`}>
+                                    <Command shouldFilter={false}>
+                                        <CommandInput
+                                            placeholder="Search by name, employee ID, department, or position..."
                                             value={searchQuery}
-                                            onChange={(e) => setSearchQuery(e.target.value)}
-                                            className={errors.employee_id ? 'border-red-500' : ''}
+                                            onValueChange={setSearchQuery}
                                         />
-                                    </PopoverTrigger>
-                                    <PopoverContent className="p-0 w-full" align="start">
-                                        <div className="max-h-64 overflow-y-auto">
-                                            {filteredEmployees.length > 0 ? (
-                                                <div className="space-y-1 p-2">
-                                                    {filteredEmployees.map((emp) => (
-                                                        <button
-                                                            key={emp.id}
-                                                            onClick={() => handleSelectEmployee(emp)}
-                                                            className="w-full text-left px-3 py-2 rounded-md hover:bg-muted text-sm"
-                                                        >
-                                                            <div className="font-medium">{emp.name}</div>
-                                                            <div className="text-xs text-muted-foreground">
-                                                                {emp.employee_id} • {emp.department}
+                                        <CommandList className="max-h-64">
+                                            <CommandEmpty>No employee found for your search.</CommandEmpty>
+                                            <CommandGroup>
+                                                {filteredEmployees.map((emp) => (
+                                                    <CommandItem
+                                                        key={emp.id}
+                                                        value={`${emp.name} ${emp.employee_id} ${emp.department} ${emp.position}`}
+                                                        onSelect={() => handleSelectEmployee(emp)}
+                                                        className="px-3 py-2"
+                                                    >
+                                                        <div className="flex w-full items-center gap-3">
+                                                            {emp.photo ? (
+                                                                <img
+                                                                    src={emp.photo}
+                                                                    alt={emp.name}
+                                                                    className="h-9 w-9 rounded-full object-cover"
+                                                                />
+                                                            ) : (
+                                                                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                                                                    {emp.name
+                                                                        .split(' ')
+                                                                        .map((part) => part[0])
+                                                                        .join('')
+                                                                        .slice(0, 2)
+                                                                        .toUpperCase()}
+                                                                </div>
+                                                            )}
+
+                                                            <div className="min-w-0 flex-1">
+                                                                <p className="truncate text-sm font-medium">{emp.name}</p>
+                                                                <p className="truncate text-xs text-muted-foreground">
+                                                                    {emp.employee_id} • {emp.department} • {emp.position}
+                                                                </p>
                                                             </div>
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            ) : (
-                                                <div className="p-4 text-center text-sm text-muted-foreground">
-                                                    No employees found
-                                                </div>
-                                            )}
-                                        </div>
-                                    </PopoverContent>
-                                </Popover>
+
+                                                            {emp.badge?.is_active && (
+                                                                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-800">
+                                                                    Has Badge
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </CommandItem>
+                                                ))}
+                                            </CommandGroup>
+                                        </CommandList>
+                                    </Command>
+                                </div>
                             )}
 
                             {errors.employee_id && (
