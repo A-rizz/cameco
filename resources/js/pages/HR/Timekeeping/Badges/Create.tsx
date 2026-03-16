@@ -4,7 +4,6 @@ import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Plus, CheckCircle, AlertCircle } from 'lucide-react';
 import { BadgeIssuanceModal, type BadgeFormData } from '@/components/hr/badge-issuance-modal';
 
@@ -159,64 +158,18 @@ export default function CreateBadge({ employees, existingBadgeUids }: CreateBadg
                 {/* Main Content */}
                 <Card>
                     <CardHeader>
-                        <CardTitle className="flex items-center justify-between">
-                            <span>Issue New Badge</span>
-                            <Badge variant="outline">Phase 1 - Task 1.3</Badge>
-                        </CardTitle>
+                        <CardTitle>Issue New Badge</CardTitle>
                         <CardDescription>
-                            Click the button below to open the badge issuance form modal
+                            Open the badge issuance form to assign an RFID badge to an employee.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="space-y-3">
-                            <h3 className="font-semibold text-sm">Available Features:</h3>
-                            <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground">
-                                <li>✅ Employee selection with searchable autocomplete</li>
-                                <li>✅ Card UID input with format validation (XX:XX:XX:XX:XX)</li>
-                                <li>✅ Mock RFID scanner with 2-second scanning animation</li>
-                                <li>✅ Card type selector (Mifare, DESFire, EM4100)</li>
-                                <li>✅ Optional expiration date picker with future date validation</li>
-                                <li>✅ Optional issue notes textarea</li>
-                                <li>✅ Employee acknowledgment checkbox with signature field</li>
-                                <li>✅ Badge tested checkbox</li>
-                                <li>✅ Existing badge warning with replacement option</li>
-                                <li>✅ Real-time form validation with error messages</li>
-                            </ul>
-                        </div>
-
                         <div className="pt-4 border-t">
                             <Button onClick={handleModalOpen} size="lg" className="gap-2">
                                 <Plus className="h-5 w-5" />
                                 Open Badge Issuance Form
                             </Button>
                         </div>
-                    </CardContent>
-                </Card>
-
-                {/* Instructions Card */}
-                <Card className="bg-blue-50 border-blue-200">
-                    <CardHeader>
-                        <CardTitle className="text-base">How to Use</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2 text-sm">
-                        <p>
-                            <strong>1. Open the form:</strong> Click the "Open Badge Issuance Form" button above
-                        </p>
-                        <p>
-                            <strong>2. Select an employee:</strong> Search by name, employee ID, or department
-                        </p>
-                        <p>
-                            <strong>3. Enter badge information:</strong> Manually enter Card UID or use the scanner
-                        </p>
-                        <p>
-                            <strong>4. Mock scanner (Phase 1):</strong> Click the QR code icon to simulate scanning
-                        </p>
-                        <p>
-                            <strong>5. Optional fields:</strong> Fill in expiration date, notes, and verification checkboxes
-                        </p>
-                        <p>
-                            <strong>6. Submit:</strong> Click "Issue Badge" to save the badge assignment
-                        </p>
                     </CardContent>
                 </Card>
             </div>
