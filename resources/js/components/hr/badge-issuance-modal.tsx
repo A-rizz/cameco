@@ -369,7 +369,7 @@ export function BadgeIssuanceModal({
                                             <p className="font-semibold text-sm text-amber-900">
                                                 ⚠️ Employee Already Has Active Badge
                                             </p>
-                                            <p className="text-xs text-amber-800 mt-3 mb-3 space-y-1">
+                                            <div className="mt-3 mb-3 space-y-1 text-xs text-amber-800">
                                                 <div><strong>Card UID:</strong> <code className="font-mono bg-amber-100 px-2 py-1 rounded">{selectedEmployee?.badge?.card_uid}</code></div>
                                                 <div><strong>Issued:</strong> {selectedEmployee?.badge?.issued_at ? new Date(selectedEmployee.badge.issued_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A'}</div>
                                                 {selectedEmployee?.badge?.last_used_at && (
@@ -378,7 +378,7 @@ export function BadgeIssuanceModal({
                                                 {selectedEmployee?.badge?.expires_at && (
                                                     <div><strong>Expires:</strong> {new Date(selectedEmployee.badge.expires_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
                                                 )}
-                                            </p>
+                                            </div>
                                             <p className="text-xs text-amber-700 font-medium">
                                                 Select "Replace Badge" to issue a new badge or "Cancel" to select another employee
                                             </p>
