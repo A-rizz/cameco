@@ -35,23 +35,24 @@ class LeaveBalanceSeeder extends Seeder
 
         foreach ($employees as $employee) {
             try {
-                // Initialize current year balances for all policies
                 $this->command->line("  → Initializing balances for {$employee->employee_number}");
-                $service->initializeBalances($employee, $currentYear);
-
                 $policies = LeavePolicy::where('is_active', true)->get();
-                $totalBalancesCreated += $policies->count();
-
-                // Simulate accruals for months that have already elapsed
-                $monthsElapsed = now()->month;
-                for ($month = 1; $month <= $monthsElapsed; $month++) {
-                    $accrualDate = Carbon::create($currentYear, $month, 1);
-
-                    foreach ($policies as $policy) {
-                        $service->accrueLeave($employee, $policy, $accrualDate);
-                        $totalAccrualsCreated++;
-                    }
+                foreach ($policies as $policy) {
+                    $balance = \App\Models\LeaveBalance::updateOrCreate(
+                        [
+                            'employee_id' => $employee->id,
+                            'leave_policy_id' => $policy->id,
+                            'year' => $currentYear,
+                        ],
+                        [
+                            'earned' => $policy->annual_entitlement,
+                            'used' => 0,
+                            'carried_forward' => 0,
+                            'forfeited' => 0,
+                        ]
+                    );
                 }
+                $totalBalancesCreated += $policies->count();
             } catch (\Exception $e) {
                 $this->command->error("Failed to seed balances for employee {$employee->employee_number}: {$e->getMessage()}");
                 continue;
