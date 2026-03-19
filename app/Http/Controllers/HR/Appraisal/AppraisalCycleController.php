@@ -20,7 +20,48 @@ use Carbon\Carbon;
  * 4. Close cycle when all appraisals are completed and acknowledged
  */
 class AppraisalCycleController extends Controller
+
 {
+    /**
+     * Display the specified appraisal cycle details
+     */
+    public function show($id)
+    {
+        $cycle = \App\Models\AppraisalCycle::with(['createdBy', 'appraisals.employee.profile', 'appraisals.employee.department', 'appraisals.employee.position'])
+            ->findOrFail($id);
+
+        // Format cycle data for frontend
+        $cycleData = [
+            'id' => $cycle->id,
+            'name' => $cycle->name,
+            'start_date' => $cycle->start_date,
+            'end_date' => $cycle->end_date,
+            'status' => $cycle->status,
+            'criteria' => $cycle->criteria,
+            'created_by' => $cycle->createdBy ? [
+                'id' => $cycle->createdBy->id,
+                'name' => $cycle->createdBy->name,
+                'email' => $cycle->createdBy->email,
+            ] : null,
+            'appraisals' => $cycle->appraisals->map(function ($a) {
+                return [
+                    'id' => $a->id,
+                    'employee_id' => $a->employee_id,
+                    'employee_name' => $a->employee && $a->employee->profile ? ($a->employee->profile->first_name . ' ' . $a->employee->profile->last_name) : '',
+                    'employee_number' => $a->employee ? $a->employee->employee_number : '',
+                    'department' => $a->employee && $a->employee->department ? $a->employee->department->name : '',
+                    'position' => $a->employee && $a->employee->position ? $a->employee->position->title : '',
+                    'status' => $a->status,
+                    'overall_score' => $a->overall_score,
+                ];
+            }),
+        ];
+
+        return Inertia::render('HR/Appraisals/Cycles/Show', [
+            'cycle' => $cycleData,
+        ]);
+    }
+
     /**
      * Assign employees to an appraisal cycle
      */
