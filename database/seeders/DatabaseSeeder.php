@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
@@ -13,288 +12,168 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-
+        // ── Default Users ──────────────────────────────────────────────────
         User::firstOrCreate(
             ['email' => 'superadmin@cameco.com'],
             [
-                'name' => 'Test User',
-                'username' => 'superadmin',
-                'password' => 'password',
+                'name'              => 'Test User',
+                'username'          => 'superadmin',
+                'password'          => 'password',
                 'email_verified_at' => now(),
             ]
         );
-        
+
         User::firstOrCreate(
             ['email' => 'hrmanager@cameco.com'],
             [
-                'name' => 'HR Manager',
-                'username' => 'hrmanager',
-                'password' => 'password',
+                'name'              => 'HR Manager',
+                'username'          => 'hrmanager',
+                'password'          => 'password',
                 'email_verified_at' => now(),
             ]
         );
-        
-        // Seed Leave policies first
-        if (class_exists(\Database\Seeders\LeavePolicySeeder::class)) {
-            $this->call(\Database\Seeders\LeavePolicySeeder::class);
+
+        // ── Roles & Base Permissions (must run first) ──────────────────────
+        $this->call([
+            LeavePolicySeeder::class,
+            RolesAndPermissionsSeeder::class,
+        ]);
+
+        // Assign roles to the default users
+        $superadmin = User::where('email', 'superadmin@cameco.com')->first();
+        if ($superadmin && method_exists($superadmin, 'assignRole')) {
+            try { $superadmin->assignRole('Superadmin'); } catch (\Throwable) {}
         }
 
-        // Seed roles and permissions (Spatie) and assign roles to users
-        if (class_exists(\Database\Seeders\RolesAndPermissionsSeeder::class)) {
-            $this->call(\Database\Seeders\RolesAndPermissionsSeeder::class);
+        $hrManager = User::where('email', 'hrmanager@cameco.com')->first();
+        if ($hrManager && method_exists($hrManager, 'assignRole')) {
+            try { $hrManager->assignRole('HR Manager'); } catch (\Throwable) {}
+        }
 
-            // Assign Superadmin role
-            $superadmin = User::where('email', 'superadmin@cameco.com')->first();
-            if ($superadmin && method_exists($superadmin, 'assignRole')) {
-                try {
-                    $superadmin->assignRole('Superadmin');
-                } catch (\Throwable $e) {
-                    // ignore assignment errors during seeding
-                }
+        // ── Permission Extensions (must run after RolesAndPermissionsSeeder) ──
+        $this->call([
+            ATSPermissionsSeeder::class,
+            TimekeepingPermissionsSeeder::class,
+            BadgeManagementPermissionsSeeder::class,
+            WorkforceManagementPermissionsSeeder::class,
+            DocumentManagementPermissionsSeeder::class,
+            PayrollPermissionsSeeder::class,
+            OffboardingPermissionsSeeder::class,
+            AppraisalPermissionsSeeder::class,
+        ]);
+
+        // ── Additional User Accounts (must run after roles) ────────────────
+        $this->call([
+            PayrollOfficerAccountSeeder::class,
+            OfficeAdminSeeder::class,
+            EmployeeRoleSeeder::class,
+            HRStaffAccountSeeder::class,
+        ]);
+
+        // ── System & Config Data ───────────────────────────────────────────
+        $this->call([
+            SLASeeder::class,
+            CronJobSeeder::class,
+            SecurityPolicySeeder::class,
+            SecurityAuditLogSeeder::class,
+            SystemSettingsSeeder::class,
+            SystemErrorLogSeeder::class,
+            ScheduledJobSeeder::class,          // ← correct name (no trailing 's')
+            SystemHealthSeeder::class,
+            TaxBracketsSeeder::class,
+            GovernmentContributionRatesSeeder::class,
+            PayrollConfigurationSeeder::class,
+            SalaryComponentSeeder::class,
+        ]);
+
+        // ── HR Structure (departments & positions before employees) ────────
+        $this->call([
+            DepartmentSeeder::class,
+            PositionSeeder::class,
+            WorkScheduleSeeder::class,
+        ]);
+
+        // ── Employees & Profiles ───────────────────────────────────────────
+        $this->call([
+            EmployeeSeeder::class,
+            EmployeeFilipinoProfileSeeder::class,
+            EmployeeAccountSeeder::class,
+            LinkEmployeesToUsersSeeder::class,
+            EmployeePayrollInfoSeeder::class,
+        ]);
+
+        // ── RFID / Badges ──────────────────────────────────────────────────
+        $this->call([
+            RfidDeviceSeeder::class,
+            RfidCardMappingSeeder::class,
+        ]);
+
+        // ── Leave & Overtime ───────────────────────────────────────────────
+        $this->call([
+            LeaveBalanceSeeder::class,
+            OvertimeRequestSeeder::class,
+        ]);
+
+        // ── Workforce & Scheduling ─────────────────────────────────────────
+        $this->call([
+            WorkforceSeeder::class,
+        ]);
+
+        // ── Timekeeping & Attendance ───────────────────────────────────────
+        $this->call([
+            RfidLedgerSeeder::class,
+            AttendanceEventsSeeder::class,
+            DailyAttendanceSummarySeeder::class,
+        ]);
+
+        // ── Document Management ────────────────────────────────────────────
+        $this->call([
+            DocumentTemplateSeeder::class,
+        ]);
+
+        // ── Payroll ────────────────────────────────────────────────────────
+        $this->call([
+            PaymentMethodsSeeder::class,
+            PayrollPeriodsSeeder::class,
+            PayrollPaymentsSeeder::class,
+            CashDistributionBatchSeeder::class,
+            PayslipsSeeder::class,              // ← called once only (was duplicated)
+        ]);
+
+        // ── Appraisals ─────────────────────────────────────────────────────
+        $this->call([
+            AppraisalCycleSeeder::class,
+            AppraisalSeeder::class,
+        ]);
+
+        // ── ATS / Recruitment ──────────────────────────────────────────────
+        // Order matters: job postings → candidates → applications → interviews
+        $this->call([
+            JobPostingSeeder::class,
+            CandidateSeeder::class,
+            ApplicationSeeder::class,
+            InterviewSeeder::class,
+        ]);
+
+        // ── Offboarding ────────────────────────────────────────────────────
+        $this->call([
+            OffboardingSystemSeeder::class,
+        ]);
+
+        // ── Dev / Test Data (local environment only) ───────────────────────
+        if (app()->environment('local', 'testing')) {
+            $this->call([
+                BulkEmployeeSeeder::class,
+                TimekeepingTestDataSeeder::class,
+                FebruaryFirstHalfPayrollSeeder::class,
+                FebruarySecondHalfPayrollSeeder::class,
+                FullPayrollTestDataSeeder::class,
+            ]);
+
+            // Requires SEED_PAYROLL_TEST_DATA=true in .env
+            if (env('SEED_PAYROLL_TEST_DATA', false)) {
+                $this->call(PayrollCalculationTestSeeder::class);
             }
-
-            // Assign HR Manager role
-            $hrManager = User::where('email', 'hrmanager@cameco.com')->first();
-            if ($hrManager && method_exists($hrManager, 'assignRole')) {
-                try {
-                    $hrManager->assignRole('HR Manager');
-                } catch (\Throwable $e) {
-                    // ignore assignment errors during seeding
-                }
-            }
-        }
-
-        // Seed ATS permissions
-        if (class_exists(\Database\Seeders\ATSPermissionsSeeder::class)) {
-            $this->call(\Database\Seeders\ATSPermissionsSeeder::class);
-        }
-
-        // Seed Timekeeping permissions
-        if (class_exists(\Database\Seeders\TimekeepingPermissionsSeeder::class)) {
-            $this->call(\Database\Seeders\TimekeepingPermissionsSeeder::class);
-        }
-
-        // Seed Badge Management permissions
-        if (class_exists(\Database\Seeders\BadgeManagementPermissionsSeeder::class)) {
-            $this->call(\Database\Seeders\BadgeManagementPermissionsSeeder::class);
-        }
-
-        // Seed Workforce Management permissions
-        if (class_exists(\Database\Seeders\WorkforceManagementPermissionsSeeder::class)) {
-            $this->call(\Database\Seeders\WorkforceManagementPermissionsSeeder::class);
-        }
-
-        // Seed Document Management permissions
-        if (class_exists(\Database\Seeders\DocumentManagementPermissionsSeeder::class)) {
-            $this->call(\Database\Seeders\DocumentManagementPermissionsSeeder::class);
-        }
-
-        // Seed Payroll permissions
-        if (class_exists(\Database\Seeders\PayrollPermissionsSeeder::class)) {
-            $this->call(\Database\Seeders\PayrollPermissionsSeeder::class);
-        }
-
-        // Seed Offboarding permissions
-        if (class_exists(\Database\Seeders\OffboardingPermissionsSeeder::class)) {
-            $this->call(\Database\Seeders\OffboardingPermissionsSeeder::class);
-        }
-
-        // Seed Payroll Officer account
-        if (class_exists(\Database\Seeders\PayrollOfficerAccountSeeder::class)) {
-            $this->call(\Database\Seeders\PayrollOfficerAccountSeeder::class);
-        }
-
-        // Seed Office Admin role and permissions (must run after RolesAndPermissionsSeeder)
-        if (class_exists(\Database\Seeders\OfficeAdminSeeder::class)) {
-            $this->call(\Database\Seeders\OfficeAdminSeeder::class);
-        }
-
-        // Seed Employee role and permissions (must run after RolesAndPermissionsSeeder)
-        if (class_exists(\Database\Seeders\EmployeeRoleSeeder::class)) {
-            $this->call(\Database\Seeders\EmployeeRoleSeeder::class);
-        }
-
-        if (class_exists(\Database\Seeders\HRStaffAccountSeeder::class)) {
-            $this->call(\Database\Seeders\HRStaffAccountSeeder::class);
-        }
-
-        if (class_exists(\Database\Seeders\SLASeeder::class)) {
-            $this->call(\Database\Seeders\SLASeeder::class);
-        }
-
-        // Seed cron jobs
-        if (class_exists(\Database\Seeders\CronJobSeeder::class)) {
-            $this->call(\Database\Seeders\CronJobSeeder::class);
-        }
-
-        // Seed default security policies
-        if (class_exists(\Database\Seeders\SecurityPolicySeeder::class)) {
-            $this->call(\Database\Seeders\SecurityPolicySeeder::class);
-        }
-
-        // Seed default security logs
-        if (class_exists(\Database\Seeders\SecurityAuditLogSeeder::class)) {
-            $this->call(\Database\Seeders\SecurityAuditLogSeeder::class);
-        }
-
-        // Seed system settings
-        if (class_exists(\Database\Seeders\SystemSettingsSeeder::class)) {
-            $this->call(\Database\Seeders\SystemSettingsSeeder::class);
-        }
-
-        // Seed System Error Logs
-        if (class_exists(\Database\Seeders\SystemErrorLogSeeder::class)) {
-            $this->call(\Database\Seeders\SystemErrorLogSeeder::class);
-        }
-
-        // Seed Scheduled Jobs
-        if (class_exists(\Database\Seeders\ScheduledJobsSeeder::class)) {
-            $this->call(\Database\Seeders\ScheduledJobsSeeder::class);
-        }
-
-        // Seed System Health Checks
-        if (class_exists(\Database\Seeders\SystemHealthSeeder::class)) {
-            $this->call(\Database\Seeders\SystemHealthSeeder::class);
-        }
-
-        // Seed Support Contract Settings
-        if (class_exists(\Database\Seeders\SupportContractSettingsSeeder::class)) {
-            $this->call(\Database\Seeders\SupportContractSettingsSeeder::class);
-        }
-
-         // Seed HR data
-         
-        if (class_exists(\Database\Seeders\DepartmentSeeder::class)) {
-            $this->call(\Database\Seeders\DepartmentSeeder::class);
-        }
-
-        if (class_exists(\Database\Seeders\PositionSeeder::class)) {
-            $this->call(\Database\Seeders\PositionSeeder::class);
-        }
-        
-        if (class_exists(\Database\Seeders\EmployeeSeeder::class)) {
-            $this->call(\Database\Seeders\EmployeeSeeder::class);
-        }
-
-        // Assign Filipino names and mock photos to seeded employees
-        if (class_exists(\Database\Seeders\EmployeeFilipinoProfileSeeder::class)) {
-            $this->call(\Database\Seeders\EmployeeFilipinoProfileSeeder::class);
-        }
-
-        // Assign real physical RFID card UIDs to the first 10 employees (those with photos)
-        if (class_exists(\Database\Seeders\RfidCardMappingSeeder::class)) {
-            $this->call(\Database\Seeders\RfidCardMappingSeeder::class);
-        }
-
-        // Seed Employee Accounts (must run after employees)
-        if (class_exists(\Database\Seeders\EmployeeAccountSeeder::class)) {
-            $this->call(\Database\Seeders\EmployeeAccountSeeder::class);
-        }
-
-        // Seed Leave Balances (must run after employees and leave policies)
-        if (class_exists(\Database\Seeders\LeaveBalanceSeeder::class)) {
-            $this->call(\Database\Seeders\LeaveBalanceSeeder::class);
-        }
-
-        // Seed Overtime Requests (must run after employees)
-        if (class_exists(\Database\Seeders\OvertimeRequestSeeder::class)) {
-            $this->call(\Database\Seeders\OvertimeRequestSeeder::class);
-        }
-
-        // Seed Workforce Management data
-        if (class_exists(\Database\Seeders\WorkforceSeeder::class)) {
-            $this->call(\Database\Seeders\WorkforceSeeder::class);
-        }
-
-        // Seed Document Management templates
-        if (class_exists(\Database\Seeders\DocumentTemplateSeeder::class)) {
-            $this->call(\Database\Seeders\DocumentTemplateSeeder::class);
-        }
-
-        // Seed Payroll Payment Methods
-        if (class_exists(\Database\Seeders\PaymentMethodsSeeder::class)) {
-            $this->call(\Database\Seeders\PaymentMethodsSeeder::class);
-        }
-
-        if (class_exists(\Database\Seeders\RfidLedgerSeeder::class)) {
-            $this->call(\Database\Seeders\RfidLedgerSeeder::class);
-        }
-
-        if (class_exists(\Database\Seeders\TaxBracketsSeeder::class)) {
-            $this->call(\Database\Seeders\TaxBracketsSeeder::class);
-        }
-        if (class_exists(\Database\Seeders\GovernmentContributionRatesSeeder::class)) {
-            $this->call(\Database\Seeders\GovernmentContributionRatesSeeder::class);
-        }
-
-        // Seed Payroll Periods (must run after employees)
-        if (class_exists(\Database\Seeders\PayrollPeriodsSeeder::class)) {
-            $this->call(\Database\Seeders\PayrollPeriodsSeeder::class);
-        }
-
-        if (class_exists(\Database\Seeders\PayslipsSeeder::class)) {
-            $this->call(\Database\Seeders\PayslipsSeeder::class);
-        }
-
-        // Payroll Calculation Test Data (dev/local only)
-        // Enable with: SEED_PAYROLL_TEST_DATA=true in .env
-        if (app()->environment('local', 'testing') && env('SEED_PAYROLL_TEST_DATA', false)) {
-            if (class_exists(\Database\Seeders\PayrollCalculationTestSeeder::class)) {
-                $this->call(\Database\Seeders\PayrollCalculationTestSeeder::class);
-            }
-        }
-
-        // Seed Payroll Payments (must run after periods, employees, and payment methods)
-        if (class_exists(\Database\Seeders\PayrollPaymentsSeeder::class)) {
-            $this->call(\Database\Seeders\PayrollPaymentsSeeder::class);
-        }
-
-        // Seed Cash Distribution Batches (must run after payments)
-        if (class_exists(\Database\Seeders\CashDistributionBatchSeeder::class)) {
-            $this->call(\Database\Seeders\CashDistributionBatchSeeder::class);
-        }
-
-        // Seed Payslips (must run after payments)
-        if (class_exists(\Database\Seeders\PayslipsSeeder::class)) {
-            $this->call(\Database\Seeders\PayslipsSeeder::class);
-        }
-
-        if (class_exists(\Database\Seeders\EmployeePayrollInfoSeeder::class)) {
-            $this->call(\Database\Seeders\EmployeePayrollInfoSeeder::class);
-        }
-
-        if (class_exists(\Database\Seeders\SalaryComponentSeeder::class)) {
-            $this->call(\Database\Seeders\SalaryComponentSeeder::class);
-
-        if (class_exists(\Database\Seeders\EmployeeSalaryComponentSeeder::class)) {
-            $this->call(\Database\Seeders\EmployeeSalaryComponentSeeder::class);
-        }   
-
-        if (class_exists(\Database\Seeders\PayrollCalculationSeeder::class)) {
-            $this->call(\Database\Seeders\PayrollCalculationSeeder::class);
-        }
-
-        if (class_exists(\Database\Seeders\OffboardingSystemSeeder::class)) {
-            $this->call(\Database\Seeders\OffboardingSystemSeeder::class);
-        }
-        
-        if (class_exists(\Database\Seeders\OffboardingChecklistSeeder::class)) {
-            $this->call(\Database\Seeders\OffboardingChecklistSeeder::class);
-    
-        }
-
-        if(class_exists(\Database\Seeders\JobPostingSeeder::class)) {
-            $this->call(\Database\Seeders\JobPostingSeeder::class);
-        }
-
-        if (class_exists(\Database\Seeders\CandidateSeeder::class)) {
-            $this->call(\Database\Seeders\CandidateSeeder::class);
-
-        }
-
         }
     }
-
-
 }
