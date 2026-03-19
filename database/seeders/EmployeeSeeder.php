@@ -16,6 +16,10 @@ class EmployeeSeeder extends Seeder
      */
     public function run(): void
     {
+        // Ensure we have a valid created_by user id (prefer superadmin)
+        $superadminUser = User::where('email', 'superadmin@cameco.com')->first();
+        $createdBy = $superadminUser ? $superadminUser->id : 1;
+
         // Get departments and positions
         $hr = Department::where('code', 'HR')->first();
         $it = Department::where('code', 'IT')->first();
@@ -23,6 +27,80 @@ class EmployeeSeeder extends Seeder
         $operations = Department::where('code', 'OPS')->first();
         $sales = Department::where('code', 'SALES')->first();
         $production = Department::where('code', 'PROD')->first();
+        // Ensure Rolling Mill department exists
+        $rollingMill = Department::firstOrCreate(
+            ['code' => 'RM'],
+            [
+                'name' => 'Rolling Mill',
+                'description' => 'Handles rolling mill operations',
+                'is_active' => true
+            ]
+        );
+        // Get production/rolling mill positions
+        $prodWorker = Position::where('title', 'Production Worker')->first();
+        $prodManager = Position::where('title', 'Production Manager')->first();
+        $prodSupervisor = Position::where('title', 'Production Supervisor')->first();
+        $machineOperator = Position::where('title', 'Machine Operator')->first();
+        $rmWorker = $prodWorker; // Use same as production worker for rolling mill
+        $rmManager = $prodManager;
+        $rmSupervisor = $prodSupervisor;
+        $rmOperator = $machineOperator;
+
+        // Bulk-generate Production employees (30)
+        for ($i = 1; $i <= 30; $i++) {
+            $empNum = sprintf('EMP-PROD-%04d', $i);
+            $profile = Profile::create([
+                'first_name' => 'Prod',
+                'middle_name' => 'Emp',
+                'last_name' => "{$i}",
+                'date_of_birth' => '1990-01-01',
+                'gender' => 'male',
+                'civil_status' => 'single',
+                'email' => "prod{$i}@cameco.com",
+                'current_address' => 'Production Area',
+                'permanent_address' => 'Production Area',
+            ]);
+            Employee::firstOrCreate([
+                'employee_number' => $empNum
+            ], [
+                'profile_id' => $profile->id,
+                'department_id' => $production?->id,
+                'position_id' => $prodWorker?->id,
+                'employment_type' => 'regular',
+                'date_hired' => '2022-01-01',
+                'status' => 'active',
+                'created_by' => $createdBy,
+                'updated_by' => $createdBy,
+            ]);
+        }
+
+        // Bulk-generate Rolling Mill employees (15)
+        for ($i = 1; $i <= 15; $i++) {
+            $empNum = sprintf('EMP-RM-%04d', $i);
+            $profile = Profile::create([
+                'first_name' => 'Rolling',
+                'middle_name' => 'Mill',
+                'last_name' => "{$i}",
+                'date_of_birth' => '1991-01-01',
+                'gender' => 'male',
+                'civil_status' => 'single',
+                'email' => "rolling{$i}@cameco.com",
+                'current_address' => 'Rolling Mill Area',
+                'permanent_address' => 'Rolling Mill Area',
+            ]);
+            Employee::firstOrCreate([
+                'employee_number' => $empNum
+            ], [
+                'profile_id' => $profile->id,
+                'department_id' => $rollingMill?->id,
+                'position_id' => $rmWorker?->id,
+                'employment_type' => 'regular',
+                'date_hired' => '2022-01-01',
+                'status' => 'active',
+                'created_by' => $createdBy,
+                'updated_by' => $createdBy,
+            ]);
+        }
 
         $hrManager = Position::where('title', 'HR Manager')->first();
         $hrSpecialist = Position::where('title', 'HR Specialist')->first();
@@ -382,11 +460,10 @@ class EmployeeSeeder extends Seeder
             ],
         ];
 
-        $createdEmployees = [];
 
-        // Ensure we have a valid created_by user id (prefer superadmin)
-        $superadminUser = User::where('email', 'superadmin@cameco.com')->first();
-        $createdBy = $superadminUser ? $superadminUser->id : 1;
+        // ...existing code...
+
+        $createdEmployees = [];
 
         foreach ($employees as $data) {
             // Check if employee already exists
