@@ -27,13 +27,32 @@ class EmployeeSeeder extends Seeder
         $operations = Department::where('code', 'OPS')->first();
         $sales = Department::where('code', 'SALES')->first();
         $production = Department::where('code', 'PROD')->first();
-        // Ensure Rolling Mill department exists
-        $rollingMill = Department::firstOrCreate(
-            ['code' => 'RM'],
+        // Ensure Rolling Mill 1, 2, 3 sub-departments exist under Production
+        $rollingMill1 = Department::firstOrCreate(
+            ['code' => 'RM1'],
             [
-                'name' => 'Rolling Mill',
-                'description' => 'Handles rolling mill operations',
-                'is_active' => true
+                'name' => 'Rolling Mill 1',
+                'description' => 'Rolling Mill 1 under Production',
+                'is_active' => true,
+                'parent_id' => $production?->id
+            ]
+        );
+        $rollingMill2 = Department::firstOrCreate(
+            ['code' => 'RM2'],
+            [
+                'name' => 'Rolling Mill 2',
+                'description' => 'Rolling Mill 2 under Production',
+                'is_active' => true,
+                'parent_id' => $production?->id
+            ]
+        );
+        $rollingMill3 = Department::firstOrCreate(
+            ['code' => 'RM3'],
+            [
+                'name' => 'Rolling Mill 3',
+                'description' => 'Rolling Mill 3 under Production',
+                'is_active' => true,
+                'parent_id' => $production?->id
             ]
         );
         // Get production/rolling mill positions
@@ -46,26 +65,26 @@ class EmployeeSeeder extends Seeder
         $rmSupervisor = $prodSupervisor;
         $rmOperator = $machineOperator;
 
-        // Bulk-generate Production employees (30)
+        // Bulk-generate Rolling Mill 1 employees (30)
         for ($i = 1; $i <= 30; $i++) {
-            $empNum = sprintf('EMP-PROD-%04d', $i);
+            $empNum = sprintf('EMP-RM1-%04d', $i);
             $profile = Profile::create([
-                'first_name' => 'Prod',
-                'middle_name' => 'Emp',
+                'first_name' => 'Rolling',
+                'middle_name' => 'Mill1',
                 'last_name' => "{$i}",
                 'date_of_birth' => '1990-01-01',
                 'gender' => 'male',
                 'civil_status' => 'single',
-                'email' => "prod{$i}@cameco.com",
-                'current_address' => 'Production Area',
-                'permanent_address' => 'Production Area',
+                'email' => "rm1_{$i}@cameco.com",
+                'current_address' => 'Rolling Mill 1 Area',
+                'permanent_address' => 'Rolling Mill 1 Area',
             ]);
             Employee::firstOrCreate([
                 'employee_number' => $empNum
             ], [
                 'profile_id' => $profile->id,
-                'department_id' => $production?->id,
-                'position_id' => $prodWorker?->id,
+                'department_id' => $rollingMill1?->id,
+                'position_id' => $rmWorker?->id,
                 'employment_type' => 'regular',
                 'date_hired' => '2022-01-01',
                 'status' => 'active',
@@ -74,25 +93,53 @@ class EmployeeSeeder extends Seeder
             ]);
         }
 
-        // Bulk-generate Rolling Mill employees (15)
-        for ($i = 1; $i <= 15; $i++) {
-            $empNum = sprintf('EMP-RM-%04d', $i);
+        // Bulk-generate Rolling Mill 2 employees (25)
+        for ($i = 1; $i <= 25; $i++) {
+            $empNum = sprintf('EMP-RM2-%04d', $i);
             $profile = Profile::create([
                 'first_name' => 'Rolling',
-                'middle_name' => 'Mill',
+                'middle_name' => 'Mill2',
                 'last_name' => "{$i}",
-                'date_of_birth' => '1991-01-01',
+                'date_of_birth' => '1990-01-01',
                 'gender' => 'male',
                 'civil_status' => 'single',
-                'email' => "rolling{$i}@cameco.com",
-                'current_address' => 'Rolling Mill Area',
-                'permanent_address' => 'Rolling Mill Area',
+                'email' => "rm2_{$i}@cameco.com",
+                'current_address' => 'Rolling Mill 2 Area',
+                'permanent_address' => 'Rolling Mill 2 Area',
             ]);
             Employee::firstOrCreate([
                 'employee_number' => $empNum
             ], [
                 'profile_id' => $profile->id,
-                'department_id' => $rollingMill?->id,
+                'department_id' => $rollingMill2?->id,
+                'position_id' => $rmWorker?->id,
+                'employment_type' => 'regular',
+                'date_hired' => '2022-01-01',
+                'status' => 'active',
+                'created_by' => $createdBy,
+                'updated_by' => $createdBy,
+            ]);
+        }
+
+        // Bulk-generate Rolling Mill 3 employees (20)
+        for ($i = 1; $i <= 20; $i++) {
+            $empNum = sprintf('EMP-RM3-%04d', $i);
+            $profile = Profile::create([
+                'first_name' => 'Rolling',
+                'middle_name' => 'Mill3',
+                'last_name' => "{$i}",
+                'date_of_birth' => '1990-01-01',
+                'gender' => 'male',
+                'civil_status' => 'single',
+                'email' => "rm3_{$i}@cameco.com",
+                'current_address' => 'Rolling Mill 3 Area',
+                'permanent_address' => 'Rolling Mill 3 Area',
+            ]);
+            Employee::firstOrCreate([
+                'employee_number' => $empNum
+            ], [
+                'profile_id' => $profile->id,
+                'department_id' => $rollingMill3?->id,
                 'position_id' => $rmWorker?->id,
                 'employment_type' => 'regular',
                 'date_hired' => '2022-01-01',
