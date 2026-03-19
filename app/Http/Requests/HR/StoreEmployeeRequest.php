@@ -44,7 +44,7 @@ class StoreEmployeeRequest extends FormRequest
             'mother_date_of_birth' => ['nullable', 'date'],
             
             // Contact Information
-            'email' => ['required', 'email', 'max:255', 'unique:employees,email'],
+            'email' => ['required', 'email', 'max:255', 'unique:profiles,email'],
             'phone' => ['nullable', 'string', 'max:20', 'regex:/^[0-9+\-\s()]+$/'],
             'mobile' => ['nullable', 'string', 'max:20', 'regex:/^[0-9+\-\s()]+$/'],
             
