@@ -23,6 +23,17 @@ use Carbon\Carbon;
 class AppraisalCycleController extends Controller
 {
     /**
+     * Close the specified appraisal cycle.
+     */
+    public function close($id)
+    {
+        $cycle = \App\Models\AppraisalCycle::findOrFail($id);
+        $cycle->status = 'closed';
+        $cycle->save();
+        return redirect()->route('hr.appraisals.cycles.show', $id)->with('success', 'Appraisal cycle closed successfully.');
+    }
+
+    /**
      * Remove the specified appraisal cycle from storage.
      */
     public function destroy($id)
