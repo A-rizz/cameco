@@ -297,6 +297,9 @@ Route::middleware(['auth', 'verified' , EnsureHRAccess::class])
                 Route::put('/{id}', [AppraisalCycleController::class, 'update'])
                     ->middleware('permission:hr.appraisals.conduct')
                     ->name('update');
+                Route::delete('/{id}', [AppraisalCycleController::class, 'destroy'])
+                    ->middleware('permission:hr.appraisals.conduct')
+                    ->name('destroy');
                 Route::post('/{id}/close', [AppraisalCycleController::class, 'close'])
                     ->middleware('permission:hr.appraisals.conduct')
                     ->name('close');

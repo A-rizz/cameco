@@ -19,9 +19,21 @@ use Carbon\Carbon;
  * 3. Monitor completion progress as appraisals are filled out
  * 4. Close cycle when all appraisals are completed and acknowledged
  */
-class AppraisalCycleController extends Controller
 
+class AppraisalCycleController extends Controller
 {
+    /**
+     * Remove the specified appraisal cycle from storage.
+     */
+    public function destroy($id)
+    {
+        $cycle = \App\Models\AppraisalCycle::findOrFail($id);
+        // Optionally: check for related appraisals and handle as needed (cascade or restrict)
+        $cycle->delete();
+        return redirect()->route('hr.appraisals.cycles.index')->with('success', 'Appraisal cycle deleted successfully.');
+    }
+
+
     /**
      * Display the specified appraisal cycle details
      */
