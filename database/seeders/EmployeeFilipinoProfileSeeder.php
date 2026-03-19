@@ -15,7 +15,7 @@ class EmployeeFilipinoProfileSeeder extends Seeder
     public function run(): void
     {
         $filipinoNames = [
-            ['first_name' => 'Juan',      'middle_name' => 'Santos',    'last_name' => 'Dela Cruz'],
+            ['first_name' => 'Felipe',      'middle_name' => 'Santos',    'last_name' => 'Dela Cruz'],
             ['first_name' => 'Pedro',     'middle_name' => 'Reyes',     'last_name' => 'Bautista'],
             ['first_name' => 'Jose',      'middle_name' => 'Garcia',    'last_name' => 'Aquino'],
             ['first_name' => 'Miguel',    'middle_name' => 'Lopez',     'last_name' => 'Santos'],
