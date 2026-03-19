@@ -49,6 +49,21 @@ class AppraisalCycleController extends Controller
         $avgCompletion = 0; // Placeholder, implement if you have completion data
         $pendingAppraisals = 0; // Placeholder, implement if you have appraisals data
 
+        // Get active employees for assignment modal
+        $employees = \App\Models\Employee::with(['profile', 'department', 'position'])
+            ->whereNull('termination_date')
+            ->where('status', 'active')
+            ->get()
+            ->map(function ($e) {
+                return [
+                    'id' => $e->id,
+                    'name' => $e->profile ? ($e->profile->first_name . ' ' . $e->profile->last_name) : $e->employee_number,
+                    'employee_number' => $e->employee_number,
+                    'department' => $e->department ? $e->department->name : '',
+                    'position' => $e->position ? $e->position->title : '',
+                ];
+            });
+
         return Inertia::render('HR/Appraisals/Cycles/Index', [
             'cycles' => $cycles,
             'stats' => [
@@ -58,6 +73,7 @@ class AppraisalCycleController extends Controller
                 'pending_appraisals' => $pendingAppraisals,
             ],
             'filters' => compact('status', 'year'),
+            'employees' => $employees,
         ]);
     }
 }
