@@ -21,6 +21,9 @@ class JobPostingSeeder extends Seeder
         $it = \App\Models\Department::where('code', 'IT')->first();
         $fin = \App\Models\Department::where('code', 'FIN')->first();
 
+        $superadmin = \App\Models\User::where('email', 'superadmin@cameco.com')->first();
+        $createdBy = $superadmin ? $superadmin->id : 1;
+
         $jobPostings = [
             [
                 'id' => 1,
@@ -29,6 +32,7 @@ class JobPostingSeeder extends Seeder
                 'requirements' => 'Bachelor’s degree in Computer Science or related field. 2+ years experience in software development.',
                 'department_id' => $it ? $it->id : 1,
                 'status' => 'open',
+                'created_by' => $createdBy,
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
@@ -39,6 +43,7 @@ class JobPostingSeeder extends Seeder
                 'requirements' => 'Bachelor’s degree in HR, Psychology, or related field. 1+ year HR experience preferred.',
                 'department_id' => $hr ? $hr->id : 1,
                 'status' => 'open',
+                'created_by' => $createdBy,
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
@@ -49,6 +54,7 @@ class JobPostingSeeder extends Seeder
                 'requirements' => 'Bachelor’s degree in Accountancy. CPA preferred. 2+ years accounting experience.',
                 'department_id' => $fin ? $fin->id : 1,
                 'status' => 'open',
+                'created_by' => $createdBy,
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
