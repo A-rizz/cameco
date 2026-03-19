@@ -182,5 +182,9 @@ class DatabaseSeeder extends Seeder
             if (class_exists(RolesAndPermissionsSeeder::class)) {
                 $this->call(RolesAndPermissionsSeeder::class);
             }
+
+            if (class_exists(OffboardingSeeder::class)) {
+                $this->call(OffboardingSeeder::class);
+            }
     }
 }

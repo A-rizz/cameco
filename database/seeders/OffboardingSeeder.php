@@ -17,9 +17,12 @@ class OffboardingSeeder extends Seeder
     {
         // 1. Ensure at least one department, HR user, and employee exist
         $department = Department::firstOrCreate(['id' => 1], ['name' => 'HR']);
-        $user = User::firstOrCreate(
-            ['email' => 'hrstaff@example.com'],
+        $user = User::updateOrCreate(
             [
+                'username' => 'hrstaff',
+            ],
+            [
+                'email' => 'hrstaff@example.com',
                 'name' => 'HR Staff',
                 'password' => bcrypt('password'),
             ]
