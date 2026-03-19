@@ -51,6 +51,7 @@ interface BadgeIssuanceFormProps {
     employees: Employee[];
     isLoading?: boolean;
     existingBadgeUids?: string[];
+    serverError?: string;
 }
 
 export interface BadgeFormData {
@@ -71,6 +72,7 @@ export function BadgeIssuanceModal({
     employees,
     isLoading = false,
     existingBadgeUids = [],
+    serverError,
 }: BadgeIssuanceFormProps) {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
@@ -242,6 +244,14 @@ export function BadgeIssuanceModal({
                     </DialogHeader>
 
                     <div className="space-y-6">
+                        {/* Server-side error display */}
+                        {serverError && (
+                            <div className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+                                <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5 text-red-600" />
+                                <span>{serverError}</span>
+                            </div>
+                        )}
+
                         {/* Section 1: Employee Selection */}
                         <div className="space-y-3 border rounded-lg p-4 bg-muted/50">
                             <h3 className="font-semibold text-sm">1. Select Employee</h3>

@@ -1,10 +1,11 @@
 import { useState } from 'react';
+import { route } from 'ziggy-js';
+import { Ziggy } from '@/ziggy'; // or './ziggy' if not aliased
 import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { ArrowLeft, Plus, CheckCircle, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Plus } from 'lucide-react';
 import { BadgeIssuanceModal, type BadgeFormData } from '@/components/hr/badge-issuance-modal';
 
 interface Employee {
@@ -33,10 +34,7 @@ interface CreateBadgeProps {
 export default function CreateBadge({ employees, existingBadgeUids }: CreateBadgeProps) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [submitResult, setSubmitResult] = useState<{
-        success: boolean;
-        message: string;
-    } | null>(null);
+    const [serverError, setServerError] = useState<string | undefined>();
 
     const breadcrumbs = [
         { title: 'HR', href: '/hr' },
@@ -47,7 +45,7 @@ export default function CreateBadge({ employees, existingBadgeUids }: CreateBadg
 
     const handleModalOpen = () => {
         setIsModalOpen(true);
-        setSubmitResult(null);
+        setServerError(undefined);
     };
 
     const handleSubmit = (formData: BadgeFormData) => {
@@ -56,7 +54,7 @@ export default function CreateBadge({ employees, existingBadgeUids }: CreateBadg
         const selectedEmployee = employees.find((emp) => emp.id === formData.employee_id);
 
         router.post(
-            route('hr.timekeeping.badges.store'),
+            route('hr.timekeeping.badges.store', {}, Ziggy),
             {
                 employee_id:               formData.employee_id,
                 card_uid:                  formData.card_uid,
@@ -74,13 +72,13 @@ export default function CreateBadge({ employees, existingBadgeUids }: CreateBadg
                 },
                 onError: (errors) => {
                     setIsSubmitting(false);
-                    setSubmitResult({
-                        success: false,
-                        message: errors.error
-                            ?? errors.employee_id
-                            ?? errors.card_uid
-                            ?? 'Failed to issue badge. Please try again.',
-                    });
+                    setServerError(
+                        errors.error
+                        ?? errors.employee_id
+                        ?? errors.card_uid
+                        ?? errors.card_type
+                        ?? 'Failed to issue badge. Please try again.',
+                    );
                 },
             }
         );
@@ -109,9 +107,6 @@ export default function CreateBadge({ employees, existingBadgeUids }: CreateBadg
                     </div>
                 </div>
 
-                {/* Success/Error Alert */}
-                {/* Success/Error Alert removed: backend handles flash message on redirect */}
-
                 {/* Main Content */}
                 <Card>
                     <CardHeader>
@@ -134,11 +129,12 @@ export default function CreateBadge({ employees, existingBadgeUids }: CreateBadg
             {/* Badge Issuance Modal */}
             <BadgeIssuanceModal
                 isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
+                onClose={() => { setIsModalOpen(false); setServerError(undefined); }}
                 onSubmit={handleSubmit}
                 employees={employees}
                 isLoading={isSubmitting}
                 existingBadgeUids={existingBadgeUids}
+                serverError={serverError}
             />
         </AppLayout>
     );
