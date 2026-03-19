@@ -95,60 +95,6 @@ class DatabaseSeeder extends Seeder
             WorkScheduleSeeder::class,
         ]);
 
-        // ── Employees & Profiles ───────────────────────────────────────────
-        $this->call([
-            EmployeeSeeder::class,
-            EmployeeFilipinoProfileSeeder::class,
-            EmployeeAccountSeeder::class,
-            LinkEmployeesToUsersSeeder::class,
-            EmployeePayrollInfoSeeder::class,
-        ]);
-
-        // ── RFID / Badges ──────────────────────────────────────────────────
-        $this->call([
-            RfidDeviceSeeder::class,
-            RfidCardMappingSeeder::class,
-        ]);
-
-        // ── Leave & Overtime ───────────────────────────────────────────────
-        $this->call([
-            LeaveBalanceSeeder::class,
-            LeaveRequestSeeder::class,
-            OvertimeRequestSeeder::class,
-        ]);
-
-        // ── Workforce & Scheduling ─────────────────────────────────────────
-        $this->call([
-            WorkforceSeeder::class,
-        ]);
-
-        // ── Timekeeping & Attendance ───────────────────────────────────────
-        $this->call([
-            RfidLedgerSeeder::class,
-            AttendanceEventsSeeder::class,
-            DailyAttendanceSummarySeeder::class,
-        ]);
-
-        // ── Document Management ────────────────────────────────────────────
-        $this->call([
-            DocumentTemplateSeeder::class,
-        ]);
-
-        // ── Payroll ────────────────────────────────────────────────────────
-        $this->call([
-            PaymentMethodsSeeder::class,
-            PayrollPeriodsSeeder::class,
-            PayrollPaymentsSeeder::class,
-            CashDistributionBatchSeeder::class,
-            PayslipsSeeder::class,              // ← called once only (was duplicated)
-        ]);
-
-        // ── Appraisals ─────────────────────────────────────────────────────
-        $this->call([
-            AppraisalCycleSeeder::class,
-            AppraisalSeeder::class,
-        ]);
-
         // ── ATS / Recruitment ──────────────────────────────────────────────
         // Order matters: job postings → candidates → applications → interviews
         $this->call([
@@ -184,16 +130,64 @@ class DatabaseSeeder extends Seeder
                 $this->call(RolesAndPermissionsSeeder::class);
             }
 
+        // ── Employees & Profiles ───────────────────────────────────────────
+        $this->call([
+            EmployeeSeeder::class,
+            EmployeeFilipinoProfileSeeder::class,
+            EmployeeAccountSeeder::class,
+            LinkEmployeesToUsersSeeder::class,
+            EmployeePayrollInfoSeeder::class,
+        ]);
+        // ── Document Management ────────────────────────────────────────────
+        $this->call([
+            DocumentTemplateSeeder::class,
+        ]);
+
+        // ── Payroll ────────────────────────────────────────────────────────
+        $this->call([
+            PaymentMethodsSeeder::class,
+            PayrollPeriodsSeeder::class,
+            PayrollPaymentsSeeder::class,
+            CashDistributionBatchSeeder::class,
+            PayslipsSeeder::class,              // ← called once only (was duplicated)
+        ]);
+
+        // ── Timekeeping & Attendance ───────────────────────────────────────
+        $this->call([
+            RfidLedgerSeeder::class,
+            AttendanceEventsSeeder::class,
+            DailyAttendanceSummarySeeder::class,
+        ]);
+
+        // ── Appraisals ─────────────────────────────────────────────────────
+        $this->call([
+            AppraisalCycleSeeder::class,
+            AppraisalSeeder::class,
+        ]);
+
+
+        // ── RFID / Badges ──────────────────────────────────────────────────
+        $this->call([
+            RfidDeviceSeeder::class,
+            RfidCardMappingSeeder::class,
+        ]);
+
+        // ── Leave & Overtime ───────────────────────────────────────────────
+        $this->call([
+            LeaveBalanceSeeder::class,
+            LeaveRequestSeeder::class,
+            OvertimeRequestSeeder::class,
+        ]);
+
+        // ── Workforce & Scheduling ─────────────────────────────────────────
+        $this->call([
+            WorkforceSeeder::class,
+        ]);
+
+
             if (class_exists(OffboardingSeeder::class)) {
                 $this->call(OffboardingSeeder::class);
             }
 
-            if (class_exists(LeaveRequestSeeder::class)) {
-                $this->call(LeaveRequestSeeder::class);
-            }
-
-            if (class_exists(LeaveBalanceSeeder::class)) {
-                $this->call(LeaveBalanceSeeder::class);
-            }
     }
 }
