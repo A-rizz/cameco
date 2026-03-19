@@ -155,15 +155,29 @@ export default function BadgesIndex({ badges, stats, filters, employees, employe
     }, []);
 
     const handleIssuanceSubmit = useCallback((formData: BadgeFormData) => {
-        console.log('Badge issuance submitted:', formData);
-        // Simulate issuance submission
-        const employeeName = selectedEmployeeForIssuance?.name || 'Unknown Employee';
-        setIsIssuanceModalOpen(false);
-        setReplacementResult({
-            success: true,
-            message: `Badge ${formData.card_uid} has been successfully issued to ${employeeName}.`,
-        });
-        setTimeout(() => setReplacementResult(null), 5000);
+        router.post(
+            route('hr.timekeeping.badges.store'),
+            {
+                employee_id:               formData.employee_id,
+                card_uid:                  formData.card_uid,
+                card_type:                 formData.card_type,
+                expires_at:                formData.expires_at ?? null,
+                notes:                     formData.issue_notes ?? null, // map issue_notes → notes
+                acknowledgement_signature: formData.acknowledgement_signature ?? null,
+                replace_existing:          selectedEmployeeForIssuance?.badge?.is_active ? true : false,
+            },
+            {
+                onSuccess: () => {
+                    setIsIssuanceModalOpen(false);
+                    setSelectedEmployeeForIssuance(null);
+                    // Success flash is handled by Laravel's session flash → Inertia shared props
+                },
+                onError: (errors) => {
+                    // Keep modal open so the user can see validation errors
+                    console.error('Badge issuance failed:', errors);
+                },
+            }
+        );
     }, [selectedEmployeeForIssuance]);
 
     return (
