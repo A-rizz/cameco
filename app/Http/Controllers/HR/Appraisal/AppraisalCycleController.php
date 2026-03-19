@@ -23,6 +23,33 @@ use Carbon\Carbon;
 class AppraisalCycleController extends Controller
 {
     /**
+     * Show the form for editing the specified appraisal cycle.
+     */
+    public function edit($id)
+    {
+        $cycle = \App\Models\AppraisalCycle::with(['createdBy'])
+            ->findOrFail($id);
+
+        $cycleData = [
+            'id' => $cycle->id,
+            'name' => $cycle->name,
+            'start_date' => $cycle->start_date,
+            'end_date' => $cycle->end_date,
+            'status' => $cycle->status,
+            'criteria' => $cycle->criteria,
+            'created_by' => $cycle->createdBy ? [
+                'id' => $cycle->createdBy->id,
+                'name' => $cycle->createdBy->name,
+                'email' => $cycle->createdBy->email,
+            ] : null,
+        ];
+
+        return Inertia::render('HR/Appraisals/Cycles/Edit', [
+            'cycle' => $cycleData,
+        ]);
+    }
+
+    /**
      * Close the specified appraisal cycle.
      */
     public function close($id)
