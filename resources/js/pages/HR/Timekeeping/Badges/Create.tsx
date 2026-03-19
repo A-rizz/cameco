@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,15 +23,6 @@ interface Employee {
     };
 }
 
-interface BadgeSubmitResult {
-    employeeName: string;
-    employeeId: string;
-    cardUid: string;
-    cardType: string;
-    expiresAt: string;
-    issuedAt: string;
-}
-
 interface CreateBadgeProps {
     employees: Employee[];
     existingBadgeUids: string[];
@@ -43,7 +34,6 @@ export default function CreateBadge({ employees, existingBadgeUids }: CreateBadg
     const [submitResult, setSubmitResult] = useState<{
         success: boolean;
         message: string;
-        badgeData?: BadgeSubmitResult;
     } | null>(null);
 
     const breadcrumbs = [
@@ -66,34 +56,15 @@ export default function CreateBadge({ employees, existingBadgeUids }: CreateBadg
             try {
                 // Mock success response
                 const selectedEmployee = employees.find((emp) => emp.id === formData.employee_id);
-
                 setSubmitResult({
                     success: true,
                     message: `Badge successfully issued to ${selectedEmployee?.name}`,
-                    badgeData: {
-                        employeeName: selectedEmployee?.name || '',
-                        employeeId: selectedEmployee?.employee_id || '',
-                        cardUid: formData.card_uid,
-                        cardType: formData.card_type,
-                        expiresAt: formData.expires_at || '',
-                        issuedAt: new Date().toISOString(),
-                    },
+                    badgeData: { ... },
                 });
-
                 setIsSubmitting(false);
                 setIsModalOpen(false);
-
-                // Auto-clear success message after 5 seconds
-                setTimeout(() => {
-                    setSubmitResult(null);
-                }, 5000);
-            } catch {
-                setSubmitResult({
-                    success: false,
-                    message: 'Failed to issue badge. Please try again.',
-                });
-                setIsSubmitting(false);
-            }
+                setTimeout(() => { setSubmitResult(null); }, 5000);
+            } catch { ... }
         }, 1000);
     };
 
@@ -136,20 +107,6 @@ export default function CreateBadge({ employees, existingBadgeUids }: CreateBadg
                                 <AlertDescription className={submitResult.success ? 'text-green-800' : 'text-red-800'}>
                                     {submitResult.message}
                                 </AlertDescription>
-                                {submitResult.badgeData && (
-                                    <div className="mt-3 bg-white/50 rounded p-3 text-sm space-y-1">
-                                        <p>
-                                            <strong>Employee:</strong> {submitResult.badgeData.employeeName} ({submitResult.badgeData.employeeId})
-                                        </p>
-                                        <p>
-                                            <strong>Card UID:</strong>{' '}
-                                            <code className="font-mono">{submitResult.badgeData.cardUid}</code>
-                                        </p>
-                                        <p>
-                                            <strong>Card Type:</strong> {submitResult.badgeData.cardType}
-                                        </p>
-                                    </div>
-                                )}
                             </div>
                         </div>
                     </Alert>

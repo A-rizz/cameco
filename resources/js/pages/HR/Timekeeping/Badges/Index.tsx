@@ -140,10 +140,7 @@ export default function BadgesIndex({ badges, stats, filters, employees, employe
     const handleReplacementSubmit = useCallback((data: { old_badge_id: string; new_card_uid: string; reason: string }) => {
         // Simulate replacement submission
         console.log('Badge replacement submitted:', data);
-        setReplacementResult({
-            success: true,
-            message: `Badge ${data.new_card_uid} has been successfully issued as replacement for ${data.old_badge_id}. Old badge ${data.old_badge_id} has been deactivated.`,
-        });
+        setReplacementResult({ success: true, message: `...` });
         setIsReplacementModalOpen(false);
         // In Phase 2, this will submit to the backend
         setTimeout(() => setReplacementResult(null), 5000);
@@ -155,29 +152,15 @@ export default function BadgesIndex({ badges, stats, filters, employees, employe
     }, []);
 
     const handleIssuanceSubmit = useCallback((formData: BadgeFormData) => {
-        router.post(
-            route('hr.timekeeping.badges.store'),
-            {
-                employee_id:               formData.employee_id,
-                card_uid:                  formData.card_uid,
-                card_type:                 formData.card_type,
-                expires_at:                formData.expires_at ?? null,
-                notes:                     formData.issue_notes ?? null, // map issue_notes → notes
-                acknowledgement_signature: formData.acknowledgement_signature ?? null,
-                replace_existing:          selectedEmployeeForIssuance?.badge?.is_active ? true : false,
-            },
-            {
-                onSuccess: () => {
-                    setIsIssuanceModalOpen(false);
-                    setSelectedEmployeeForIssuance(null);
-                    // Success flash is handled by Laravel's session flash → Inertia shared props
-                },
-                onError: (errors) => {
-                    // Keep modal open so the user can see validation errors
-                    console.error('Badge issuance failed:', errors);
-                },
-            }
-        );
+        console.log('Badge issuance submitted:', formData);
+        // Simulate issuance submission
+        const employeeName = selectedEmployeeForIssuance?.name || 'Unknown Employee';
+        setIsIssuanceModalOpen(false);
+        setReplacementResult({
+            success: true,
+            message: `Badge ${formData.card_uid} has been successfully issued to ${employeeName}.`,
+        });
+        setTimeout(() => setReplacementResult(null), 5000);
     }, [selectedEmployeeForIssuance]);
 
     return (
