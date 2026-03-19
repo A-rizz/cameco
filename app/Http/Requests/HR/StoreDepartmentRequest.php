@@ -9,7 +9,7 @@ class StoreDepartmentRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true; // HR route group already protected; fine-grained policies in Phase 8
+        return $this->user()->hasAnyRole(['HR Manager', 'HR Staff', 'Superadmin']);
     }
 
     public function rules(): array

@@ -43,6 +43,10 @@ interface Employee {
     position: string;
     hire_date: string;
     photo?: string;
+    badge?: {
+        card_uid: string;
+        is_active: boolean;
+    };
 }
 
 interface Badge {
@@ -100,6 +104,7 @@ export default function BadgesIndex({ badges, stats, filters, employees, employe
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [isIssuanceModalOpen, setIsIssuanceModalOpen] = useState(false);
     const [selectedEmployeeForIssuance, setSelectedEmployeeForIssuance] = useState<Employee | null>(null);
+    const [issuanceServerError, setIssuanceServerError] = useState<string | undefined>();
 
     const breadcrumbs = [
         { title: 'HR', href: '/hr' },
@@ -152,15 +157,35 @@ export default function BadgesIndex({ badges, stats, filters, employees, employe
     }, []);
 
     const handleIssuanceSubmit = useCallback((formData: BadgeFormData) => {
-        console.log('Badge issuance submitted:', formData);
-        // Simulate issuance submission
-        const employeeName = selectedEmployeeForIssuance?.name || 'Unknown Employee';
-        setIsIssuanceModalOpen(false);
-        setReplacementResult({
-            success: true,
-            message: `Badge ${formData.card_uid} has been successfully issued to ${employeeName}.`,
-        });
-        setTimeout(() => setReplacementResult(null), 5000);
+        setIssuanceServerError(undefined);
+        router.post(
+            route('hr.timekeeping.badges.store'),
+            {
+                employee_id:               formData.employee_id,
+                card_uid:                  formData.card_uid,
+                card_type:                 formData.card_type,
+                expires_at:                formData.expires_at ?? null,
+                notes:                     formData.issue_notes ?? null,
+                acknowledgement_signature: formData.acknowledgement_signature ?? null,
+                replace_existing:          selectedEmployeeForIssuance?.badge?.is_active ? true : false,
+            },
+            {
+                onSuccess: () => {
+                    setIsIssuanceModalOpen(false);
+                    setSelectedEmployeeForIssuance(null);
+                    setIssuanceServerError(undefined);
+                },
+                onError: (errors) => {
+                    setIssuanceServerError(
+                        errors.error
+                        ?? errors.employee_id
+                        ?? errors.card_uid
+                        ?? errors.card_type
+                        ?? 'Failed to issue badge. Please try again.',
+                    );
+                },
+            }
+        );
     }, [selectedEmployeeForIssuance]);
 
     return (
@@ -416,10 +441,12 @@ export default function BadgesIndex({ badges, stats, filters, employees, employe
                 onClose={() => {
                     setIsIssuanceModalOpen(false);
                     setSelectedEmployeeForIssuance(null);
+                    setIssuanceServerError(undefined);
                 }}
                 onSubmit={handleIssuanceSubmit}
                 employees={safeEmployees}
                 existingBadgeUids={safeBadges.data?.map((b) => b.card_uid) || []}
+                serverError={issuanceServerError}
             />
         </AppLayout>
     );

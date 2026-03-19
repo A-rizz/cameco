@@ -352,7 +352,7 @@ class RfidBadgeController extends Controller
             return redirect()->route('hr.timekeeping.badges.index')
                 ->with('success', 'Badge issued successfully to ' . $badge->employee->full_name);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
             Log::error('Badge issuance failed', [
                 'employee_id' => $validated['employee_id'] ?? null,
@@ -363,7 +363,7 @@ class RfidBadgeController extends Controller
 
             return back()
                 ->withInput($validated)
-                ->withErrors(['error' => 'Failed to issue badge. Please try again.' . ($e->getMessage() ? ' Error: ' . $e->getMessage() : '')]);
+                ->withErrors(['error' => 'Failed to issue badge: ' . $e->getMessage()]);
         }
     }
 
