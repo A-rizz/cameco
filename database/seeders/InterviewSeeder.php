@@ -89,6 +89,7 @@ $this->command->info("Created {$candidates->count()} candidates.");
         // -------------------------------
         // 6. Create 10 dummy interviews
         // -------------------------------
+        $validLocations = ['office', 'video_call', 'phone'];
         for ($i = 1; $i <= 10; $i++) {
             $app = $applications->random();
             Interview::create([
@@ -98,7 +99,7 @@ $this->command->info("Created {$candidates->count()} candidates.");
                 'scheduled_date' => Carbon::now()->addDays(rand(1, 10))->format('Y-m-d'),
                 'scheduled_time' => Carbon::now()->addHours(rand(8, 17))->format('H:i'),
                 'duration_minutes' => 60,
-                'location_type' => 'virtual',
+                'location_type' => $validLocations[array_rand($validLocations)],
                 'status' => 'scheduled',
                 'interviewer_name' => 'HR Manager',
             ]);
