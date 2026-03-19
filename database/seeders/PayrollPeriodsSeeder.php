@@ -128,10 +128,11 @@ class PayrollPeriodsSeeder extends Seeder
                 $finalizedAt2 = $periodEnd2->copy()->subDays(1);
                 $lockedAt2 = $periodEnd2->copy();
             } elseif ($i === 2) {
-                $status2 = 'completed';
-                $approvedAt2 = $periodEnd2->copy()->subDays(2);
-                $finalizedAt2 = $periodEnd2->copy()->subDays(1);
-                $lockedAt2 = $periodEnd2->copy();
+                // March 2nd half: set to draft, not calculated
+                $status2 = 'draft';
+                $approvedAt2 = null;
+                $finalizedAt2 = null;
+                $lockedAt2 = null;
             } elseif ($i === 1) {
                 $status2 = 'approved';
                 $approvedAt2 = $periodEnd2->copy()->subDays(2);
