@@ -118,22 +118,26 @@ class AppraisalCycleController extends Controller
                 'name' => $cycle->createdBy->name,
                 'email' => $cycle->createdBy->email,
             ] : null,
-            'appraisals' => $cycle->appraisals->map(function ($a) {
-                return [
-                    'id' => $a->id,
-                    'employee_id' => $a->employee_id,
-                    'employee_name' => $a->employee && $a->employee->profile ? ($a->employee->profile->first_name . ' ' . $a->employee->profile->last_name) : '',
-                    'employee_number' => $a->employee ? $a->employee->employee_number : '',
-                    'department' => $a->employee && $a->employee->department ? $a->employee->department->name : '',
-                    'position' => $a->employee && $a->employee->position ? $a->employee->position->title : '',
-                    'status' => $a->status,
-                    'overall_score' => $a->overall_score,
-                ];
-            }),
         ];
+
+        $appraisals = $cycle->appraisals->map(function ($a) {
+            return [
+                'id' => $a->id,
+                'employee_id' => $a->employee_id,
+                'employee_name' => $a->employee && $a->employee->profile ? ($a->employee->profile->first_name . ' ' . $a->employee->profile->last_name) : '',
+                'employee_number' => $a->employee ? $a->employee->employee_number : '',
+                'department' => $a->employee && $a->employee->department ? $a->employee->department->name : '',
+                'position' => $a->employee && $a->employee->position ? $a->employee->position->title : '',
+                'status' => $a->status,
+                'overall_score' => $a->overall_score,
+                'created_at' => $a->created_at,
+                'updated_at' => $a->updated_at,
+            ];
+        });
 
         return Inertia::render('HR/Appraisals/Cycles/Show', [
             'cycle' => $cycleData,
+            'appraisals' => $appraisals,
         ]);
     }
 
