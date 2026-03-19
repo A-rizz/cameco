@@ -93,10 +93,13 @@ class ReportController extends Controller
         })->reverse();
         $earliestMonth = $months->first()->copy()->startOfMonth();
         $latestMonth = $months->last()->copy()->endOfMonth();
-        $leaveRequests = \App\Models\LeaveRequest::with('leavePolicy')
-            ->whereDate('start_date', '>=', $earliestMonth->toDateString())
-            ->whereDate('start_date', '<=', $latestMonth->toDateString())
-            ->get();
+            $leaveRequests = \App\Models\LeaveRequest::with('leavePolicy')
+                ->whereDate('start_date', '>=', $earliestMonth->toDateString())
+                ->whereDate('start_date', '<=', $latestMonth->toDateString())
+                ->get();
+
+            // Debug: Log leaveRequests count and by_month data
+            \Log::debug('LeaveReportController.leave: leaveRequests count', ['count' => $leaveRequests->count()]);
 
         $summary = [
             'total_pending_requests' => $leaveRequests->where('status', 'pending')->count(),
@@ -153,6 +156,7 @@ class ReportController extends Controller
                 'cancelled' => $requests->where('status', 'cancelled')->count(),
             ];
         });
+            \Log::debug('LeaveReportController.leave: byMonth', ['by_month' => $byMonth]);
 
         return Inertia::render('HR/Reports/Leave', [
             'summary' => $summary,
