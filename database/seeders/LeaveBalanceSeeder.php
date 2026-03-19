@@ -38,19 +38,30 @@ class LeaveBalanceSeeder extends Seeder
                 $this->command->line("  → Initializing balances for {$employee->employee_number}");
                 $policies = LeavePolicy::where('is_active', true)->get();
                 foreach ($policies as $policy) {
-                    $balance = \App\Models\LeaveBalance::updateOrCreate(
-                        [
+                    $balance = \App\Models\LeaveBalance::where([
+                        'employee_id' => $employee->id,
+                        'leave_policy_id' => $policy->id,
+                        'year' => $currentYear,
+                    ])->first();
+                    if ($balance) {
+                        // Only update earned, carried_forward, forfeited; never reset used
+                        $balance->update([
+                            'earned' => $policy->annual_entitlement,
+                            'carried_forward' => 0,
+                            'forfeited' => 0,
+                        ]);
+                    } else {
+                        // Create new balance with used = 0
+                        \App\Models\LeaveBalance::create([
                             'employee_id' => $employee->id,
                             'leave_policy_id' => $policy->id,
                             'year' => $currentYear,
-                        ],
-                        [
                             'earned' => $policy->annual_entitlement,
                             'used' => 0,
                             'carried_forward' => 0,
                             'forfeited' => 0,
-                        ]
-                    );
+                        ]);
+                    }
                 }
                 $totalBalancesCreated += $policies->count();
             } catch (\Exception $e) {
