@@ -44,8 +44,9 @@ export function PositionArchiveDialog({
             data: { reason },
             preserveScroll: true,
             onSuccess: (page) => {
-                if (page.props.flash?.error) {
-                    toast.error(page.props.flash.error);
+                const flashMessage = (page.props.flash as Record<string, any>)?.error;
+                if (flashMessage) {
+                    toast.error(flashMessage);
                     setIsSubmitting(false);
                     return;
                 }

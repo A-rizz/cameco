@@ -63,9 +63,10 @@ export function DepartmentArchiveDialog({
                 });
                 
                 // Check if there's a flash message indicating error
-                if (page.props.flash?.error) {
-                    console.error('[DepartmentArchive] Backend error:', page.props.flash.error);
-                    toast.error(page.props.flash.error);
+                const flashMessage = (page.props.flash as Record<string, any>)?.error;
+                if (flashMessage) {
+                    console.error('[DepartmentArchive] Backend error:', flashMessage);
+                    toast.error(flashMessage);
                     setIsSubmitting(false);
                     return;
                 }
