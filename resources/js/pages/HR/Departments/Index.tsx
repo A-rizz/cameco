@@ -377,6 +377,7 @@ export default function DepartmentIndex({
                     onOpenChange={(open) => !open && setDepartmentToArchive(null)}
                     departmentId={departmentToArchive.id}
                     departmentName={departmentToArchive.name}
+                    employeeCount={departmentToArchive.employee_count}
                     routePrefix={routePrefix}
                 />
             )}

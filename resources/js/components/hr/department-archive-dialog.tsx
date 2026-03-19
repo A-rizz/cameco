@@ -20,6 +20,7 @@ interface DepartmentArchiveDialogProps {
     departmentId: number;
     departmentName: string;
     routePrefix?: string;
+    employeeCount?: number;
 }
 
 export function DepartmentArchiveDialog({
@@ -28,9 +29,11 @@ export function DepartmentArchiveDialog({
     departmentId,
     departmentName,
     routePrefix = '/hr',
+    employeeCount = 0,
 }: DepartmentArchiveDialogProps) {
     const [reason, setReason] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const hasEmployees = employeeCount > 0;
 
     const handleArchive = () => {
         setIsSubmitting(true);
@@ -115,35 +118,51 @@ export function DepartmentArchiveDialog({
                 </DialogHeader>
 
                 <div className="space-y-4 py-4">
-                    <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950">
-                        <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5" />
-                        <div className="space-y-1">
-                            <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
-                                This action will archive the department
-                            </p>
-                            <p className="text-sm text-amber-700 dark:text-amber-200">
-                                The department will be marked as archived and will no longer appear in the active department list. 
-                                You can restore it later if needed.
+                    {hasEmployees ? (
+                        <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-950">
+                            <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5" />
+                            <div className="space-y-1">
+                                <p className="text-sm font-medium text-red-900 dark:text-red-100">
+                                    Cannot archive: Department has {employeeCount} {employeeCount === 1 ? 'employee' : 'employees'}
+                                </p>
+                                <p className="text-sm text-red-700 dark:text-red-200">
+                                    All employees must be transferred to another department or archived before you can archive this department.
+                                </p>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950">
+                            <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5" />
+                            <div className="space-y-1">
+                                <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
+                                    This action will archive the department
+                                </p>
+                                <p className="text-sm text-amber-700 dark:text-amber-200">
+                                    The department will be marked as archived and will no longer appear in the active department list. 
+                                    You can restore it later if needed.
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
+                    {!hasEmployees && (
+                        <div className="space-y-2">
+                            <Label htmlFor="archive-reason">
+                                Reason for archiving (optional)
+                            </Label>
+                            <Textarea
+                                id="archive-reason"
+                                placeholder="Enter the reason for archiving this department..."
+                                value={reason}
+                                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReason(e.target.value)}
+                                rows={4}
+                                disabled={isSubmitting}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                                This will be recorded in the audit log for future reference.
                             </p>
                         </div>
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="archive-reason">
-                            Reason for archiving (optional)
-                        </Label>
-                        <Textarea
-                            id="archive-reason"
-                            placeholder="Enter the reason for archiving this department..."
-                            value={reason}
-                            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReason(e.target.value)}
-                            rows={4}
-                            disabled={isSubmitting}
-                        />
-                        <p className="text-xs text-muted-foreground">
-                            This will be recorded in the audit log for future reference.
-                        </p>
-                    </div>
+                    )}
                 </div>
 
                 <DialogFooter>
@@ -159,7 +178,8 @@ export function DepartmentArchiveDialog({
                         type="button"
                         variant="destructive"
                         onClick={handleArchive}
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || hasEmployees}
+                        title={hasEmployees ? `Cannot archive: ${employeeCount} ${employeeCount === 1 ? 'employee' : 'employees'} assigned` : undefined}
                     >
                         <Archive className="h-4 w-4 mr-2" />
                         {isSubmitting ? 'Archiving...' : 'Archive Department'}

@@ -23,6 +23,7 @@ type Department = {
   budget: number | null;
   is_active: boolean;
   positions_count: number;
+  employee_count: number;
   created_at: string;
 };
 
@@ -41,6 +42,7 @@ type DepartmentHierarchy = {
   manager_name: string | null;
   is_active: boolean;
   positions_count: number;
+  employee_count: number;
   depth: number;
   children: DepartmentHierarchy[];
 };
@@ -413,6 +415,7 @@ export default function Departments({ departments, hierarchical, managers, stats
             onOpenChange={(open) => !open && setDepartmentToArchive(null)}
             departmentId={departmentToArchive.id}
             departmentName={departmentToArchive.name}
+            employeeCount={departmentToArchive.employee_count}
             routePrefix="/system/organization"
           />
         )}
