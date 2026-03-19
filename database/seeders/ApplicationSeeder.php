@@ -17,41 +17,34 @@ class ApplicationSeeder extends Seeder
         // Optionally clear table first
         // DB::table('applications')->truncate();
 
-        // Get some candidate IDs
-        $candidates = Candidate::take(3)->get();
+        // Get all candidates and job postings
+        $candidates = Candidate::all();
+        $jobPostings = \App\Models\JobPosting::all();
 
-        $applications = [
-            [
-                'candidate_id' => $candidates[0]->id ?? 1,
-                'job_posting_id' => 1,
-                'status' => 'submitted',
-                'applied_at' => now(),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'candidate_id' => $candidates[1]->id ?? 2,
-                'job_posting_id' => 2,
-                'status' => 'in_review',
-                'applied_at' => now(),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'candidate_id' => $candidates[2]->id ?? 3,
-                'job_posting_id' => 3,
-                'status' => 'shortlisted',
-                'applied_at' => now(),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-        ];
-
-        foreach ($applications as $data) {
-            Application::firstOrCreate([
-                'candidate_id' => $data['candidate_id'],
-                'job_posting_id' => $data['job_posting_id'],
-            ], $data);
+        // Only create applications if both exist
+        if ($candidates->count() > 0 && $jobPostings->count() > 0) {
+            // Pair up candidates and job postings by index, or loop if fewer
+            $max = min($candidates->count(), $jobPostings->count(), 10); // up to 10
+            for ($i = 0; $i < $max; $i++) {
+                $candidate = $candidates[$i % $candidates->count()];
+                $jobPosting = $jobPostings[$i % $jobPostings->count()];
+                $status = match($i % 3) {
+                    0 => 'submitted',
+                    1 => 'in_review',
+                    default => 'shortlisted',
+                };
+                Application::firstOrCreate([
+                    'candidate_id' => $candidate->id,
+                    'job_posting_id' => $jobPosting->id,
+                ], [
+                    'candidate_id' => $candidate->id,
+                    'job_posting_id' => $jobPosting->id,
+                    'status' => $status,
+                    'applied_at' => now(),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
         }
     }
 }
