@@ -128,12 +128,12 @@ class BulkEmployeeSeeder extends Seeder
         $this->command->table(
             ['Metric', 'Count'],
             [
-                ['Total Employees', Employee::count()],
+                ['Total Employees', Employee::withTrashed()->count()],
                 ['Active', Employee::where('status', 'active')->count()],
                 ['On Leave', Employee::where('status', 'on_leave')->count()],
                 ['Suspended', Employee::where('status', 'suspended')->count()],
                 ['Terminated', Employee::where('status', 'terminated')->count()],
-                ['Archived', Employee::where('status', 'archived')->count()],
+                ['Archived', Employee::withTrashed()->where('status', 'archived')->count()],
                 ['With Supervisors', Employee::whereNotNull('immediate_supervisor_id')->count()],
                 ['Regular Employees', Employee::where('employment_type', 'Regular')->count()],
                 ['Probationary', Employee::where('employment_type', 'Probationary')->count()],
