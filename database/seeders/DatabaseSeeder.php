@@ -113,6 +113,7 @@ class DatabaseSeeder extends Seeder
         // ── Leave & Overtime ───────────────────────────────────────────────
         $this->call([
             LeaveBalanceSeeder::class,
+            LeaveRequestSeeder::class,
             OvertimeRequestSeeder::class,
         ]);
 
@@ -185,6 +186,10 @@ class DatabaseSeeder extends Seeder
 
             if (class_exists(OffboardingSeeder::class)) {
                 $this->call(OffboardingSeeder::class);
+            }
+
+            if (class_exists(LeaveRequestSeeder::class)) {
+                $this->call(LeaveRequestSeeder::class);
             }
     }
 }
