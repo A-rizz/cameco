@@ -33,6 +33,8 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
+
+
         // ── Roles & Base Permissions (must run first) ──────────────────────
         $this->call([
             LeavePolicySeeder::class,
@@ -174,6 +176,11 @@ class DatabaseSeeder extends Seeder
             if (env('SEED_PAYROLL_TEST_DATA', false)) {
                 $this->call(PayrollCalculationTestSeeder::class);
             }
+
         }
+
+            if (class_exists(RolesAndPermissionsSeeder::class)) {
+                $this->call(RolesAndPermissionsSeeder::class);
+            }
     }
 }
