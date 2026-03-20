@@ -131,4 +131,28 @@ class HiringPipelineController extends Controller
 
         return redirect()->back()->with('success', 'Application moved to ' . ucfirst($validated['status']) . ' successfully.');
     }
+
+    
+    public function updateStatus(Request $request, Application $application)
+    {
+        $validated = $request->validate([
+            'status' => 'required|in:submitted,shortlisted,interviewed,offered,hired,rejected,withdrawn',
+            'notes'  => 'nullable|string|max:1000',
+        ]);
+    
+        $application->status = $validated['status'];
+        $application->save();
+    
+        if (!empty($validated['notes'])) {
+            $application->notes()->create([
+                'note'       => $validated['notes'],
+                'created_by' => auth()->id() ?? 1,
+            ]);
+        }
+    
+        // ✅ Always return Inertia redirect — never response()->json()
+        return redirect()->back()
+            ->with('success', 'Application status updated to ' . ucfirst($validated['status']) . '.');
+    }
+ 
 }
