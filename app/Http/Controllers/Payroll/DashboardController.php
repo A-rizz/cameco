@@ -36,8 +36,10 @@ class DashboardController extends Controller
         $separations = \App\Models\Employee::whereNotNull('termination_date')
             ->whereBetween('termination_date', [$currentPeriod?->period_start, $currentPeriod?->period_end])->count();
         $onLeave = 0; // Implement leave logic if available
-        $changeFromPrevious = $activeEmployees - (\App\Models\Employee::active()->count() - $newHires + $separations);
-        $changePercentage = $activeEmployees > 0 ? round(($changeFromPrevious / $activeEmployees) * 100, 1) . '%' : '0%';
+        $changeFromPreviousRaw = $activeEmployees - (\App\Models\Employee::active()->count() - $newHires + $separations);
+        $changeFromPrevious = ($changeFromPreviousRaw > 0 ? '+' : ($changeFromPreviousRaw < 0 ? '-' : '')) . abs($changeFromPreviousRaw);
+        $changePercentageRaw = $activeEmployees > 0 ? round(($changeFromPreviousRaw / $activeEmployees) * 100, 1) : 0;
+        $changePercentage = ($changePercentageRaw > 0 ? '+' : ($changePercentageRaw < 0 ? '-' : '')) . abs($changePercentageRaw) . '%';
         $currentNet = $currentPeriod?->total_net_pay ?? 0;
         $previousNet = $previousPeriod?->total_net_pay ?? 0;
         $netDiff = $currentNet - $previousNet;
