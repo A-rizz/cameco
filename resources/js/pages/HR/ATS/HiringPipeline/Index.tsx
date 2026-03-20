@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Head, router } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
+import { toast } from 'sonner';
 import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -73,23 +74,30 @@ export default function HiringPipelineIndex({
   const [selectedStatus, setSelectedStatus] = useState<ApplicationStatus | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Show toast on flash success
+  const { props } = usePage();
+  useEffect(() => {
+    if (props.flash && props.flash.success) {
+      toast.success(props.flash.success);
+    }
+  }, [props.flash]);
+
   const handleViewApplication = (app: Application) => {
     // Navigate to the application detail page
     window.location.href = `/hr/ats/applications/${app.id}`;
   };
 
   const handleChangeApplicationStatus = (app: Application, newStatus: ApplicationStatus, notes?: string) => {
-    // Call router to update the status via API
     router.put(`/hr/ats/applications/${app.id}/status`, {
       status: newStatus,
       notes: notes || '',
     }, {
       onSuccess: () => {
-        // Page will auto-reload due to Inertia response
+        // Success toast will be shown via flash message
       },
       onError: (errors) => {
+        toast.error('Failed to update status.');
         console.error('Failed to update status:', errors);
-        // Could add toast notification here for error handling
       },
     });
   };
