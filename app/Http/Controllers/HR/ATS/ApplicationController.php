@@ -35,74 +35,73 @@ class ApplicationController extends Controller
             ->paginate(20)
             ->through(function ($app) {
                 return [
-                    'id' => $app->id,
-                    'status' => $app->status,
-                    'score' => $app->score ?? 'N/A',
-                    'applied_at' => $app->applied_at,
-                    'candidate_name' => $app->candidate
+                    'id'               => $app->id,
+                    'status'           => $app->status,
+                    'score'            => $app->score ?? 'N/A',
+                    'applied_at'       => $app->applied_at,
+                    'candidate_name'   => $app->candidate
                         ? trim(
                             ($app->candidate->first_name ?? '') . ' ' .
                             ($app->candidate->middle_name ?? '') . ' ' .
                             ($app->candidate->last_name ?? '')
                         )
                         : 'Unknown',
-                    'candidate_email' => $app->candidate->email ?? 'N/A',
-                    'candidate_phone' => $app->candidate->phone ?? 'N/A',
-                    'job_title' => $app->jobPosting->title ?? 'Unknown',
+                    'candidate_email'  => $app->candidate->email ?? 'N/A',
+                    'candidate_phone'  => $app->candidate->phone ?? 'N/A',
+                    'job_title'        => $app->jobPosting->title ?? 'Unknown',
                     'interviews_count' => $app->interviews->count(),
                 ];
             });
 
         $statistics = [
             'total_applications' => Application::count(),
-            'submitted'   => Application::where('status', 'submitted')->count(),
-            'shortlisted' => Application::where('status', 'shortlisted')->count(),
-            'interviewed' => Application::where('status', 'interviewed')->count(),
-            'offered'     => Application::where('status', 'offered')->count(),
-            'hired'       => Application::where('status', 'hired')->count(),
-            'rejected'    => Application::where('status', 'rejected')->count(),
+            'submitted'          => Application::where('status', 'submitted')->count(),
+            'shortlisted'        => Application::where('status', 'shortlisted')->count(),
+            'interviewed'        => Application::where('status', 'interviewed')->count(),
+            'offered'            => Application::where('status', 'offered')->count(),
+            'hired'              => Application::where('status', 'hired')->count(),
+            'rejected'           => Application::where('status', 'rejected')->count(),
         ];
 
         return Inertia::render('HR/ATS/Applications/Index', [
             'applications' => $applications,
-            'filters' => [
+            'filters'      => [
                 'status' => $status,
                 'job_id' => $jobId,
             ],
-            'statistics' => $statistics,
-            'jobPostings' => JobPosting::select('id', 'title')->get(),
+            'statistics'   => $statistics,
+            'jobPostings'  => JobPosting::select('id', 'title')->get(),
         ]);
     }
 
     /**
      * Show a single application with full details.
+     * Route must be defined as {application} for implicit model binding to work.
      */
-public function show(Application $application): Response
-{
-    $application->load([
-        'candidate',
-        'jobPosting.department',
-        'interviews',
-        'statusHistory',
-        'notes'
-    ]);
+    public function show(Application $application): Response
+    {
+        $application->load([
+            'candidate',
+            'jobPosting.department',
+            'interviews',
+            'statusHistory',
+            'notes',
+        ]);
 
-    // Calculate permissions
-    $canScheduleInterview = in_array($application->status, ['shortlisted', 'interviewed']);
-    $canGenerateOffer = $application->status === 'interviewed';
+        $canScheduleInterview = in_array($application->status, ['shortlisted', 'interviewed']);
+        $canGenerateOffer     = $application->status === 'interviewed';
 
-    return Inertia::render('HR/ATS/Applications/Show', [
-        'application' => $application,
-        'candidate' => $application->candidate,
-        'job' => $application->jobPosting,
-        'interviews' => $application->interviews,
-        'status_history' => $application->statusHistory,
-        'notes' => $application->notes ?? [],
-        'can_schedule_interview' => $canScheduleInterview,
-        'can_generate_offer' => $canGenerateOffer,
-    ]);
-}
-
+        return Inertia::render('HR/ATS/Applications/Show', [
+            'application'          => $application,
+            'candidate'            => $application->candidate,
+            'job'                  => $application->jobPosting,
+            'interviews'           => $application->interviews,
+            'status_history'       => $application->statusHistory,
+            'notes'                => $application->notes ?? [],
+            'can_schedule_interview' => $canScheduleInterview,
+            'can_generate_offer'   => $canGenerateOffer,
+        ]);
+    }
 
     /**
      * Update application status.
@@ -173,19 +172,19 @@ public function show(Application $application): Response
     public function scheduleInterview(Request $request, Application $application)
     {
         $validated = $request->validate([
-            'scheduled_date' => 'required|date',
-            'scheduled_time' => 'required',
-            'location_type'  => 'required|in:office,video_call,phone',
+            'scheduled_date'   => 'required|date',
+            'scheduled_time'   => 'required',
+            'location_type'    => 'required|in:office,video_call,phone',
             'interviewer_name' => 'required|string',
         ]);
 
         Interview::create([
-            'application_id'  => $application->id,
-            'job_title'       => $application->jobPosting->title,
-            'scheduled_date'  => $validated['scheduled_date'],
-            'scheduled_time'  => $validated['scheduled_time'],
-            'location_type'   => $validated['location_type'],
-            'interviewer_name'=> $validated['interviewer_name'],
+            'application_id'   => $application->id,
+            'job_title'        => $application->jobPosting->title,
+            'scheduled_date'   => $validated['scheduled_date'],
+            'scheduled_time'   => $validated['scheduled_time'],
+            'location_type'    => $validated['location_type'],
+            'interviewer_name' => $validated['interviewer_name'],
         ]);
 
         return back()->with('success', 'Interview scheduled.');
@@ -223,6 +222,9 @@ public function show(Application $application): Response
         return back()->with('success', 'Offer generated.');
     }
 
+    /**
+     * Move application to a new status (JSON response).
+     */
     public function move(Request $request, Application $application)
     {
         $validated = $request->validate([
@@ -233,7 +235,6 @@ public function show(Application $application): Response
         $application->status = $validated['status'];
         $application->save();
 
-        // Save to status history
         ApplicationStatusHistory::create([
             'application_id' => $application->id,
             'status'         => $validated['status'],
@@ -262,5 +263,4 @@ public function show(Application $application): Response
 
         return back()->with('success', 'Note added.');
     }
-
 }
