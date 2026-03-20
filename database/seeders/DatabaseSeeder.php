@@ -127,14 +127,6 @@ class DatabaseSeeder extends Seeder
             DocumentTemplateSeeder::class,
         ]);
 
-        // ── Payroll ────────────────────────────────────────────────────────
-        $this->call([
-            PaymentMethodsSeeder::class,
-            PayrollPeriodsSeeder::class,
-            PayrollPaymentsSeeder::class,
-            CashDistributionBatchSeeder::class,
-            PayslipsSeeder::class,              // ← called once only (was duplicated)
-        ]);
 
         // ── Timekeeping & Attendance ───────────────────────────────────────
         $this->call([
@@ -189,6 +181,15 @@ class DatabaseSeeder extends Seeder
             }
 
         }
+
+        // ── Payroll ────────────────────────────────────────────────────────
+        $this->call([
+            PaymentMethodsSeeder::class,
+            PayrollPeriodsSeeder::class,
+            PayrollPaymentsSeeder::class,
+            CashDistributionBatchSeeder::class,
+            PayslipsSeeder::class,              // ← called once only (was duplicated)
+        ]);
 
     }
 }
