@@ -56,22 +56,50 @@ class InterviewSeeder extends Seeder
         $this->command->info("Job posting created: {$jobPosting->title}");
 
         // -------------------------------
-        // 4. Create 5 dummy candidates
+        // 4. Create 5 real Filipino candidates
         // -------------------------------
-        $candidates = collect();
-for ($i = 1; $i <= 5; $i++) {
-    $candidates->push(
-        Candidate::firstOrCreate(
-            ['email' => "candidate{$i}@example.com"],
+        $candidateData = [
             [
-                'first_name' => "Candidate{$i}",
-                'last_name' => "Test{$i}",
-                'phone' => '0912' . rand(1000000, 9999999),
-            ]
-        )
-    );
-}
-$this->command->info("Created {$candidates->count()} candidates.");
+                'first_name' => 'Steve',
+                'last_name' => 'Cruz',
+                'email' => 'steve.cruz@example.com',
+                'phone' => '09171234567',
+            ],
+            [
+                'first_name' => 'Maria Fe',
+                'last_name' => 'Rodrigo',
+                'email' => 'maria.rodrigo@example.com',
+                'phone' => '09181234567',
+            ],
+            [
+                'first_name' => 'Peter',
+                'last_name' => 'Bautista',
+                'email' => 'peter.bautista@example.com',
+                'phone' => '09191234567',
+            ],
+            [
+                'first_name' => 'Liza',
+                'last_name' => 'Reyes',
+                'email' => 'liza.reyes@example.com',
+                'phone' => '09181239876',
+            ],
+            [
+                'first_name' => 'Ramon',
+                'last_name' => 'Torres',
+                'email' => 'ramon.torres@example.com',
+                'phone' => '09183456789',
+            ],
+        ];
+        $candidates = collect();
+        foreach ($candidateData as $data) {
+            $candidates->push(
+                Candidate::firstOrCreate(
+                    ['email' => $data['email']],
+                    $data
+                )
+            );
+        }
+        $this->command->info("Created {$candidates->count()} candidates.");
 
         // -------------------------------
         // 5. Create applications for candidates
