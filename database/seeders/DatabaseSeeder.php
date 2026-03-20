@@ -191,5 +191,10 @@ class DatabaseSeeder extends Seeder
             PayslipsSeeder::class,              // ← called once only (was duplicated)
         ]);
 
+
+        if (class_exists(RemoveDuplicateLuisTorresSeeder::class)) {
+            $this->call(RemoveDuplicateLuisTorresSeeder::class);
+        }
+
     }
 }
