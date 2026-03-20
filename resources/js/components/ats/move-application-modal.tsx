@@ -96,20 +96,20 @@ export const MoveApplicationModal = ({
           <DialogTitle>Move Application</DialogTitle>
           <DialogDescription>
             {application && (
-              <>
-                <span className="font-medium text-foreground block">
+              <div className="mt-2 space-y-1">
+                <p className="font-medium text-foreground">
                   {application.candidate_name || 'Unknown Candidate'}
-                </span>
-                <span className="text-sm text-muted-foreground block">
+                </p>
+                <p className="text-sm text-muted-foreground">
                   {application.job_title || 'Position'}
-                </span>
-                <span className="text-xs text-muted-foreground mt-2 block">
+                </p>
+                <p className="text-xs text-muted-foreground mt-2">
                   Current Status:{' '}
                   <span className="font-semibold capitalize">
                     {currentStatusLabel}
                   </span>
-                </span>
-              </>
+                </p>
+              </div>
             )}
           </DialogDescription>
         </DialogHeader>
