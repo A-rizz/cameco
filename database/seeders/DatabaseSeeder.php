@@ -116,12 +116,11 @@ class DatabaseSeeder extends Seeder
         // ── Employees & Profiles ───────────────────────────────────────────
         $this->call([
             EmployeeSeeder::class,
-            // too much employees for demo  BulkEmployeeSeeder::class,
+            // BulkEmployeeSeeder::class, // Disabled to match employee count with seeders only
             EmployeeFilipinoProfileSeeder::class,
             EmployeeAccountSeeder::class,
             LinkEmployeesToUsersSeeder::class,
             EmployeePayrollInfoSeeder::class,
-
         ]);
 
 
