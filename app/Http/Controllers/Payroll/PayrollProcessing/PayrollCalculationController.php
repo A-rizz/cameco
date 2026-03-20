@@ -25,7 +25,8 @@ class PayrollCalculationController extends Controller
         $status          = $request->input('status');
         $calculationType = $request->input('calculation_type');
 
-        $periodsQuery = PayrollPeriod::with(['approvedBy:id,name', 'lockedBy:id,name'])
+        $periodsQuery = PayrollPeriod::query()
+            ->with(['approvedBy:id,name', 'lockedBy:id,name'])
             ->orderByDesc('period_start');
 
         if ($periodId) {
@@ -48,6 +49,11 @@ class PayrollCalculationController extends Controller
 
         $periods = $periodsQuery->get();
 
+        // Ensure $periods is a collection of PayrollPeriod models
+        if ($periods->isNotEmpty() && !$periods->first() instanceof PayrollPeriod) {
+            $periods = PayrollPeriod::whereIn('id', $periods->pluck('id'))->get();
+        }
+
         $periodIds = $periods->pluck('id')->all();
         $empCounts = EmployeePayrollCalculation::select('payroll_period_id',
                 DB::raw("COUNT(*) as total"),
@@ -66,8 +72,8 @@ class PayrollCalculationController extends Controller
             ->map(fn ($p) => [
                 'id'         => $p->id,
                 'name'       => $p->period_name,
-                'start_date' => $p->period_start?->toDateString(),
-                'end_date'   => $p->period_end?->toDateString(),
+                'start_date' => $p->period_start ? \Illuminate\Support\Carbon::parse($p->period_start)->toDateString() : null,
+                'end_date'   => $p->period_end ? \Illuminate\Support\Carbon::parse($p->period_end)->toDateString() : null,
                 'status'     => $this->dbStatusToCalcStatus($p->status),
             ]);
 
@@ -336,8 +342,8 @@ class PayrollCalculationController extends Controller
             'payroll_period'      => [
                 'id'         => $p->id,
                 'name'       => $p->period_name,
-                'start_date' => $p->period_start?->toDateString(),
-                'end_date'   => $p->period_end?->toDateString(),
+                'start_date' => $p->period_start ? \Illuminate\Support\Carbon::parse($p->period_start)->toDateString() : null,
+                'end_date'   => $p->period_end ? \Illuminate\Support\Carbon::parse($p->period_end)->toDateString() : null,
                 'status'     => $calcStatus,
             ],
             'calculation_type'    => $this->dbTypeToCalcType($p->period_type),
