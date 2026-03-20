@@ -164,6 +164,16 @@ class DatabaseSeeder extends Seeder
             $this->call(OffboardingSeeder::class);
         }
 
+                // ── Payroll ────────────────────────────────────────────────────────
+        $this->call([
+            PayrollPeriodsSeeder::class, // Ensure this runs after all employee/attendance seeders
+            PaymentMethodsSeeder::class,
+            PayrollPaymentsSeeder::class,
+            CashDistributionBatchSeeder::class,
+            PayslipsSeeder::class,              // ← called once only (was duplicated)
+        ]);
+
+
 
         // ── Dev / Test Data (local environment only) ───────────────────────
         if (app()->environment('local', 'testing')) {
@@ -180,16 +190,6 @@ class DatabaseSeeder extends Seeder
             }
 
         }
-
-        // ── Payroll ────────────────────────────────────────────────────────
-        $this->call([
-            PayrollPeriodsSeeder::class, // Ensure this runs after all employee/attendance seeders
-            PaymentMethodsSeeder::class,
-            PayrollPaymentsSeeder::class,
-            CashDistributionBatchSeeder::class,
-            PayslipsSeeder::class,              // ← called once only (was duplicated)
-        ]);
-
 
         if (class_exists(RemoveDuplicateLuisTorresSeeder::class)) {
             $this->call(RemoveDuplicateLuisTorresSeeder::class);
