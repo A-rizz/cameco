@@ -63,29 +63,33 @@ export function usePayrollProgress({
         }
         return;
     }
-      const data = await res.json();
+// Inside usePayrollProgress fetchStatus function:
 
-      if (!isMounted.current) return;
+const data = await res.json();
+if (!isMounted.current) return;
 
-      // Prefer live batch data when available
-      const batch = data.batch;
-    const total     = batch?.total    ?? data.total_employees     ?? 0;
-    const pending   = batch?.pending  ?? null;
-    const failed    = batch?.failed   ?? data.failed_employees    ?? 0;
-    const progress  = batch?.progress ?? data.progress_percentage ?? 0;
-    const processed = pending !== null
-        ? Math.max(0, total - pending)
-        : data.processed_employees ?? 0;
+const batch = data.batch;
 
-    setState(prev => ({
-        ...prev,
-        status:             data.status,
-        progress:           isNaN(progress) ? 0 : Math.round(progress),
-        processedEmployees: isNaN(processed) ? 0 : processed,
-        totalEmployees:     isNaN(total) ? 0 : total,
-        failedEmployees:    isNaN(failed) ? 0 : failed,
-        errorMessage:       data.error_message ?? null,
-    }));
+// 1. Ensure we fall back to 0 and cast to Number safely
+const total = Number(batch?.total ?? data.total_employees ?? 0) || 0;
+const pending = Number(batch?.pending ?? 0) || 0;
+const failed = Number(batch?.failed ?? data.failed_employees ?? 0) || 0;
+const progress = Number(batch?.progress ?? data.progress_percentage ?? 0) || 0;
+
+// 2. Calculate processed safely
+const processed = Math.max(0, total - pending);
+
+setState(prev => ({
+  ...prev,
+  status: data.status || 'processing',
+  progress: Math.round(progress),
+  processedEmployees: processed,
+  totalEmployees: total,
+  failedEmployees: failed,
+  errorMessage: data.error_message ?? null,
+  isPolling: true,
+}));
+
 
       // Terminal states — stop polling and fire callbacks
       if (data.status === 'completed') {
@@ -109,10 +113,8 @@ export function usePayrollProgress({
   useEffect(() => {
     if (!enabled || !calculationId) return;
 
-    setState(prev => ({ ...prev, isPolling: true }));
-
-    // Fetch immediately, then on interval
-    fetchStatus();
+    // Fetch immediately (defer to avoid sync setState in effect)
+    queueMicrotask(() => fetchStatus());
     intervalRef.current = setInterval(fetchStatus, pollingInterval);
 
     return () => stopPolling();

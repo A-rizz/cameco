@@ -245,16 +245,23 @@ export function CalculationProgressModal({
     const isProcessing = progressState.isPolling ? progressState.status === 'processing' : calculation.status === 'processing';
     const isCompleted = progressState.isPolling ? progressState.status === 'completed' : calculation.status === 'completed';
     const isFailed = progressState.isPolling ? progressState.status === 'failed' : calculation.status === 'failed';
-    const progressPercentage = progressState.isPolling ? progressState.progress : calculation.progress_percentage;
-    const processedEmployees = progressState.isPolling && progressState.totalJobs !== null && progressState.pendingJobs !== null
-        ? progressState.totalJobs - progressState.pendingJobs
-        : calculation.processed_employees;
-    const totalEmployees = progressState.isPolling && progressState.totalJobs !== null
-        ? progressState.totalJobs
-        : calculation.total_employees;
-    const failedEmployees = progressState.isPolling && progressState.failedJobs !== null
-        ? progressState.failedJobs
-        : calculation.failed_employees;
+// In CalculationProgressModal.tsx, replace these lines:
+
+const progressPercentage = progressState.isPolling 
+    ? progressState.progress 
+    : calculation.progress_percentage;
+
+const processedEmployees = progressState.isPolling 
+    ? progressState.processedEmployees 
+    : (calculation.processed_employees ?? 0);
+const totalEmployees = progressState.isPolling 
+    ? progressState.totalEmployees 
+    : (calculation.total_employees ?? 0);
+
+const failedEmployees = progressState.isPolling 
+    ? progressState.failedEmployees 
+    : (calculation.failed_employees ?? 0);
+
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
@@ -284,8 +291,7 @@ export function CalculationProgressModal({
                             </div>
                             <Progress value={progressPercentage} className="h-2" />
                             <div className="text-xs text-muted-foreground">
-                                {processedEmployees ?? 0} of {totalEmployees ?? 0} employees processed
-                            </div>
+{processedEmployees} of {totalEmployees} employees processed                            </div>
                         </div>
                     </div>
 
