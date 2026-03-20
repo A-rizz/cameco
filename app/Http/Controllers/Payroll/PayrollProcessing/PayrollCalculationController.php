@@ -331,11 +331,13 @@ class PayrollCalculationController extends Controller
         $progress  = (float) ($p->progress_percentage ?? 0);
 
         $calcStatus = $this->dbStatusToCalcStatus($p->status);
-
-        if (in_array($calcStatus, ['completed', 'cancelled'])) {
-            $progress = 100;
+        if ($calcStatus === 'processing') {
+            $progress = 0.0;
+        } elseif (in_array($calcStatus, ['completed', 'cancelled'])) {
+            $progress = 100.0;
+        } else {
+            $progress = (float) ($p->progress_percentage ?? 0);
         }
-
         return [
             'id'                  => $p->id,
             'payroll_period_id'   => $p->id,
@@ -421,7 +423,7 @@ class PayrollCalculationController extends Controller
     }
 
             // for polling 
-        public function status(int $id): JsonResponse
+    public function status(int $id): JsonResponse
         {
     try {
         $period = PayrollPeriod::findOrFail($id);

@@ -57,39 +57,47 @@ export function usePayrollProgress({
         headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
       });
 
-    if (!res.ok) {
+      if (!res.ok) {
         if (res.status === 404 || res.status === 403) {
-            stopPolling();
+          stopPolling();
         }
         return;
-    }
-// Inside usePayrollProgress fetchStatus function:
+      }
 
-const data = await res.json();
-if (!isMounted.current) return;
+      const data = await res.json();
+      if (!isMounted.current) return;
 
-const batch = data.batch;
+      const batch = data.batch;
+      const hasBatch = batch != null && batch.total != null;
 
-// 1. Ensure we fall back to 0 and cast to Number safely
-const total = Number(batch?.total ?? data.total_employees ?? 0) || 0;
-const pending = Number(batch?.pending ?? 0) || 0;
-const failed = Number(batch?.failed ?? data.failed_employees ?? 0) || 0;
-const progress = Number(batch?.progress ?? data.progress_percentage ?? 0) || 0;
+      // Prefer direct server values; only derive from batch when batch data is present
+      const total     = Number(hasBatch ? batch.total    : data.total_employees     ?? 0) || 0;
+      const failed    = Number(hasBatch ? batch.failed   : data.failed_employees    ?? 0) || 0;
+      const progress  = Number(hasBatch ? batch.progress : data.progress_percentage ?? 0) || 0;
 
-// 2. Calculate processed safely
-const processed = Math.max(0, total - pending);
+      // processed_employees comes directly from the status endpoint —
+      // use it when available; only fall back to (total - pending) when the
+      // batch object supplies a reliable pending count.
+      let processed: number;
+      if (data.processed_employees != null) {
+        processed = Number(data.processed_employees) || 0;
+      } else if (hasBatch) {
+        const pending = Number(batch.pending ?? 0) || 0;
+        processed = Math.max(0, total - pending);
+      } else {
+        processed = 0;
+      }
 
-setState(prev => ({
-  ...prev,
-  status: data.status || 'processing',
-  progress: Math.round(progress),
-  processedEmployees: processed,
-  totalEmployees: total,
-  failedEmployees: failed,
-  errorMessage: data.error_message ?? null,
-  isPolling: true,
-}));
-
+      setState(prev => ({
+        ...prev,
+        status: data.status || 'processing',
+        progress: Math.round(progress),
+        processedEmployees: processed,
+        totalEmployees: total,
+        failedEmployees: failed,
+        errorMessage: data.error_message ?? null,
+        isPolling: true,
+      }));
 
       // Terminal states — stop polling and fire callbacks
       if (data.status === 'completed') {
@@ -113,7 +121,7 @@ setState(prev => ({
   useEffect(() => {
     if (!enabled || !calculationId) return;
 
-    // Fetch immediately (async), then on interval
+    // Fetch immediately, then on interval
     const timeout = setTimeout(fetchStatus, 0);
     intervalRef.current = setInterval(fetchStatus, pollingInterval);
 

@@ -107,6 +107,7 @@ export function CalculationProgressModal({
             calculation_type: calculationType,
         }, {
             onSuccess: () => {
+                // Don't just close — let parent handle reopening with the new calculation
                 onClose();
                 setIsSubmitting(false);
             },
@@ -247,24 +248,47 @@ export function CalculationProgressModal({
     const isFailed = progressState.isPolling ? progressState.status === 'failed' : calculation.status === 'failed';
 // In CalculationProgressModal.tsx, replace these lines:
 
-const progressPercentage = progressState.isPolling 
-    ? progressState.progress 
-    : calculation.progress_percentage;
-
+const progressPercentage = Math.round(
+    progressState.isPolling
+        ? (progressState.progress ?? 0)
+        : Number(calculation.progress_percentage ?? 0) || 0
+);
 const processedEmployees = progressState.isPolling 
     ? (progressState.processedEmployees ?? 0)
-    : (calculation.processed_employees ?? 0);
+    : Number(calculation.processed_employees ?? 0) || 0;
 const totalEmployees = progressState.isPolling 
     ? (progressState.totalEmployees ?? 0)
-    : (calculation.total_employees ?? 0);
+    : Number(calculation.total_employees ?? 0) || 0;
 
 const failedEmployees = progressState.isPolling 
     ? progressState.failedEmployees 
-    : (calculation.failed_employees ?? 0);
+    : Number(calculation.failed_employees ?? 0) || 0;
 
+console.log('calculation prop:', {
+    processed_employees: calculation.processed_employees,
+    total_employees: calculation.total_employees,
+    progress_percentage: calculation.progress_percentage,
+    status: calculation.status,
+});
+console.log('progressState:', {
+    processedEmployees: progressState.processedEmployees,
+    totalEmployees: progressState.totalEmployees,
+    progress: progressState.progress,
+    isPolling: progressState.isPolling,
+    status: progressState.status,
+});
+console.log('derived values:', { progressPercentage, processedEmployees, totalEmployees, failedEmployees });
 
-    return (
-        <Dialog open={isOpen} onOpenChange={onClose}>
+// 👇 ADD THESE NEW ONES HERE
+console.log('progressPercentage type:', typeof progressPercentage, 'value:', progressPercentage);
+console.log('currency values:', {
+    total_gross_pay: calculation.total_gross_pay,
+    total_net_pay: calculation.total_net_pay,
+    total_deductions: calculation.total_deductions,
+});
+
+return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
@@ -291,7 +315,10 @@ const failedEmployees = progressState.isPolling
                             </div>
                             <Progress value={progressPercentage} className="h-2" />
                             <div className="text-xs text-muted-foreground">
-{processedEmployees} of {totalEmployees} employees processed                            </div>
+                                {totalEmployees > 0
+                                    ? `${processedEmployees} of ${totalEmployees} employees processed`
+                                    : 'Initializing...'}                            
+                            </div>
                         </div>
                     </div>
 
@@ -368,8 +395,11 @@ const failedEmployees = progressState.isPolling
                             </div>
                             <div className="col-span-2">
                                 <span className="text-muted-foreground">Started:</span>{' '}
-                                <span className="font-medium">{new Date(calculation.calculation_date).toLocaleString()}</span>
-                            </div>
+                                <span className="font-medium">
+                                    {calculation.calculation_date 
+                                        ? new Date(calculation.calculation_date).toLocaleString()
+                                        : '—'}
+                                </span>                            </div>
                         </div>
                     </div>
                 </div>

@@ -15,7 +15,6 @@ import {
     CancelConfirmationModal 
 } from '@/components/payroll/calculation-action-modals';
 import type { BreadcrumbItem } from '@/types';
-
 // ============================================================================
 // Type Definitions
 // ============================================================================
@@ -96,6 +95,7 @@ export default function PayrollCalculations({
         if (calculation.status === 'completed') {
             router.visit(`/payroll/calculations/${calculation.id}`);
         } else {
+            console.log('opening modal with:', calculation); // 👈 add this
             setSelectedCalculation(calculation);
             setIsProgressModalOpen(true);
         }
@@ -229,10 +229,13 @@ export default function PayrollCalculations({
             {/* Calculation Progress Modal */}
             <CalculationProgressModal
                 isOpen={isProgressModalOpen}
-                onClose={() => setIsProgressModalOpen(false)}
+                onClose={() => {
+                    setIsProgressModalOpen(false);
+                    setSelectedCalculation(null); // always reset
+                }}
                 calculation={selectedCalculation}
                 availablePeriods={available_periods}
-            />
+/>
 
             {/* Confirmation Modals */}
             {recalculateModal.calculation && (
