@@ -46,7 +46,7 @@ class HiringPipelineController extends Controller
 return [
     'id' => $app->id,
     'status' => $app->status,
-    'applied_at' => $app->applied_at ? $app->applied_at->format('Y-m-d') : null,
+    'applied_at' => $app->applied_at ? (\Illuminate\Support\Carbon::parse($app->applied_at)->format('Y-m-d')) : null,
 
     'candidate_id' => $candidate?->id,
     'candidate_name' => $fullName ?: 'Unknown',
