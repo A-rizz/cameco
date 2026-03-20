@@ -128,6 +128,12 @@ return [
             ]);
         }
 
+        // If the request expects JSON (Inertia XHR), return a proper Inertia response
+        if ($request->wantsJson() || $request->header('X-Inertia')) {
+            return redirect()->back()->with('success', 'Application moved successfully');
+        }
+
+        // Fallback for non-Inertia requests
         return back()->with('success', 'Application moved successfully');
     }
 }

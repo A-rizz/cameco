@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { toast } from 'sonner';
 import { router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import {
@@ -50,6 +51,9 @@ export const PipelineKanban = ({ pipeline }: PipelineKanbanProps) => {
   const [quickViewApplication, setQuickViewApplication] = useState<Application | null>(null);
   const [addApplicationModalOpen, setAddApplicationModalOpen] = useState(false);
   const [selectedStatusForAdd, setSelectedStatusForAdd] = useState<ApplicationStatus | null>(null);
+  const [successModalOpen, setSuccessModalOpen] = useState(false);
+  const [successTitle, setSuccessTitle] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const handleDragStart = (e: React.DragEvent, app: Application) => {
     setDraggedCard(app);
@@ -83,13 +87,33 @@ export const PipelineKanban = ({ pipeline }: PipelineKanbanProps) => {
         notes,
       },
       {
-        onSuccess: () => {
+        onSuccess: (page) => {
           setIsMoving(false);
           setMoveModalOpen(false);
+          // Compose custom modal title/message
+          let title = 'Application Moved';
+          let msg = '';
+          if (selectedApplication) {
+            const statusLabels: Record<ApplicationStatus, string> = {
+              submitted: 'Submitted',
+              shortlisted: 'Shortlisted',
+              interviewed: 'Interviewed',
+              offered: 'Offered',
+              hired: 'Hired',
+              rejected: 'Rejected',
+              withdrawn: 'Withdrawn',
+            };
+            title = `Application ${statusLabels[newStatus]}`;
+            msg = `${selectedApplication.candidate_name || 'Candidate'} for "${selectedApplication.job_title || 'Position'}" has been moved to ${statusLabels[newStatus]}.`;
+          }
+          setSuccessTitle(title);
+          setSuccessMessage(msg);
           setSelectedApplication(null);
+          setSuccessModalOpen(true);
         },
         onError: (errors) => {
           setIsMoving(false);
+          toast.error('Failed to move application.');
           console.error('Failed to move application:', errors);
         },
       }
@@ -146,6 +170,22 @@ export const PipelineKanban = ({ pipeline }: PipelineKanbanProps) => {
         onCancel={handleCloseModal}
         isLoading={isMoving}
       />
+      {/* Success Modal */}
+      {successModalOpen && (
+        <Dialog open={successModalOpen} onOpenChange={setSuccessModalOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>{successTitle || 'Application Moved'}</DialogTitle>
+            </DialogHeader>
+            <div className="py-4 text-center">
+              <p className="text-lg font-semibold text-green-700">{successMessage}</p>
+            </div>
+            <DialogFooter>
+              <Button onClick={() => setSuccessModalOpen(false)} autoFocus>OK</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
       <ApplicationQuickViewModal
         open={quickViewOpen}
         application={quickViewApplication}
@@ -158,113 +198,113 @@ export const PipelineKanban = ({ pipeline }: PipelineKanbanProps) => {
         onClose={handleCloseAddApplicationModal}
         onSubmit={handleAddApplication}
       />
-    <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 auto-rows-max">
-      {pipeline.map((column) => {
-        const colors = statusColors[column.status];
-        return (
-          <div key={column.status} className="flex flex-col h-full">
-            <div className={`${colors.header} rounded-t-lg px-3 py-2 text-white`}>
-              <div className="flex items-center justify-between gap-2">
-                <h3 className="font-semibold text-xs truncate">{column.label}</h3>
-                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-white/30 font-bold text-xs text-white">
-                  {column.count}
-                </span>
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 auto-rows-max">
+        {pipeline.map((column) => {
+          const colors = statusColors[column.status];
+          return (
+            <div key={column.status} className="flex flex-col h-full">
+              <div className={`${colors.header} rounded-t-lg px-3 py-2 text-white`}>
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="font-semibold text-xs truncate">{column.label}</h3>
+                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-white/30 font-bold text-xs text-white">
+                    {column.count}
+                  </span>
+                </div>
+              </div>
+
+              <div
+                className="flex-1 rounded-b-lg border border-t-0 px-2 py-2 space-y-2 bg-gray-50 min-h-[300px] overflow-y-auto"
+                onDragOver={handleDragOver}
+                onDrop={(e) => handleDrop(e, column.status)}
+              >
+                {column.applications.length > 0 ? (
+                  column.applications.map((app) => {
+                    const isBeingDragged = draggedCard?.id === app.id;
+                    const appStatusColors = statusColors[app.status as ApplicationStatus];
+                    return (
+                      <div
+                        key={app.id}
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, app)}
+                        onDragEnd={() => setDraggedCard(null)}
+                        onClick={() => handleOpenQuickView(app)}
+                        className={`p-2 bg-white border rounded cursor-grab active:cursor-grabbing transition-all group ${
+                          appStatusColors.border
+                        } ${isBeingDragged ? 'opacity-50 shadow-lg' : 'hover:shadow-md'}`}
+                      >
+                        <div className="flex items-start justify-between gap-1">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-xs truncate">{app.candidate_name || 'Unknown'}</p>
+                            <p className="text-xs text-muted-foreground truncate line-clamp-1">{app.job_title || 'Position'}</p>
+                          </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-5 w-5 p-0 flex-shrink-0">
+                                <ChevronDown className="h-3 w-3" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                              <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+                                Move to Status
+                              </div>
+                              <DropdownMenuSeparator />
+                              {(['submitted', 'shortlisted', 'interviewed', 'offered', 'hired', 'rejected', 'withdrawn'] as ApplicationStatus[]).map(
+                                (status) => (
+                                  status !== app.status && (
+                                    <DropdownMenuItem
+                                      key={status}
+                                      onClick={() => {
+                                        setSelectedApplication(app);
+                                        setTargetStatus(status);
+                                        setMoveModalOpen(true);
+                                      }}
+                                      className="text-xs cursor-pointer"
+                                    >
+                                      {status === 'submitted' && '📝 Submitted'}
+                                      {status === 'shortlisted' && '⭐ Shortlisted'}
+                                      {status === 'interviewed' && '👤 Interviewed'}
+                                      {status === 'offered' && '💼 Offered'}
+                                      {status === 'hired' && '✅ Hired'}
+                                      {status === 'rejected' && '❌ Rejected'}
+                                      {status === 'withdrawn' && '🚫 Withdrawn'}
+                                    </DropdownMenuItem>
+                                  )
+                                )
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+
+                        <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
+                          <span>📅</span>
+                          <span className="truncate">{formatDate(app.applied_at)}</span>
+                        </div>
+
+                        {app.candidate_email && (
+                          <div className="truncate text-xs text-muted-foreground mt-1 hover:text-foreground">
+                            <span className="mr-1">✉️</span>
+                            <span className="truncate">{app.candidate_email}</span>
+                          </div>
+                        )}
+
+                        {app.score && (
+                          <div className="mt-1 flex items-center gap-1 text-xs font-semibold text-yellow-600">
+                            ⭐ {app.score}/10
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="flex items-center justify-center h-16 text-muted-foreground text-xs">
+                    No applications
+                  </div>
+                )}
               </div>
             </div>
-
-            <div
-              className="flex-1 rounded-b-lg border border-t-0 px-2 py-2 space-y-2 bg-gray-50 min-h-[300px] overflow-y-auto"
-              onDragOver={handleDragOver}
-              onDrop={(e) => handleDrop(e, column.status)}
-            >
-              {column.applications.length > 0 ? (
-                column.applications.map((app) => {
-                  const isBeingDragged = draggedCard?.id === app.id;
-                  const appStatusColors = statusColors[app.status as ApplicationStatus];
-                  return (
-                    <div
-                      key={app.id}
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, app)}
-                      onDragEnd={() => setDraggedCard(null)}
-                      onClick={() => handleOpenQuickView(app)}
-                      className={`p-2 bg-white border rounded cursor-grab active:cursor-grabbing transition-all group ${
-                        appStatusColors.border
-                      } ${isBeingDragged ? 'opacity-50 shadow-lg' : 'hover:shadow-md'}`}
-                    >
-                      <div className="flex items-start justify-between gap-1">
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-xs truncate">{app.candidate_name || 'Unknown'}</p>
-                          <p className="text-xs text-muted-foreground truncate line-clamp-1">{app.job_title || 'Position'}</p>
-                        </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-5 w-5 p-0 flex-shrink-0">
-                              <ChevronDown className="h-3 w-3" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-48">
-                            <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
-                              Move to Status
-                            </div>
-                            <DropdownMenuSeparator />
-                            {(['submitted', 'shortlisted', 'interviewed', 'offered', 'hired', 'rejected', 'withdrawn'] as ApplicationStatus[]).map(
-                              (status) => (
-                                status !== app.status && (
-                                  <DropdownMenuItem
-                                    key={status}
-                                    onClick={() => {
-                                      setSelectedApplication(app);
-                                      setTargetStatus(status);
-                                      setMoveModalOpen(true);
-                                    }}
-                                    className="text-xs cursor-pointer"
-                                  >
-                                    {status === 'submitted' && '📝 Submitted'}
-                                    {status === 'shortlisted' && '⭐ Shortlisted'}
-                                    {status === 'interviewed' && '👤 Interviewed'}
-                                    {status === 'offered' && '💼 Offered'}
-                                    {status === 'hired' && '✅ Hired'}
-                                    {status === 'rejected' && '❌ Rejected'}
-                                    {status === 'withdrawn' && '🚫 Withdrawn'}
-                                  </DropdownMenuItem>
-                                )
-                              )
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-
-                      <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
-                        <span>📅</span>
-                        <span className="truncate">{formatDate(app.applied_at)}</span>
-                      </div>
-
-                      {app.candidate_email && (
-                        <div className="truncate text-xs text-muted-foreground mt-1 hover:text-foreground">
-                          <span className="mr-1">✉️</span>
-                          <span className="truncate">{app.candidate_email}</span>
-                        </div>
-                      )}
-
-                      {app.score && (
-                        <div className="mt-1 flex items-center gap-1 text-xs font-semibold text-yellow-600">
-                          ⭐ {app.score}/10
-                        </div>
-                      )}
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="flex items-center justify-center h-16 text-muted-foreground text-xs">
-                  No applications
-                </div>
-              )}
-            </div>
-          </div>
-        );
-      })}
-    </div>
+          );
+        })}
+      </div>
     </>
   );
 };
