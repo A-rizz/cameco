@@ -124,9 +124,6 @@ class DatabaseSeeder extends Seeder
 
         ]);
 
-        if (class_exists(RemoveDuplicateLuisTorresSeeder::class)) {
-            $this->call(RemoveDuplicateLuisTorresSeeder::class);
-        }
 
         // ── Document Management ────────────────────────────────────────────
         $this->call([
@@ -196,6 +193,9 @@ class DatabaseSeeder extends Seeder
             }
 
         }
-
+        // ── Remove Duplicate Luis Torres (run last) ─────────────────────
+        if (class_exists(RemoveDuplicateLuisTorresSeeder::class)) {
+            $this->call(RemoveDuplicateLuisTorresSeeder::class);
+        }
     }
 }
