@@ -160,10 +160,9 @@ class DatabaseSeeder extends Seeder
             WorkforceSeeder::class,
         ]);
 
-
-            if (class_exists(OffboardingSeeder::class)) {
-                $this->call(OffboardingSeeder::class);
-            }
+        if (class_exists(OffboardingSeeder::class)) {
+            $this->call(OffboardingSeeder::class);
+        }
 
 
         // ── Dev / Test Data (local environment only) ───────────────────────
@@ -184,8 +183,8 @@ class DatabaseSeeder extends Seeder
 
         // ── Payroll ────────────────────────────────────────────────────────
         $this->call([
+            PayrollPeriodsSeeder::class, // Ensure this runs after all employee/attendance seeders
             PaymentMethodsSeeder::class,
-            PayrollPeriodsSeeder::class,
             PayrollPaymentsSeeder::class,
             CashDistributionBatchSeeder::class,
             PayslipsSeeder::class,              // ← called once only (was duplicated)

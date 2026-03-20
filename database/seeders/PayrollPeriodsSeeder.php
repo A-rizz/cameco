@@ -16,11 +16,48 @@ class PayrollPeriodsSeeder extends Seeder
      */
     public function run(): void
     {
-        // Avoid duplicate seeding
-        if (PayrollPeriod::count() > 0) {
-            $this->command->warn('payroll_periods already seeded — skipping.');
-            return;
-        }
+        // Always create a fresh completed payroll period for demo/testing
+        $now = Carbon::now();
+        $periodStart = $now->copy()->startOfMonth();
+        $periodEnd = $periodStart->copy()->day(15);
+        $paymentDate = $periodEnd->copy()->addDays(2);
+        $periodNumber = sprintf('%s-%02d-1H', $periodStart->year, $periodStart->month);
+        $payrollOfficer = User::where('email', 'payroll@cameco.com')->first();
+        $hrManager = User::where('email', 'hrmanager@cameco.com')->first();
+        $creatorId = $payrollOfficer?->id ?? $hrManager?->id ?? 1;
+        $approverId = $hrManager?->id ?? $creatorId;
+        $totalEmployees = Employee::count();
+        $activeEmployees = Employee::where('status', 'active')->count();
+        $excludedEmployees = max(0, $totalEmployees - $activeEmployees);
+        // Remove any existing period with this number (for idempotency)
+        PayrollPeriod::where('period_number', $periodNumber)->delete();
+        $period = PayrollPeriod::create([
+                        'period_month' => $periodStart->format('Y-m'),
+                        'period_year' => $periodStart->year,
+            'period_number' => $periodNumber,
+            'period_name' => $periodStart->format('F Y') . ' - 1st Half',
+            'period_start' => $periodStart->toDateString(),
+            'period_end' => $periodEnd->toDateString(),
+            'payment_date' => $paymentDate->toDateString(),
+            'status' => 'completed',
+            'approved_at' => $periodEnd->copy()->subDays(2),
+            'calculation_completed_at' => $periodEnd->copy()->subDays(4),
+            'submitted_for_review_at' => $periodEnd->copy()->subDays(3),
+            'reviewed_at' => $periodEnd->copy()->subDays(2),
+            'finalized_at' => $periodEnd->copy()->subDays(1),
+            'locked_at' => $periodEnd->copy(),
+            'timekeeping_data_locked' => true,
+            'leave_data_locked' => true,
+            'total_employees' => $totalEmployees,
+            'active_employees' => $activeEmployees,
+            'excluded_employees' => $excludedEmployees,
+            'created_by' => $creatorId,
+            'reviewed_by' => $approverId,
+            'approved_by' => $approverId,
+            'locked_by' => $approverId,
+        ]);
+        $this->command->info("✅ Demo payroll period created: {$period->period_number}");
+        // ...existing code...
 
         // Get actual employee counts from database
         $totalEmployees = Employee::count();
