@@ -65,20 +65,24 @@ class EmployeeSeeder extends Seeder
         $rmSupervisor = $prodSupervisor;
         $rmOperator = $machineOperator;
 
-        // Bulk-generate Rolling Mill 1 employees (30)
+        // Bulk-generate Rolling Mill 1 employees (30) - prevent duplicate profiles/employees
         for ($i = 1; $i <= 30; $i++) {
             $empNum = sprintf('EMP-RM1-%04d', $i);
-            $profile = Profile::create([
+            $email = "rm1_{$i}@cameco.com";
+            // Check if profile already exists for this email
+            $profile = Profile::firstOrCreate([
+                'email' => $email
+            ], [
                 'first_name' => 'Rolling',
                 'middle_name' => 'Mill1',
                 'last_name' => "{$i}",
                 'date_of_birth' => '1990-01-01',
                 'gender' => 'male',
                 'civil_status' => 'single',
-                'email' => "rm1_{$i}@cameco.com",
                 'current_address' => 'Rolling Mill 1 Area',
                 'permanent_address' => 'Rolling Mill 1 Area',
             ]);
+            // Only create employee if not already present for this profile
             Employee::firstOrCreate([
                 'employee_number' => $empNum
             ], [
