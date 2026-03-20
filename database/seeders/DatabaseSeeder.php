@@ -191,8 +191,8 @@ class DatabaseSeeder extends Seeder
             if (env('SEED_PAYROLL_TEST_DATA', false)) {
                 $this->call(PayrollCalculationTestSeeder::class);
             }
-
         }
+
         // ── Remove Duplicate Luis Torres (run last) ─────────────────────
         if (class_exists(RemoveDuplicateLuisTorresSeeder::class)) {
             $this->call(RemoveDuplicateLuisTorresSeeder::class);
