@@ -32,7 +32,9 @@ import {
 import { PayrollCalculation } from '@/types/payroll-pages';
 import { router } from '@inertiajs/react';
 import { usePayrollProgress } from '@/hooks/use-payroll-progress';
+// import { usePayrollProgressWebSocket } from '@/hooks/usePayrollProgressWebSocket';
 import { toast } from '@/hooks/use-toast';
+import { useState, useEffect } from 'react';
 
 // ============================================================================
 // Type Definitions
@@ -176,7 +178,12 @@ function CalculationRow({
     onCancel,
     isLoading = false,
 }: CalculationRowProps) {
-    // Real-time progress polling for processing calculations
+
+    // WebSocket progress removed; using polling only
+    // const [wsProgress, setWsProgress] = useState<...>(null);
+    // usePayrollProgressWebSocket({ ... });
+
+    // Polling for progress (WebSocket removed)
     const progressState = usePayrollProgress({
         calculationId: calculation.id,
         initialStatus: calculation.status,
@@ -192,7 +199,6 @@ function CalculationRow({
         },
     });
 
-    // Use live polling state when available, otherwise fall back to calculation props
     const progressPercentage = progressState.isPolling ? progressState.progress : calculation.progress_percentage;
     const processedEmployees = progressState.isPolling && progressState.totalJobs !== null && progressState.pendingJobs !== null
         ? progressState.totalJobs - progressState.pendingJobs
