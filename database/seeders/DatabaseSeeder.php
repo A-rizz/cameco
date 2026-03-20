@@ -33,12 +33,10 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-
-
         // ── Roles & Base Permissions (must run first) ──────────────────────
         $this->call([
             LeavePolicySeeder::class,
-            RolesAndPermissionsSeeder::class,
+            RolesAndPermissionsSeeder::class,   // called ONCE here only
         ]);
 
         // Assign roles to the default users
@@ -80,7 +78,7 @@ class DatabaseSeeder extends Seeder
             SecurityAuditLogSeeder::class,
             SystemSettingsSeeder::class,
             SystemErrorLogSeeder::class,
-            ScheduledJobSeeder::class,          // ← correct name (no trailing 's')
+            ScheduledJobSeeder::class,
             SystemHealthSeeder::class,
             TaxBracketsSeeder::class,
             GovernmentContributionRatesSeeder::class,
@@ -96,7 +94,6 @@ class DatabaseSeeder extends Seeder
         ]);
 
         // ── ATS / Recruitment ──────────────────────────────────────────────
-        // Order matters: job postings → candidates → applications → interviews
         $this->call([
             JobPostingSeeder::class,
             CandidateSeeder::class,
@@ -109,26 +106,20 @@ class DatabaseSeeder extends Seeder
             OffboardingSystemSeeder::class,
         ]);
 
-            if (class_exists(RolesAndPermissionsSeeder::class)) {
-                $this->call(RolesAndPermissionsSeeder::class);
-            }
-
         // ── Employees & Profiles ───────────────────────────────────────────
         $this->call([
             EmployeeSeeder::class,
-            BulkEmployeeSeeder::class, // Disabled to match employee count with seeders only
+            BulkEmployeeSeeder::class,
             EmployeeFilipinoProfileSeeder::class,
             EmployeeAccountSeeder::class,
             LinkEmployeesToUsersSeeder::class,
             EmployeePayrollInfoSeeder::class,
         ]);
 
-
         // ── Document Management ────────────────────────────────────────────
         $this->call([
             DocumentTemplateSeeder::class,
         ]);
-
 
         // ── Timekeeping & Attendance ───────────────────────────────────────
         $this->call([
@@ -142,7 +133,6 @@ class DatabaseSeeder extends Seeder
             AppraisalCycleSeeder::class,
             AppraisalSeeder::class,
         ]);
-
 
         // ── RFID / Badges ──────────────────────────────────────────────────
         $this->call([
@@ -166,16 +156,14 @@ class DatabaseSeeder extends Seeder
             $this->call(OffboardingSeeder::class);
         }
 
-                // ── Payroll ────────────────────────────────────────────────────────
+        // ── Payroll ────────────────────────────────────────────────────────
         $this->call([
-            PayrollPeriodsSeeder::class, // Ensure this runs after all employee/attendance seeders
+            PayrollPeriodsSeeder::class,
             PaymentMethodsSeeder::class,
             PayrollPaymentsSeeder::class,
             CashDistributionBatchSeeder::class,
-            PayslipsSeeder::class,              // ← called once only (was duplicated)
+            PayslipsSeeder::class,
         ]);
-
-
 
         // ── Dev / Test Data (local environment only) ───────────────────────
         if (app()->environment('local', 'testing')) {
@@ -186,13 +174,12 @@ class DatabaseSeeder extends Seeder
                 FullPayrollTestDataSeeder::class,
             ]);
 
-            // Requires SEED_PAYROLL_TEST_DATA=true in .env
             if (env('SEED_PAYROLL_TEST_DATA', false)) {
                 $this->call(PayrollCalculationTestSeeder::class);
             }
         }
 
-        // ── Remove Duplicate Luis Torres (run last) ─────────────────────
+        // ── Cleanup (run last) ─────────────────────────────────────────────
         if (class_exists(RemoveDuplicateLuisTorresSeeder::class)) {
             $this->call(RemoveDuplicateLuisTorresSeeder::class);
         }
