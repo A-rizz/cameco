@@ -31,6 +31,8 @@ class PayrollPeriodsSeeder extends Seeder
         $totalEmployees = Employee::count();
         $activeEmployees = Employee::where('status', 'active')->count();
         $excludedEmployees = max(0, $totalEmployees - $activeEmployees);
+        // For demo: use a realistic average net pay
+        $averageNetPay = 25000;
         // Remove any existing period with this number (for idempotency)
         PayrollPeriod::where('period_number', $periodNumber)->delete();
         $periodsToDelete = [];
@@ -67,6 +69,7 @@ class PayrollPeriodsSeeder extends Seeder
             $paymentDate = $periodEnd->copy()->addDays(2);
             $periodNumber = sprintf('%s-%02d-1H', $periodStart->year, $periodStart->month);
             $status = $i === 0 ? 'completed' : ($i === 1 ? 'approved' : 'draft');
+            $progress = ($status === 'completed' || $status === 'approved') ? 100 : 0;
             $periods[] = [
                 'period_number' => $periodNumber,
                 'period_name' => $periodNumber, // Use period_number as name for demo
@@ -82,8 +85,11 @@ class PayrollPeriodsSeeder extends Seeder
                 'created_by' => $creatorId,
                 'approved_by' => $status === 'approved' || $status === 'completed' ? $approverId : null,
                 'approved_at' => $status === 'approved' || $status === 'completed' ? $paymentDate->copy()->subDays(3) : null,
+                'total_employees' => $totalEmployees,
                 'active_employees' => $activeEmployees,
-                'total_net_pay' => 0.00,
+                'excluded_employees' => $excludedEmployees,
+                'total_net_pay' => ($status === 'completed' || $status === 'approved') ? $averageNetPay * $activeEmployees : 0.00,
+                'progress_percentage' => $progress,
                 'created_at' => $periodStart->copy()->subDays(2),
                 'updated_at' => $paymentDate,
             ];
@@ -94,6 +100,7 @@ class PayrollPeriodsSeeder extends Seeder
             $paymentDate2 = $periodEnd2->copy()->addDays(2);
             $periodNumber2 = sprintf('%s-%02d-2H', $periodStart->year, $periodStart->month);
             $status2 = $i === 0 ? 'completed' : ($i === 1 ? 'approved' : 'draft');
+            $progress2 = ($status2 === 'completed' || $status2 === 'approved') ? 100 : 0;
             $periods[] = [
                 'period_number' => $periodNumber2,
                 'period_name' => $periodNumber2, // Use period_number as name for demo
@@ -109,8 +116,11 @@ class PayrollPeriodsSeeder extends Seeder
                 'created_by' => $creatorId,
                 'approved_by' => $status2 === 'approved' || $status2 === 'completed' ? $approverId : null,
                 'approved_at' => $status2 === 'approved' || $status2 === 'completed' ? $paymentDate2->copy()->subDays(3) : null,
+                'total_employees' => $totalEmployees,
                 'active_employees' => $activeEmployees,
-                'total_net_pay' => 0.00,
+                'excluded_employees' => $excludedEmployees,
+                'total_net_pay' => ($status2 === 'completed' || $status2 === 'approved') ? $averageNetPay * $activeEmployees : 0.00,
+                'progress_percentage' => $progress2,
                 'created_at' => $periodStart2->copy()->subDays(2),
                 'updated_at' => $paymentDate2,
             ];
