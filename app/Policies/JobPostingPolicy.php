@@ -32,9 +32,18 @@ class JobPostingPolicy
      */
     public function create(User $user): bool
     {
-        return $user->can('admin.ats.job-postings.create') ||
-               $user->can('hr.ats.job-postings.create') ||
-               $user->can('recruitment.job_postings.create');
+        $permissions = $user->getAllPermissions()->pluck('name')->toArray();
+        $result = $user->can('admin.ats.job-postings.create') ||
+                  $user->can('hr.ats.job-postings.create') ||
+                  $user->can('recruitment.job_postings.create');
+        \Log::debug('JobPostingPolicy@create', [
+            'user_id' => $user->id,
+            'email' => $user->email,
+            'roles' => $user->getRoleNames()->toArray(),
+            'permissions' => $permissions,
+            'result' => $result,
+        ]);
+        return $result;
     }
 
     /**

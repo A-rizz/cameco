@@ -372,7 +372,7 @@ Route::middleware(['auth', 'verified' , EnsureHRAccess::class])
                 ->middleware('permission:hr.ats.job-postings.create')
                 ->name('job-postings.create');
             Route::post('/job-postings', [JobPostingController::class, 'store'])
-                ->middleware('permission:hr.ats.job-postings.create')
+                ->middleware('permission:recruitment.job_postings.create')
                 ->name('job-postings.store');
             Route::get('/job-postings/{id}/edit', [JobPostingController::class, 'edit'])
                 ->middleware('permission:hr.ats.job-postings.update')
