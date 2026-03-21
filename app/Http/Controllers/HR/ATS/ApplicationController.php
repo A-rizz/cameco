@@ -44,7 +44,7 @@ class ApplicationController extends Controller
                 return [
                     'id'               => $app->id,
                     'status'           => $app->status,
-                    'score'            => $app->score !== null ? $app->score : null,
+                    'score'            => is_numeric($app->score) ? (float)$app->score : null,
                     'applied_at'       => $app->applied_at,
                     'candidate_name'   => trim("$firstName $middleName $lastName") ?: 'Unknown',
                     'candidate_email'  => $email,
