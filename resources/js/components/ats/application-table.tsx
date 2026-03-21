@@ -92,7 +92,7 @@ export function ApplicationTable({
               </TableCell>
               <TableCell>{formatDate(application.applied_at)}</TableCell>
               <TableCell className="text-right">
-                {application.score !== null && application.score !== undefined ? `${application.score}%` : 'N/A'}
+                {typeof application.score === 'number' ? `${application.score}%` : 'N/A'}
               </TableCell>
               <TableCell>
                 <DropdownMenu>
