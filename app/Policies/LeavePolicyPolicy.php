@@ -28,7 +28,7 @@ class LeavePolicyPolicy
      */
     public function create(User $user): bool
     {
-        return $user->can('admin.leave-policies.create');
+        return $user->can('admin.leave-policies.create') || $user->can('hr.leave-policies.create');
     }
 
     /**
