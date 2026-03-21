@@ -129,7 +129,6 @@ class DatabaseSeeder extends Seeder
         $this->call([
             EmployeeSeeder::class,
             BulkEmployeeSeeder::class,
-            EmployeeFilipinoProfileSeeder::class,
             EmployeeAccountSeeder::class,
             LinkEmployeesToUsersSeeder::class,
             EmployeePayrollInfoSeeder::class,

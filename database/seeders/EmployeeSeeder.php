@@ -64,122 +64,28 @@ class EmployeeSeeder extends Seeder
         $rm2Worker = Position::where('title', 'RM2 Production Worker')->first();
         $rm3Worker = Position::where('title', 'RM3 Production Worker')->first();
 
-        // ── Bulk Rolling Mill 1 employees (30) ────────────────────────────
-        for ($i = 1; $i <= 30; $i++) {
-            $empNum = sprintf('EMP-RM1-%04d', $i);
-            $email  = "rm1_{$i}@cameco.com";
-
-            $existingProfile = Profile::where([
-                ['first_name',    '=', 'Rolling'],
-                ['middle_name',   '=', 'Mill1'],
-                ['last_name',     '=', (string) $i],
-                ['date_of_birth', '=', '1990-01-01'],
-            ])->first();
-
-            if ($existingProfile) {
-                continue;
+        // (All bulk/random employee logic removed. Only the 125 provided employees will be seeded below.)
+        // Assign photos to male employees if available
+        $sourceDir = base_path('employee-photos-mock');
+        $employees = Employee::with('profile')->orderBy('id')->get();
+        $photoFiles = collect(glob($sourceDir . '/*.jpg'))->map(fn($f) => basename($f))->toArray();
+        $this->command->info("Assigning photos to male employees...");
+        $i = 0;
+        foreach ($employees as $employee) {
+            $profile = $employee->profile;
+            if (!$profile || strtolower($profile->gender) !== 'male') continue;
+            $photoFile = $photoFiles[$i % count($photoFiles)] ?? null;
+            if ($photoFile) {
+                $sourcePath = $sourceDir . '/' . $photoFile;
+                $destPath = "employees/{$employee->employee_number}/profile.jpg";
+                if (file_exists($sourcePath)) {
+                    \Storage::disk('public')->put($destPath, file_get_contents($sourcePath));
+                    $profile->update(['profile_picture_path' => $destPath]);
+                }
             }
-
-            $profile = Profile::firstOrCreate(['email' => $email], [
-                'first_name'        => 'Rolling',
-                'middle_name'       => 'Mill1',
-                'last_name'         => (string) $i,
-                'date_of_birth'     => '1990-01-01',
-                'gender'            => 'male',
-                'civil_status'      => 'single',
-                'current_address'   => 'Rolling Mill 1 Area',
-                'permanent_address' => 'Rolling Mill 1 Area',
-            ]);
-
-            Employee::firstOrCreate(['employee_number' => $empNum], [
-                'profile_id'      => $profile->id,
-                'department_id'   => $rollingMill1->id,
-                'position_id'     => $rm1Worker?->id,
-                'employment_type' => 'regular',
-                'date_hired'      => '2022-01-01',
-                'status'          => 'active',
-                'created_by'      => $createdBy,
-                'updated_by'      => $createdBy,
-            ]);
+            $i++;
         }
-
-        // ── Bulk Rolling Mill 2 employees (25) ────────────────────────────
-        for ($i = 1; $i <= 25; $i++) {
-            $empNum = sprintf('EMP-RM2-%04d', $i);
-            $email  = "rm2_{$i}@cameco.com";
-
-            $existingProfile = Profile::where([
-                ['first_name',    '=', 'Rolling'],
-                ['middle_name',   '=', 'Mill2'],
-                ['last_name',     '=', (string) $i],
-                ['date_of_birth', '=', '1990-01-01'],
-            ])->first();
-
-            if ($existingProfile) {
-                continue;
-            }
-
-            $profile = Profile::firstOrCreate(['email' => $email], [
-                'first_name'        => 'Rolling',
-                'middle_name'       => 'Mill2',
-                'last_name'         => (string) $i,
-                'date_of_birth'     => '1990-01-01',
-                'gender'            => 'male',
-                'civil_status'      => 'single',
-                'current_address'   => 'Rolling Mill 2 Area',
-                'permanent_address' => 'Rolling Mill 2 Area',
-            ]);
-
-            Employee::firstOrCreate(['employee_number' => $empNum], [
-                'profile_id'      => $profile->id,
-                'department_id'   => $rollingMill2->id,
-                'position_id'     => $rm2Worker?->id,
-                'employment_type' => 'regular',
-                'date_hired'      => '2022-01-01',
-                'status'          => 'active',
-                'created_by'      => $createdBy,
-                'updated_by'      => $createdBy,
-            ]);
-        }
-
-        // ── Bulk Rolling Mill 3 employees (20) ────────────────────────────
-        for ($i = 1; $i <= 20; $i++) {
-            $empNum = sprintf('EMP-RM3-%04d', $i);
-            $email  = "rm3_{$i}@cameco.com";
-
-            $existingProfile = Profile::where([
-                ['first_name',    '=', 'Rolling'],
-                ['middle_name',   '=', 'Mill3'],
-                ['last_name',     '=', (string) $i],
-                ['date_of_birth', '=', '1990-01-01'],
-            ])->first();
-
-            if ($existingProfile) {
-                continue;
-            }
-
-            $profile = Profile::firstOrCreate(['email' => $email], [
-                'first_name'        => 'Rolling',
-                'middle_name'       => 'Mill3',
-                'last_name'         => (string) $i,
-                'date_of_birth'     => '1990-01-01',
-                'gender'            => 'male',
-                'civil_status'      => 'single',
-                'current_address'   => 'Rolling Mill 3 Area',
-                'permanent_address' => 'Rolling Mill 3 Area',
-            ]);
-
-            Employee::firstOrCreate(['employee_number' => $empNum], [
-                'profile_id'      => $profile->id,
-                'department_id'   => $rollingMill3->id,
-                'position_id'     => $rm3Worker?->id,
-                'employment_type' => 'regular',
-                'date_hired'      => '2022-01-01',
-                'status'          => 'active',
-                'created_by'      => $createdBy,
-                'updated_by'      => $createdBy,
-            ]);
-        }
+        $this->command->info("Photo assignment complete.");
 
         // ── Named employees ───────────────────────────────────────────────
         $employees = [
