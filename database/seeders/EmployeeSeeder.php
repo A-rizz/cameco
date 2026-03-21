@@ -334,6 +334,13 @@ class EmployeeSeeder extends Seeder
 
             $position = $resolvePosition($posStr);
 
+            // Only assign email if year of birth >= 1970
+            $birthYear = (int)substr($dob, 0, 4);
+            $hasEmail = $birthYear >= 1970;
+            $email = $hasEmail
+                ? strtolower($firstName . '.' . $lastName . $empNo . '@cameco.com')
+                : null;
+
             $profile = Profile::create([
                 'first_name'      => $firstName,
                 'middle_name'     => $middleName ?: null,
@@ -348,6 +355,7 @@ class EmployeeSeeder extends Seeder
                 'tin_number'        => $tin,
                 'philhealth_number' => $philhealth,
                 'pagibig_number'    => $pagibig,
+                'email'             => $email,
             ]);
 
             Employee::create([
@@ -394,35 +402,5 @@ class EmployeeSeeder extends Seeder
 
         $this->command->info('✅ EmployeeSeeder complete — master list + seed accounts inserted.');
 
-        // ── Create User accounts for a subset of employees ─────────────
-        // For demo: create accounts for the first 10 employees in the master list
-        $accountCount = 0;
-        foreach ($masterList as $row) {
-            if ($accountCount >= 10) break;
-            $empNo = $row[4];
-            $employee = Employee::where('employee_number', $empNo)->first();
-            if (!$employee) continue;
-            $profile = $employee->profile;
-            $email = $profile?->email ?? null;
-            if (!$email) continue;
-            // Only create if not already present
-            $user = \App\Models\User::where('email', $email)->first();
-            if (!$user) {
-                $user = \App\Models\User::create([
-                    'name' => $profile->first_name . ' ' . $profile->last_name,
-                    'username' => strtolower($profile->first_name . '.' . $profile->last_name),
-                    'email' => $email,
-                    'password' => bcrypt('password'),
-                    'is_active' => true,
-                    'email_verified_at' => now(),
-                ]);
-            }
-            // Link user to employee by setting user_id on Employee
-            if ($employee->user_id !== $user->id) {
-                $employee->user_id = $user->id;
-                $employee->save();
-            }
-            $accountCount++;
-        }
     }
 }
