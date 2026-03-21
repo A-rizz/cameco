@@ -63,14 +63,35 @@ class AdvancesController extends Controller
         // Transform advances to frontend shape
         $advances->getCollection()->transform(function ($advance) {
             $employee = $advance->employee;
-            $employeeName = $employee?->user?->full_name ?? 'N/A';
+            $name = null;
+            // 1. Try user.profile
+            if ($employee?->user && $employee->user->profile) {
+                $first = trim((string) ($employee->user->profile->first_name ?? ''));
+                $last = trim((string) ($employee->user->profile->last_name ?? ''));
+                $full = trim($first . ' ' . $last);
+                $name = $full !== '' ? $full : null;
+            }
+            // 2. Try employee.profile
+            if (!$name && $employee?->profile) {
+                $first = trim((string) ($employee->profile->first_name ?? ''));
+                $last = trim((string) ($employee->profile->last_name ?? ''));
+                $full = trim($first . ' ' . $last);
+                $name = $full !== '' ? $full : null;
+            }
+            // 3. Try user->name or username
+            if (!$name && $employee?->user) {
+                $name = $employee->user->name ?: $employee->user->username ?: null;
+            }
+            if (!$name) {
+                $name = 'N/A';
+            }
             $employeeNumber = $employee?->employee_number ?? 'N/A';
             $departmentName = $employee?->department?->name ?? 'N/A';
 
             return [
                 'id' => $advance->id,
                 'employee_id' => $advance->employee_id,
-                'employee_name' => $employeeName,
+                'employee_name' => $name,
                 'employee_number' => $employeeNumber,
                 'department_id' => $employee?->department_id,
                 'department_name' => $departmentName,
@@ -96,17 +117,24 @@ class AdvancesController extends Controller
             ->where('status', 'active')
             ->get()
             ->map(function ($emp) {
-                $user = $emp->user;
-                $profile = $user?->profile;
                 $name = null;
-                if ($profile) {
-                    $first = trim((string) ($profile->first_name ?? ''));
-                    $last = trim((string) ($profile->last_name ?? ''));
+                // 1. Try user.profile
+                if ($emp->user && $emp->user->profile) {
+                    $first = trim((string) ($emp->user->profile->first_name ?? ''));
+                    $last = trim((string) ($emp->user->profile->last_name ?? ''));
                     $full = trim($first . ' ' . $last);
                     $name = $full !== '' ? $full : null;
                 }
-                if (!$name && $user) {
-                    $name = $user->name ?: $user->username ?: 'N/A';
+                // 2. Try employee.profile
+                if (!$name && $emp->profile) {
+                    $first = trim((string) ($emp->profile->first_name ?? ''));
+                    $last = trim((string) ($emp->profile->last_name ?? ''));
+                    $full = trim($first . ' ' . $last);
+                    $name = $full !== '' ? $full : null;
+                }
+                // 3. Try user->name or username
+                if (!$name && $emp->user) {
+                    $name = $emp->user->name ?: $emp->user->username ?: null;
                 }
                 if (!$name) {
                     $name = 'N/A';
