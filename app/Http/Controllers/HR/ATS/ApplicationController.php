@@ -211,6 +211,16 @@ class ApplicationController extends Controller
             'interviewer_name' => $validated['interviewer_name'],
         ]);
 
+        // Update application status to interviewed
+        $application->status = 'interviewed';
+        $application->save();
+
+        ApplicationStatusHistory::create([
+            'application_id' => $application->id,
+            'status'         => 'interviewed',
+            'changed_by'     => Auth::id(),
+        ]);
+
         return back()->with('success', 'Interview scheduled.');
     }
 
