@@ -41,10 +41,19 @@ class ApplicationController extends Controller
                 $lastName = $candidate?->last_name ?? $profile?->last_name ?? '';
                 $email = $candidate?->email ?? $profile?->email ?? 'N/A';
                 $phone = $candidate?->phone ?? $profile?->phone ?? 'N/A';
+                // Ensure score is always float or null (never string or empty string)
+                $score = $app->score;
+                if ($score === '' || $score === null) {
+                    $score = null;
+                } elseif (!is_numeric($score)) {
+                    $score = null;
+                } else {
+                    $score = (float)$score;
+                }
                 return [
                     'id'               => $app->id,
                     'status'           => $app->status,
-                    'score'            => is_numeric($app->score) ? (float)$app->score : null,
+                    'score'            => $score,
                     'applied_at'       => $app->applied_at,
                     'candidate_name'   => trim("$firstName $middleName $lastName") ?: 'Unknown',
                     'candidate_email'  => $email,
@@ -69,6 +78,8 @@ class ApplicationController extends Controller
             'filters'      => [
                 'status' => $status,
                 'job_id' => $jobId,
+                'min_score' => $minScore,
+                'max_score' => $maxScore,
             ],
             'statistics'   => $statistics,
             'jobPostings'  => JobPosting::select('id', 'title')->get(),
