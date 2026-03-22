@@ -185,14 +185,6 @@ export default function PagIbigMCRFGenerator({
                                                             >
                                                                 <Download className="w-4 h-4" />
                                                             </Button>
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                onClick={() => onSubmitMCRF(Number(report.id))}
-                                                                title="Submit to eSRS"
-                                                            >
-                                                                <Zap className="w-4 h-4 text-amber-500" />
-                                                            </Button>
                                                         </>
                                                     )}
                                                     {(report.status === "submitted" || report.status === "accepted") && (
