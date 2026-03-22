@@ -23,6 +23,26 @@ class BIRController extends Controller
     {
         $periodId = $request->input('period_id') ? (int) $request->input('period_id') : null;
 
+        // Fetch BIR Alphalist employee data for the selected period
+        $birAlphalistEmployees = collect($this->birService->getContributions('bir', $periodId))
+            ->map(function ($row, $i) {
+                $row = (object) $row;
+                return [
+                    'sequence_number' => $i + 1,
+                    'tin' => $row->tin ?? '',
+                    'employee_name' => $row->employee_name ?? '',
+                    'address' => $row->employee_address ?? '',
+                    'birth_date' => $row->birth_date ?? '',
+                    'gender' => $row->gender ?? '',
+                    'civil_status' => $row->civil_status ?? '',
+                    'annual_gross_compensation' => $row->gross_compensation ?? 0,
+                    'annual_non_taxable_compensation' => $row->deminimis_benefits ?? 0,
+                    'annual_taxable_compensation' => $row->taxable_income ?? 0,
+                    'annual_tax_withheld' => $row->withholding_tax ?? 0,
+                    'status_flag' => $row->status_flag ?? 'Active',
+                ];
+            })->values();
+
         $reports = GovernmentReport::with('payrollPeriod')
             ->where('agency', 'bir')
             ->orderByDesc('created_at')
@@ -104,6 +124,7 @@ class BIRController extends Controller
             'generated_reports' => $generatedReports,
             'bir_employees'     => $birEmployees,
             'bir_2316_certificates' => $bir2316Certificates,
+            'bir_alphalist_employees' => $birAlphalistEmployees,
         ]);
     }
 

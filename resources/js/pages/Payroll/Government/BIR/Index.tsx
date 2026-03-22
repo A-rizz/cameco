@@ -31,12 +31,15 @@ import { BIRPageProps } from '@/types/bir-pages';
  */
 import { BIR1601CEmployee, BIR2316Certificate } from '@/types/bir-pages';
 
+import { AlphalistEmployee } from '@/types/bir-pages';
+
 interface BIRIndexProps extends BIRPageProps {
     bir_employees: BIR1601CEmployee[];
     bir_2316_certificates: BIR2316Certificate[];
+    bir_alphalist_employees: AlphalistEmployee[];
 }
 
-export default function BIRIndex({ reports, periods, summary, generated_reports, bir_employees, bir_2316_certificates }: BIRIndexProps) {
+export default function BIRIndex({ reports, periods, summary, generated_reports, bir_employees, bir_2316_certificates, bir_alphalist_employees }: BIRIndexProps) {
     const [selectedPeriod, setSelectedPeriod] = useState<string>(
         periods.length > 0 ? String(periods[0].id) : ''
     );
@@ -285,6 +288,7 @@ export default function BIRIndex({ reports, periods, summary, generated_reports,
                         <BIRAlphaListGenerator
                             period={currentPeriod}
                             periodId={selectedPeriod}
+                            employees={bir_alphalist_employees}
                         />
                     </TabsContent>
                 </Tabs>
