@@ -60,11 +60,24 @@ class BIRController extends Controller
                 'rejection_reason'  => $r->rejection_reason,
             ]);
 
+        // Fetch BIR employee contributions for the selected period
+        $birEmployees = $this->birService->getContributions('bir', $periodId)
+            ->map(function ($row) {
+                return [
+                    'employee_id' => $row['employee_number'] ?? $row['employee_id'],
+                    'tin' => $row['tin'] ?? '',
+                    'employee_name' => $row['employee_name'] ?? '',
+                    'gross_compensation' => $row['gross_compensation'] ?? 0,
+                    'withholding_tax' => $row['withholding_tax'] ?? 0,
+                ];
+            })->values();
+
         return Inertia::render('Payroll/Government/BIR/Index', [
             'reports'           => $reports,
             'periods'           => $this->birService->getPeriods(),
             'summary'           => $this->birService->getSummary('bir', $periodId),
             'generated_reports' => $generatedReports,
+            'bir_employees'     => $birEmployees,
         ]);
     }
 

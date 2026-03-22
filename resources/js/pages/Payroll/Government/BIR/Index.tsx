@@ -29,7 +29,13 @@ import { BIRPageProps } from '@/types/bir-pages';
  * Main interface for Bureau of Internal Revenue (BIR) reporting
  * Supports: 1601C (monthly), 2316 (annual), Alphalist (DAT format)
  */
-export default function BIRIndex({ reports, periods, summary, generated_reports }: BIRPageProps) {
+import { BIR1601CEmployee } from '@/types/bir-pages';
+
+interface BIRIndexProps extends BIRPageProps {
+    bir_employees: BIR1601CEmployee[];
+}
+
+export default function BIRIndex({ reports, periods, summary, generated_reports, bir_employees }: BIRIndexProps) {
     const [selectedPeriod, setSelectedPeriod] = useState<string>(
         periods.length > 0 ? String(periods[0].id) : ''
     );
@@ -260,6 +266,7 @@ export default function BIRIndex({ reports, periods, summary, generated_reports 
                         <BIR1601CGenerator
                             period={currentPeriod}
                             periodId={selectedPeriod}
+                            employees={bir_employees}
                         />
                     </TabsContent>
 
