@@ -18,15 +18,16 @@ $reports = GovernmentReport::where('agency', 'bir')->get();
 
 $created = 0;
 foreach ($reports as $report) {
-    if ($report->file_path && !Storage::exists($report->file_path)) {
-        // Ensure directory exists
-        $dir = dirname($report->file_path);
-        if (!Storage::exists($dir)) {
-            Storage::makeDirectory($dir);
+    if ($report->file_path) {
+        $absPath = __DIR__ . '/../storage/app/' . $report->file_path;
+        $dir = dirname($absPath);
+        if (!is_dir($dir)) {
+            mkdir($dir, 0777, true);
         }
-        // Create a placeholder file with a simple message
-        Storage::put($report->file_path, "This is a demo placeholder for {$report->file_name}\n");
-        $created++;
+        if (!file_exists($absPath)) {
+            file_put_contents($absPath, "This is a demo placeholder for {$report->file_name}\n");
+            $created++;
+        }
     }
 }
 echo "Created $created demo report files.\n";
