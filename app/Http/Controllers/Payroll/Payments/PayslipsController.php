@@ -79,11 +79,10 @@ class PayslipsController extends Controller
     public function generate(Request $request)
     {
         $validated = $request->validate([
-            'period_id' => 'required|integer',
-            'employee_ids' => 'nullable|array',
-            'employee_ids.*' => 'integer',
-            'regenerate' => 'nullable|boolean',
-            'distribution_method' => 'required|in:email,portal,print,sms',
+        'period_id'      => 'required|integer',
+        'employee_ids'   => 'nullable|array',
+        'employee_ids.*' => 'integer',
+        'regenerate'     => 'nullable|boolean',
         ]);
 
         try {
