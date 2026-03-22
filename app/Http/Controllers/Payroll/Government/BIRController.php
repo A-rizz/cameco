@@ -167,7 +167,7 @@ class BIRController extends Controller
             ]);
 
             if ($request->hasHeader('X-Inertia')) {
-                return Inertia::location(route('bir.index'));
+                    return Inertia::location(route('payroll.bir.index'));
             }
             return back()->with('success', 'Form 2316 certificates generated successfully for all employees');
         } catch (\Exception $e) {
@@ -177,7 +177,7 @@ class BIRController extends Controller
             ]);
 
             if ($request->hasHeader('X-Inertia')) {
-                return Inertia::location(route('bir.index'));
+                    return Inertia::location(route('payroll.bir.index'));
             }
             return back()->withErrors('Failed to generate Form 2316: ' . $e->getMessage());
         }
