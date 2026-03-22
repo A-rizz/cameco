@@ -87,11 +87,11 @@ class PayslipsController extends Controller
 
         try {
             // Mock generation
-            $generatedCount = isset($validated['employee_ids']) 
+                $generatedCount = isset($validated['employee_ids']) && count($validated['employee_ids']) > 0
                 ? count($validated['employee_ids']) 
                 : 25;
 
-            return back()->with('success', "{$generatedCount} payslips generated successfully for distribution via {$validated['distribution_method']}.");
+            return back()->with('success', "{$generatedCount} payslips generated successfully.");
         } catch (\Exception $e) {
             return back()->with('error', 'Failed to generate payslips: ' . $e->getMessage());
         }
