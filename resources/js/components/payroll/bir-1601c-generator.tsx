@@ -25,7 +25,6 @@ import {
     Download,
     FileText,
     Loader,
-    Upload,
 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { BIRPeriod } from '@/types/bir-pages';
@@ -45,7 +44,6 @@ interface BIR1601CGeneratorProps {
  */
 export const BIR1601CGenerator: React.FC<BIR1601CGeneratorProps> = ({ period, periodId, employees = [] }) => {
     const [isGenerating, setIsGenerating] = useState(false);
-    const [isSubmitting, setIsSubmitting] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusMessage, setStatusMessage] = useState<{
         type: 'success' | 'error' | 'info';
@@ -91,30 +89,6 @@ export const BIR1601CGenerator: React.FC<BIR1601CGeneratorProps> = ({ period, pe
                     });
                 },
                 onFinish: () => setIsGenerating(false),
-            }
-        );
-    };
-
-    const handleSubmit = () => {
-        setIsSubmitting(true);
-        router.post(
-            `/payroll/government/bir/submit-1601c/${periodId}`,
-            {},
-            {
-                onSuccess: () => {
-                    setStatusMessage({
-                        type: 'success',
-                        message: 'Form 1601C submitted to BIR successfully',
-                    });
-                    setTimeout(() => setStatusMessage(null), 3000);
-                },
-                onError: () => {
-                    setStatusMessage({
-                        type: 'error',
-                        message: 'Failed to submit form. Please try again.',
-                    });
-                },
-                onFinish: () => setIsSubmitting(false),
             }
         );
     };
@@ -313,24 +287,6 @@ export const BIR1601CGenerator: React.FC<BIR1601CGeneratorProps> = ({ period, pe
                         >
                             <Download className="w-4 h-4 mr-2" />
                             Download
-                        </Button>
-                        <Button
-                            variant="secondary"
-                            onClick={handleSubmit}
-                            disabled={isSubmitting}
-                            className="flex-1"
-                        >
-                            {isSubmitting ? (
-                                <>
-                                    <Loader className="w-4 h-4 mr-2 animate-spin" />
-                                    Submitting...
-                                </>
-                            ) : (
-                                <>
-                                    <Upload className="w-4 h-4 mr-2" />
-                                    Submit to BIR
-                                </>
-                            )}
                         </Button>
                     </div>
                 </CardContent>
