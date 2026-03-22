@@ -69,14 +69,6 @@ export default function EnvelopePrinter({ employees }: EnvelopePrinterProps) {
                 <CardContent className="space-y-4">
                     <div className="flex gap-2">
                         <Button
-                            onClick={handleGenerateForDownload}
-                            disabled={printableEmployees.length === 0 || isPrinting}
-                            className="bg-blue-600 hover:bg-blue-700"
-                        >
-                            <FileText className="h-4 w-4 mr-2" />
-                            {isPrinting ? 'Generating...' : 'Generate PDF'}
-                        </Button>
-                        <Button
                             onClick={handlePrintEnvelopes}
                             disabled={printableEmployees.length === 0 || isPrinting}
                             variant="outline"
