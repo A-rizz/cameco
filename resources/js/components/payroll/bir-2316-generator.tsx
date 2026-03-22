@@ -16,8 +16,6 @@ import {
     // CheckCircle,
     Download,
     FileText,
-    Loader,
-    Upload,
     Search,
 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -34,9 +32,8 @@ interface BIR2316GeneratorProps {
  * Certificate of Compensation Income Withheld on Wages
 import { BIRPeriod, BIR2316Certificate } from '@/types/bir-pages';
  */
-export const BIR2316Generator: React.FC<BIR2316GeneratorProps> = ({ period, periodId, certificates = [] }) => {
-    const [isGenerating, setIsGenerating] = useState(false);
-        const [searchTerm, setSearchTerm] = useState('');
+export const BIR2316Generator: React.FC<BIR2316GeneratorProps> = ({ certificates = [] }) => {
+    const [searchTerm, setSearchTerm] = useState('');
 
     // Use real certificates from props (default empty array)
     const filteredCertificates = certificates.filter((cert) =>
