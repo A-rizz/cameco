@@ -293,7 +293,7 @@ public function preview(int $payslipId)
 
         // Fallback: generate PDF on the fly with DomPDF
         // composer require barryvdh/laravel-dompdf
-        $pdf = \PDF::loadView('payroll.payslips.pdf', ['payslip' => $payslip]);
+        $pdf = \PDF::loadView('payslips.pdf', ['payslip' => $payslip]);
 
         return $pdf->download("Payslip-{$payslip->payslip_number}.pdf");
     }
