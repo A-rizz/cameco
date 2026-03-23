@@ -421,7 +421,7 @@ class WorkforceCoverageSeeder extends Seeder
                         'location' => 'Main Office',
                         'has_conflict' => false,
                         'status' => 'scheduled',
-                        'assignment_source' => 'seeder',
+                        'assignment_source' => 'manual',
                         'generated_by_user_id' => 1,
                         'created_by' => 1,
                     ]
