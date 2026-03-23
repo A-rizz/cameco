@@ -35,7 +35,22 @@ class AllowanceDeductionService
     public function addAllowance(Employee $employee, string $allowanceType, array $data, User $creator): EmployeeAllowance
     {
         // Validate allowance type
-        $validTypes = ['rice', 'cola', 'transportation', 'meal', 'housing', 'communication', 'laundry', 'clothing', 'other'];
+        $validTypes = [
+            'rice',
+            'cola',
+            'transportation',
+            'meal',
+            'housing',
+            'communication',
+            'utilities',
+            'laundry',
+            'uniform',
+            'medical',
+            'educational',
+            'special_project',
+            'other',
+            'clothing',
+        ];
         if (!in_array($allowanceType, $validTypes)) {
             throw ValidationException::withMessages([
                 'allowance_type' => "Invalid allowance type. Allowed: " . implode(', ', $validTypes),
