@@ -32,8 +32,9 @@ class AllowancesDeductionsController extends Controller
 
         $employeeQuery = Employee::with([
             'payrollInfo',
-            'allowances' => fn($q) => $q->where('is_active', true),
-            'deductions' => fn($q) => $q->where('is_active', true),
+            // Eager-load salaryComponent on both relations so name/code are never N/A
+            'allowances' => fn($q) => $q->where('is_active', true)->with('salaryComponent'),
+            'deductions' => fn($q) => $q->where('is_active', true)->with('salaryComponent'),
             'user',
             'department',
             'position',
@@ -41,7 +42,7 @@ class AllowancesDeductionsController extends Controller
 
         if ($search) {
             $employeeQuery->where(function ($q) use ($search) {
-                $q->whereHas('user', fn($subQ) => 
+                $q->whereHas('user', fn($subQ) =>
                     $subQ->where('first_name', 'like', "%$search%")
                         ->orWhere('last_name', 'like', "%$search%")
                 )
@@ -56,94 +57,90 @@ class AllowancesDeductionsController extends Controller
         $employees = $employeeQuery->get();
 
         $employeeData = $employees
-            ->filter(fn($emp) => $emp->user !== null)  // Filter out employees without users
+            ->filter(fn($emp) => $emp->user !== null)
             ->map(function ($employee) use ($componentType) {
-            $allowances = $employee->allowances->map(fn($a) => [
-                'id' => $a->id,
-                'employee_id' => $a->employee_id,
-                'salary_component_id' => $a->salary_component_id,
-                'component_name' => $a->salaryComponent->name ?? 'N/A',
-                'component_code' => $a->salaryComponent->code ?? 'N/A',
-                'component_type' => 'allowance',
-                'amount' => $a->amount,
-                'percentage' => $a->percentage,
-                'units' => $a->units,
-                'frequency' => $a->frequency,
-                'effective_date' => $a->effective_date,
-                'end_date' => $a->end_date,
-                'is_active' => $a->is_active,
-                'is_prorated' => $a->is_prorated,
-                'requires_attendance' => $a->requires_attendance,
-            ]);
+                $allowances = $employee->allowances->map(fn($a) => [
+                    'id' => $a->id,
+                    'employee_id' => $a->employee_id,
+                    'salary_component_id' => $a->salary_component_id,
+                    'component_name' => $a->salaryComponent?->name ?? 'Unknown',
+                    'component_code' => $a->salaryComponent?->code ?? 'Unknown',
+                    'component_type' => 'allowance',
+                    'amount' => $a->amount,
+                    'percentage' => $a->percentage,
+                    'units' => $a->units,
+                    'frequency' => $a->frequency,
+                    'effective_date' => $a->effective_date,
+                    'end_date' => $a->end_date,
+                    'is_active' => $a->is_active,
+                    'is_prorated' => $a->is_prorated,
+                    'requires_attendance' => $a->requires_attendance,
+                ]);
 
-            $deductions = $employee->deductions->map(fn($d) => [
-                'id' => $d->id,
-                'employee_id' => $d->employee_id,
-                'salary_component_id' => $d->salary_component_id,
-                'component_name' => $d->salaryComponent->name ?? 'N/A',
-                'component_code' => $d->salaryComponent->code ?? 'N/A',
-                'component_type' => 'deduction',
-                'amount' => $d->amount,
-                'percentage' => $d->percentage,
-                'units' => $d->units,
-                'frequency' => $d->frequency,
-                'effective_date' => $d->effective_date,
-                'end_date' => $d->end_date,
-                'is_active' => $d->is_active,
-                'is_prorated' => $d->is_prorated,
-                'requires_attendance' => $d->requires_attendance,
-            ]);
+                $deductions = $employee->deductions->map(fn($d) => [
+                    'id' => $d->id,
+                    'employee_id' => $d->employee_id,
+                    'salary_component_id' => $d->salary_component_id,
+                    'component_name' => $d->salaryComponent?->name ?? 'Unknown',
+                    'component_code' => $d->salaryComponent?->code ?? 'Unknown',
+                    'component_type' => 'deduction',
+                    'amount' => $d->amount,
+                    'percentage' => $d->percentage,
+                    'units' => $d->units,
+                    'frequency' => $d->frequency,
+                    'effective_date' => $d->effective_date,
+                    'end_date' => $d->end_date,
+                    'is_active' => $d->is_active,
+                    'is_prorated' => $d->is_prorated,
+                    'requires_attendance' => $d->requires_attendance,
+                ]);
 
-            $components = $allowances->concat($deductions);
-            if ($componentType) {
-                $components = $components->filter(fn($c) => $c['component_type'] === $componentType);
-            }
+                $components = $allowances->concat($deductions);
+                if ($componentType) {
+                    $components = $components->filter(fn($c) => $c['component_type'] === $componentType);
+                }
 
-            $totalAllowances = $allowances->sum('amount') ?? 0;
-            $totalDeductions = $deductions->sum('amount') ?? 0;
+                $totalAllowances = $allowances->sum('amount') ?? 0;
+                $totalDeductions = $deductions->sum('amount') ?? 0;
 
-            // Prefer profile first, then user->name, then username
-            $profile = $employee->user?->profile;
-            $first = null;
-            $last = null;
-            if ($profile) {
-                $first = $profile->first_name;
-                $last = $profile->last_name;
-            } elseif ($employee->user) {
-                // Fallback to user->name split if possible
-                $name = $employee->user->name ?? '';
-                if ($name) {
-                    $parts = explode(' ', $name, 2);
-                    $first = $parts[0] ?? $employee->user->username ?? 'N/A';
-                    $last = $parts[1] ?? '';
+                $profile = $employee->user?->profile;
+                $first = null;
+                $last = null;
+                if ($profile) {
+                    $first = $profile->first_name;
+                    $last = $profile->last_name;
+                } elseif ($employee->user) {
+                    $name = $employee->user->name ?? '';
+                    if ($name) {
+                        $parts = explode(' ', $name, 2);
+                        $first = $parts[0] ?? $employee->user->username ?? 'N/A';
+                        $last = $parts[1] ?? '';
+                    } else {
+                        $first = $employee->user->username ?? 'N/A';
+                        $last = '';
+                    }
                 } else {
-                    $first = $employee->user->username ?? 'N/A';
+                    $first = 'N/A';
                     $last = '';
                 }
-            } else {
-                $first = 'N/A';
-                $last = '';
-            }
-            return [
-                'id' => $employee->id,
-                'employee_id' => $employee->id,
-                'employee_number' => $employee->employee_number,
-                'first_name' => $first ?? 'N/A',
-                'last_name' => $last ?? '',
-                'department' => $employee->department?->name ?? 'N/A',
-                'department_id' => $employee->department_id,
-                'position' => $employee->position?->name ?? 'N/A',
-                'components' => array_values($components->toArray()),
-                'total_allowances' => $totalAllowances,
-                'total_deductions' => $totalDeductions,
-            ];
-        });
 
-        // Do not filter out employees with no components, so all active employees are included in the assign modal
+                return [
+                    'id' => $employee->id,
+                    'employee_id' => $employee->id,
+                    'employee_number' => $employee->employee_number,
+                    'first_name' => $first ?? 'N/A',
+                    'last_name' => $last ?? '',
+                    'department' => $employee->department?->name ?? 'N/A',
+                    'department_id' => $employee->department_id,
+                    'position' => $employee->position?->name ?? 'N/A',
+                    'components' => array_values($components->toArray()),
+                    'total_allowances' => $totalAllowances,
+                    'total_deductions' => $totalDeductions,
+                ];
+            });
 
         $components = $this->salaryComponentService->getComponentsGroupedByType(true);
         $componentsList = collect([]);
-        // List of core payroll codes that should never be assigned manually
         $excludedCodes = [
             'BASIC', 'SSS', 'PHILHEALTH', 'PAGIBIG', 'TAX', '13TH_MONTH',
             'GROSS', 'ALLOWANCE_OTHER', 'ALLOWANCE_DIFF_RATE',
@@ -201,7 +198,6 @@ class AllowancesDeductionsController extends Controller
             ->map(function ($emp) {
                 $first = $emp->user?->profile?->first_name;
                 $last = $emp->user?->profile?->last_name;
-                // Fallback to user->name or username if profile is missing
                 if (!$first && !$last) {
                     $full = $emp->user?->name ?? $emp->user?->username ?? 'N/A';
                     $parts = explode(' ', $full, 2);
@@ -220,7 +216,6 @@ class AllowancesDeductionsController extends Controller
 
         $components = $this->salaryComponentService->getComponentsGroupedByType(true);
         $componentsList = collect([]);
-        // List of core payroll codes that should never be bulk assigned
         $excludedCodes = [
             'BASIC', 'SSS', 'PHILHEALTH', 'PAGIBIG', 'TAX', '13TH_MONTH',
             'GROSS', 'ALLOWANCE_OTHER', 'ALLOWANCE_DIFF_RATE',
@@ -266,35 +261,32 @@ class AllowancesDeductionsController extends Controller
             'is_prorated' => 'boolean',
             'requires_attendance' => 'boolean',
         ]);
-            $employee = Employee::findOrFail($validated['employee_id']);
-            $component = SalaryComponent::findOrFail($validated['salary_component_id']);
 
-            if ($component->component_type === 'allowance') {
-                $assignment = $this->allowanceDeductionService->addAllowance(
-                    $employee,
-                    strtolower($component->code),
-                    $validated,
-                    auth()->user()
-                );
-            } else {
-                // Map SalaryComponent code to valid deduction type for EmployeeDeduction
-                // Accept any deduction code present in the database
-                if ($component->component_type !== 'deduction') {
-                    throw \Illuminate\Validation\ValidationException::withMessages([
-                        'assignment' => 'Selected component is not a deduction type.',
-                    ]);
-                }
-                $deductionType = $component->code; // Use the code directly
-                $assignment = $this->allowanceDeductionService->addDeduction(
-                    $employee,
-                    strtolower($deductionType),
-                    $validated,
-                    auth()->user()
-                );
+        $employee = Employee::findOrFail($validated['employee_id']);
+        $component = SalaryComponent::findOrFail($validated['salary_component_id']);
+
+        if ($component->component_type === 'allowance') {
+            $this->allowanceDeductionService->addAllowance(
+                $employee,
+                strtolower($component->code),
+                $validated,
+                auth()->user()
+            );
+        } else {
+            if ($component->component_type !== 'deduction') {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'assignment' => 'Selected component is not a deduction type.',
+                ]);
             }
+            $this->allowanceDeductionService->addDeduction(
+                $employee,
+                strtolower($component->code),
+                $validated,
+                auth()->user()
+            );
+        }
 
-            return redirect()->back()->with('success', 'Component assigned successfully.');
-        // No try/catch: let exceptions bubble up for logging
+        return redirect()->back()->with('success', 'Component assigned successfully.');
     }
 
     /**
@@ -373,7 +365,7 @@ class AllowancesDeductionsController extends Controller
                 ->get()
                 ->map(fn($a) => [
                     'id' => $a->id,
-                    'component_name' => $a->salaryComponent->name,
+                    'component_name' => $a->salaryComponent?->name ?? 'Unknown',
                     'amount' => $a->amount,
                     'frequency' => $a->frequency,
                     'effective_date' => $a->effective_date,
@@ -390,7 +382,7 @@ class AllowancesDeductionsController extends Controller
                 ->get()
                 ->map(fn($d) => [
                     'id' => $d->id,
-                    'component_name' => $d->salaryComponent->name,
+                    'component_name' => $d->salaryComponent?->name ?? 'Unknown',
                     'amount' => $d->amount,
                     'frequency' => $d->frequency,
                     'effective_date' => $d->effective_date,
@@ -444,7 +436,7 @@ class AllowancesDeductionsController extends Controller
             foreach ($validated['employee_ids'] as $employeeId) {
                 try {
                     $employee = Employee::findOrFail($employeeId);
-                    
+
                     if ($component->component_type === 'allowance') {
                         $this->allowanceDeductionService->addAllowance(
                             $employee,
