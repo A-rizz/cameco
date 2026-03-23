@@ -367,7 +367,7 @@ class PayrollPeriod extends Model
      */
     public function canApprove(): bool
     {
-        return in_array($this->status, ['under_review', 'pending_approval']);
+        return in_array($this->status, ['calculated', 'under_review', 'pending_approval']);
     }
 
     /**
