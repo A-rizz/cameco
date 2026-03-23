@@ -304,6 +304,11 @@ export default function CreateRequest({
             return;
         }
 
+        if (reason.trim().length < 10) {
+            alert('Reason must be at least 10 characters long.');
+            return;
+        }
+
         if (balanceError) {
             alert('Cannot submit: ' + balanceError);
             return;
@@ -333,6 +338,17 @@ export default function CreateRequest({
                 formData.append('document', uploadedDocument);
             }
 
+            console.log('Submitting leave request with data:', {
+                leave_policy_id: selectedLeaveType,
+                start_date: startDate,
+                end_date: endDate,
+                reason: reason.substring(0, 50) + '...',
+                variant: selectedVariant || 'none',
+                has_document: !!uploadedDocument,
+                document_name: uploadedDocument?.name,
+                document_size: uploadedDocument?.size,
+            });
+
             await axios.post('/employee/leave/request', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
@@ -351,15 +367,33 @@ export default function CreateRequest({
         } catch (error: unknown) {
             console.error('Failed to submit leave request', error);
             const axiosError = error as AxiosValidationError;
+            
+            console.log('Error response:', {
+                status: axiosError.response?.status,
+                data: axiosError.response?.data,
+            });
+            
+            // Handle validation errors from backend
             const validationErrors = axiosError.response?.data?.errors;
-            const firstValidationError = validationErrors
-                ? Object.values(validationErrors).flat()[0]
-                : undefined;
+            if (validationErrors && typeof validationErrors === 'object') {
+                // Build error message from all validation errors
+                const errorMessages = Object.entries(validationErrors)
+                    .map(([field, messages]) => {
+                        const msgArray = Array.isArray(messages) ? messages : [messages];
+                        return msgArray.join(', ');
+                    })
+                    .join('\n');
+                console.log('Validation errors:', errorMessages);
+                setSubmitError(errorMessages || 'Validation failed. Please check your entries.');
+                setSubmitting(false);
+                return;
+            }
+            
             const errorMessage =
-                firstValidationError ||
                 axiosError.response?.data?.message ||
                 axiosError.response?.data?.error ||
-                'Failed to submit leave request. Please try again.';
+                `Request failed with status ${axiosError.response?.status || 'unknown'}. Please check the console for details and try again.`;
+            console.log('Final error message:', errorMessage);
             setSubmitError(errorMessage);
         } finally {
             setSubmitting(false);

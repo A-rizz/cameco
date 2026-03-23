@@ -472,7 +472,7 @@ class LeaveController extends Controller
                 $documentPath = $file->storeAs(
                     "leave-documents/{$employee->id}",
                     $fileName,
-                    'private'
+                    'local'
                 );
             }
 
