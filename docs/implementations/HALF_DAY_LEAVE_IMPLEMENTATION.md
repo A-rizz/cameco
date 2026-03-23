@@ -365,8 +365,8 @@ This approach:
 **Objective:** Update seeders and factories to reflect the new structure.
 
 ### Task 6.1: Update LeavePolicySeeder
-- [ ] **File:** `database/seeders/LeavePolicySeeder.php`
-- [ ] **Changes:**
+- [x] **File:** `database/seeders/LeavePolicySeeder.php`
+- [x] **Changes:**
   - Keep HAM/HPM entries but mark `is_active = false`
   - Add comment explaining deprecation:
     ```php
@@ -376,11 +376,11 @@ This approach:
     ```
   - No other changes needed
 
-- [ ] **Validate:** Seeder runs, HAM/HPM are inactive
+- [x] **Validate:** Seeder runs, HAM/HPM are inactive
 
 ### Task 6.2: Update LeavePolicyFactory
-- [ ] **File:** `database/factories/LeavePolicyFactory.php`
-- [ ] **Changes:**
+- [x] **File:** `database/factories/LeavePolicyFactory.php`
+- [x] **Changes:**
   - Remove HAM/HPM from codes array:
     ```php
     $codes = ['VL','SL','EL','ML','PL','BL','SP'];
@@ -388,11 +388,11 @@ This approach:
   - Remove HAM/HPM from names array
   - Factory won't create deprecated policies
 
-- [ ] **Validate:** Factory generates only active policies
+- [x] **Validate:** Factory generates only active policies
 
 ### Task 6.3: Update LeaveRequestFactory
-- [ ] **File:** `database/factories/LeaveRequestFactory.php`
-- [ ] **Changes:**
+- [x] **File:** `database/factories/LeaveRequestFactory.php`
+- [x] **Changes:**
   - Add variant handling in factory
   - Optional: randomly assign variant to SL requests
   - Example:
@@ -402,15 +402,15 @@ This approach:
         : null,
     ```
 
-- [ ] **Validate:** Factory creates requests with variants
+- [x] **Validate:** Factory creates requests with variants
 
 ### Task 6.4: Update LeaveRequestSeeder (if exists)
-- [ ] **File:** `database/seeders/LeaveRequestSeeder.php`
-- [ ] **Changes:**
+- [x] **File:** `database/seeders/LeaveRequestSeeder.php`
+- [x] **Changes:**
   - Update any existing SL requests to potentially include variants
   - Or leave as-is (full days) for simplicity
 
-- [ ] **Validate:** Seeder works without errors
+- [x] **Validate:** Seeder works without errors
 
 ---
 
