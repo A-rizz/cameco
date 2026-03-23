@@ -133,6 +133,10 @@ export default function CreateRequest({
         daysRequested: number;
     } | null>(null);
 
+    // Validation error modal state
+    const [showValidationError, setShowValidationError] = useState<boolean>(false);
+    const [validationErrorMessage, setValidationErrorMessage] = useState<string>('');
+
     // Selected leave type details
     const selectedLeaveTypeData = leaveTypes?.find(
         (lt) => lt.id.toString() === selectedLeaveType
@@ -290,32 +294,38 @@ export default function CreateRequest({
 
         // Validation
         if (!selectedLeaveType) {
-            alert('Please select a leave type.');
+            setValidationErrorMessage('Please select a leave type.');
+            setShowValidationError(true);
             return;
         }
 
         if (!startDate || !endDate) {
-            alert('Please select start and end dates.');
+            setValidationErrorMessage('Please select start and end dates.');
+            setShowValidationError(true);
             return;
         }
 
         if (!reason.trim()) {
-            alert('Please enter a reason for your leave request.');
+            setValidationErrorMessage('Please enter a reason for your leave request.');
+            setShowValidationError(true);
             return;
         }
 
         if (reason.trim().length < 10) {
-            alert('Reason must be at least 10 characters long.');
+            setValidationErrorMessage('Reason must be at least 10 characters long. Please provide a more detailed explanation.');
+            setShowValidationError(true);
             return;
         }
 
         if (balanceError) {
-            alert('Cannot submit: ' + balanceError);
+            setValidationErrorMessage('Cannot submit: ' + balanceError);
+            setShowValidationError(true);
             return;
         }
 
         if (selectedLeaveTypeData?.requires_document && !uploadedDocument) {
-            alert('This leave type requires supporting documentation. Please upload a PDF file.');
+            setValidationErrorMessage('This leave type requires supporting documentation. Please upload a PDF file.');
+            setShowValidationError(true);
             return;
         }
 
