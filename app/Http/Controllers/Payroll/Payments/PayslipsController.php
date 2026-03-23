@@ -129,19 +129,32 @@ public function generate(Request $request)
             }
 
             // Find or create a PayrollPayment record for this period
-            $payment = \App\Models\PayrollPayment::firstOrCreate(
-                [
-                    'payroll_period_id' => $period->id,
-                    'employee_id'       => $calc->employee_id,
-                ],
-                [
-                    'payment_date'   => $period->payment_date ?? now(),
-                    'payment_method' => 'bank_transfer',
-                    'status'         => 'pending',
-                    'net_pay'        => $calc->net_pay,
-                    'created_by'     => auth()->id(),
-                ]
-            );
+// Find or create a PayrollPayment record for this period
+$defaultPaymentMethodId = \App\Models\PaymentMethod::where('is_enabled', true)
+    ->orderBy('sort_order')
+    ->value('id');
+
+if (!$defaultPaymentMethodId) {
+    throw new \Exception('No enabled payment method found. Please configure a payment method first.');
+}
+
+$payment = \App\Models\PayrollPayment::firstOrCreate(
+    [
+        'payroll_period_id' => $period->id,
+        'employee_id'       => $calc->employee_id,
+    ],
+    [
+        'period_start'      => $period->period_start,
+        'period_end'        => $period->period_end,
+        'payment_date'      => $period->payment_date ?? now(),
+        'payment_method_id' => $defaultPaymentMethodId,
+        'status'            => 'pending',
+        'gross_pay'         => (float) $calc->gross_pay,
+        'net_pay'           => (float) $calc->net_pay,
+        'total_deductions'  => (float) $calc->total_deductions,
+        'created_by'        => auth()->id(),
+    ]
+);
 
             // Build earnings_data from calculation
             $earningsData = [
@@ -163,44 +176,33 @@ public function generate(Request $request)
             ];
 
             // Upsert the payslip
-            Payslip::updateOrCreate(
-                [
-                    'payroll_payment_id' => $payment->id,
-                    'employee_id'        => $calc->employee_id,
-                ],
-                [
-                    'payslip_number'          => 'PS-' . $period->id . '-' . str_pad($calc->employee_id, 5, '0', STR_PAD_LEFT),
-                    'employee_number'         => $calc->employee_number,
-                    'employee_name'           => $calc->employee_name,
-                    'department'              => $calc->department,
-                    'position'                => $calc->position,
-                    'period_start'            => $period->period_start,
-                    'period_end'              => $period->period_end,
-                    'payment_date'            => $period->payment_date ?? now(),
-                    'basic_salary'            => (float) $calc->basic_pay,
-                    'overtime_pay'            => (float) $calc->total_overtime_pay,
-                    'night_differential'      => 0,
-                    'holiday_pay'             => 0,
-                    'allowances'              => (float) $calc->total_allowances,
-                    'other_earnings'          => (float) $calc->other_allowances,
-                    'total_earnings'          => (float) $calc->gross_pay,
-                    'sss_contribution'        => (float) $calc->sss_contribution,
-                    'philhealth_contribution' => (float) $calc->philhealth_contribution,
-                    'pagibig_contribution'    => (float) $calc->pagibig_contribution,
-                    'withholding_tax'         => (float) $calc->withholding_tax,
-                    'loans'                   => (float) $calc->total_loan_deductions,
-                    'other_deductions'        => (float) ($calc->tardiness_deduction + $calc->miscellaneous_deductions),
-                    'total_deductions'        => (float) $calc->total_deductions,
-                    'net_pay'                 => (float) $calc->net_pay,
-                    'earnings_data'           => $earningsData,
-                    'deductions_data'         => $deductionsData,
-                    'status'                  => 'generated',
-                    'distribution_method'     => 'portal',
-                    'generated_by'            => auth()->id(),
-                    'generated_at'            => now(),
-                ]
-            );
-
+Payslip::updateOrCreate(
+    [
+        'payroll_payment_id' => $payment->id,
+        'employee_id'        => $calc->employee_id,
+    ],
+    [
+        'payroll_period_id'   => $period->id,
+        'payslip_number'      => 'PS-' . $period->id . '-' . str_pad($calc->employee_id, 5, '0', STR_PAD_LEFT),
+        'employee_number'     => $calc->employee_number,
+        'employee_name'       => $calc->employee_name,
+        'department'          => $calc->department,
+        'position'            => $calc->position,
+        'period_start'        => $period->period_start,
+        'period_end'          => $period->period_end,
+        'payment_date'        => $period->payment_date ?? now(),
+        'total_earnings'      => (float) $calc->gross_pay,
+        'total_deductions'    => (float) $calc->total_deductions,
+        'net_pay'             => (float) $calc->net_pay,
+        'earnings_data'       => $earningsData,
+        'deductions_data'     => $deductionsData,
+        'status'              => 'generated',
+        'distribution_method' => 'portal',
+        // Add file_path for NOT NULL constraint
+        'file_path'           => 'payslips/' . $period->id . '/' . $calc->employee_number . '.pdf',
+        'generated_by'        => auth()->id(),
+    ]
+);
             $generated++;
         }
 
@@ -230,26 +232,25 @@ public function preview(int $payslipId)
         'payrollPayment.payrollPeriod',
     ])->findOrFail($payslipId);
 
-    $employee = $payslip->employee;
-    $period   = $payslip->payrollPayment?->payrollPeriod;
+    $employee     = $payslip->employee;
+    $period       = $payslip->payrollPayment?->payrollPeriod;
+    $earningsData = $payslip->earnings_data ?? [];
+    $deductData   = $payslip->deductions_data ?? [];
 
-    // Build earnings breakdown from payslip columns
     $earnings = array_filter([
-        ['name' => 'Basic Salary',      'amount' => (float) $payslip->basic_salary],
-        ['name' => 'Overtime Pay',      'amount' => (float) $payslip->overtime_pay],
-        ['name' => 'Night Differential','amount' => (float) $payslip->night_differential],
-        ['name' => 'Holiday Pay',       'amount' => (float) $payslip->holiday_pay],
-        ['name' => 'Allowances',        'amount' => (float) $payslip->allowances],
-        ['name' => 'Other Earnings',    'amount' => (float) $payslip->other_earnings],
+        ['name' => 'Basic Salary',    'amount' => (float) ($earningsData['basic_pay'] ?? 0)],
+        ['name' => 'Overtime Pay',    'amount' => (float) ($earningsData['overtime_pay'] ?? 0)],
+        ['name' => 'Allowances',      'amount' => (float) ($earningsData['allowances'] ?? 0)],
+        ['name' => 'Other Earnings',  'amount' => (float) ($earningsData['other_allowances'] ?? 0)],
     ], fn($e) => $e['amount'] > 0);
 
     $deductions = array_filter([
-        ['name' => 'SSS Contribution',       'amount' => (float) $payslip->sss_contribution],
-        ['name' => 'PhilHealth Contribution', 'amount' => (float) $payslip->philhealth_contribution],
-        ['name' => 'Pag-IBIG Contribution',  'amount' => (float) $payslip->pagibig_contribution],
-        ['name' => 'Withholding Tax',        'amount' => (float) $payslip->withholding_tax],
-        ['name' => 'Loans',                  'amount' => (float) $payslip->loans],
-        ['name' => 'Other Deductions',       'amount' => (float) $payslip->other_deductions],
+        ['name' => 'SSS Contribution',        'amount' => (float) ($deductData['sss_contribution'] ?? 0)],
+        ['name' => 'PhilHealth Contribution', 'amount' => (float) ($deductData['philhealth_contribution'] ?? 0)],
+        ['name' => 'Pag-IBIG Contribution',   'amount' => (float) ($deductData['pagibig_contribution'] ?? 0)],
+        ['name' => 'Withholding Tax',         'amount' => (float) ($deductData['withholding_tax'] ?? 0)],
+        ['name' => 'Loans',                   'amount' => (float) ($deductData['total_loan_deductions'] ?? 0)],
+        ['name' => 'Other Deductions',        'amount' => (float) (($deductData['tardiness_deduction'] ?? 0) + ($deductData['miscellaneous_deductions'] ?? 0))],
     ], fn($d) => $d['amount'] > 0);
 
     $ytdDeductions = ((float) ($payslip->ytd_tax ?? 0))
@@ -263,7 +264,7 @@ public function preview(int $payslipId)
         'employee_name'    => $employee?->full_name ?? $payslip->employee_name,
         'position'         => $employee?->position?->title ?? $payslip->position ?? 'Unknown',
         'department'       => $employee?->department?->name ?? $payslip->department ?? 'Unknown',
-        'period_name'      => $period?->period_name ?? $payslip->period_name ?? 'N/A',
+        'period_name'      => $period?->period_name ?? 'N/A',
         'period_start'     => $payslip->period_start->format('Y-m-d'),
         'period_end'       => $payslip->period_end->format('Y-m-d'),
         'pay_date'         => $payslip->payment_date->format('Y-m-d'),

@@ -80,14 +80,20 @@ export default function PayslipsIndex({
         router.get('/payroll/payments/payslips', {}, { preserveState: false, preserveScroll: true });
     };
 
-    const handleGenerate = (data: PayslipGenerationRequest) => {
-        router.post('/payroll/payments/payslips/generate', {
-            period_id: data.period_id,
-            employee_ids: data.employee_ids,
-        }, {
-            onSuccess: () => setIsGeneratorOpen(false),
-        });
-    };
+const handleGenerate = (data: PayslipGenerationRequest) => {
+    router.post('/payroll/payments/payslips/generate', {
+        period_id: data.period_id,
+        employee_ids: data.employee_ids,
+        regenerate: data.regenerate,
+    }, {
+        onSuccess: () => {
+            setIsGeneratorOpen(false);
+        },
+        onError: () => {
+            // keep modal open so user can fix and retry
+        },
+    });
+};
 
     const handleDistribute = (data: PayslipDistributionRequest) => {
         router.post('/payroll/payments/payslips/distribute', {
@@ -118,6 +124,18 @@ export default function PayslipsIndex({
             console.error('Preview error:', error);
         }
     };
+
+    const [notificationDismissed, setNotificationDismissed] = useState(false);
+
+    // Reset dismissed state when new flash arrives
+    useEffect(() => {
+        if (flash?.success || flash?.error) {
+            setNotificationDismissed(false);
+        }
+    }, [flash]);
+
+    const showNotification = hasNotification && !notificationDismissed;
+
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -305,23 +323,28 @@ export default function PayslipsIndex({
                 onDownload={() => previewData && handleDownload(Number(previewData.employee_id))}
             />
 
-            <AlertDialog open={hasNotification} onOpenChange={() => {}}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <div className="flex items-center gap-3">
-                            {isSuccessNotification
-                                ? <CheckCircle className="h-6 w-6 text-green-600" />
-                                : <AlertCircle className="h-6 w-6 text-red-600" />
-                            }
-                            <AlertDialogTitle className={isSuccessNotification ? 'text-green-700' : 'text-red-700'}>
-                                {isSuccessNotification ? 'Success' : 'Error'}
-                            </AlertDialogTitle>
-                        </div>
-                        <AlertDialogDescription>{notificationMessage}</AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogAction onClick={() => router.reload()}>OK</AlertDialogAction>
-                </AlertDialogContent>
-            </AlertDialog>
+        <AlertDialog open={showNotification} onOpenChange={(open) => { if (!open) setNotificationDismissed(true); }}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <div className="flex items-center gap-3">
+                        {isSuccessNotification
+                            ? <CheckCircle className="h-6 w-6 text-green-600" />
+                            : <AlertCircle className="h-6 w-6 text-red-600" />
+                        }
+                        <AlertDialogTitle className={isSuccessNotification ? 'text-green-700' : 'text-red-700'}>
+                            {isSuccessNotification ? 'Success' : 'Error'}
+                        </AlertDialogTitle>
+                    </div>
+                    <AlertDialogDescription>{notificationMessage}</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogAction onClick={() => {
+                    setNotificationDismissed(true);
+                    router.reload();
+                }}>
+                    OK
+                </AlertDialogAction>
+            </AlertDialogContent>
+        </AlertDialog>
         </AppLayout>
     );
 }
