@@ -132,7 +132,7 @@ class AllowancesDeductionsController extends Controller
                     'last_name' => $last ?? '',
                     'department' => $employee->department?->name ?? 'N/A',
                     'department_id' => $employee->department_id,
-                    'position' => $employee->position?->name ?? 'N/A',
+                    'position' => $employee->position?->title ?? 'N/A',
                     'components' => array_values($components->toArray()),
                     'total_allowances' => $totalAllowances,
                     'total_deductions' => $totalDeductions,
