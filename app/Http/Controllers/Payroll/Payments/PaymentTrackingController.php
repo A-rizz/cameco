@@ -102,10 +102,21 @@ class PaymentTrackingController extends Controller
             'notes' => 'nullable|string',
         ]);
 
-        // In a real implementation:
-        // 1. Update payment record with date, reference, notes
-        // 2. Change status from "processing" to "confirming" or "paid"
-        // 3. Store confirmation details in database
+        // Update payment record
+        $payment = PayrollPayment::findOrFail($validated['payment_id']);
+        $payment->payment_date = $validated['payment_date'];
+        $payment->payment_reference = $validated['payment_reference'];
+        $payment->notes = $validated['notes'] ?? null;
+        $payment->status = 'paid';
+        $payment->save();
+
+        // Update related payslip status to 'distributed' if exists
+        $payslip = $payment->payslip;
+        if ($payslip) {
+            $payslip->status = 'distributed';
+            $payslip->distributed_at = now();
+            $payslip->save();
+        }
 
         return back()->with('success', 'Payment confirmed successfully. Transaction ID: ' . $validated['payment_reference']);
     }
@@ -120,11 +131,21 @@ class PaymentTrackingController extends Controller
             'payment_id' => 'required|integer',
         ]);
 
-        // In a real implementation:
-        // 1. Verify payment exists and status is "pending"
-        // 2. Update status to "paid"
-        // 3. Record timestamp of mark-paid action
-        // 4. If no confirmation data exists, mark as "paid" with system timestamp
+        // Update payment record
+        $payment = PayrollPayment::findOrFail($validated['payment_id']);
+        if ($payment->status === 'pending') {
+            $payment->status = 'paid';
+            $payment->paid_at = now();
+            $payment->save();
+
+            // Update related payslip status to 'distributed' if exists
+            $payslip = $payment->payslip;
+            if ($payslip) {
+                $payslip->status = 'distributed';
+                $payslip->distributed_at = now();
+                $payslip->save();
+            }
+        }
 
         return back()->with('success', 'Payment marked as paid. Status updated to Paid.');
     }
