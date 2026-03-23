@@ -6,6 +6,13 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import {
     Select,
     SelectContent,
     SelectItem,
@@ -116,6 +123,15 @@ export default function CreateRequest({
     const [balanceError, setBalanceError] = useState<string>('');
     const [submitting, setSubmitting] = useState<boolean>(false);
     const [submitError, setSubmitError] = useState<string>('');
+
+    // Success dialog state
+    const [showSuccessDialog, setShowSuccessDialog] = useState<boolean>(false);
+    const [successDetails, setSuccessDetails] = useState<{
+        leaveType: string;
+        startDate: string;
+        endDate: string;
+        daysRequested: number;
+    } | null>(null);
 
     // Selected leave type details
     const selectedLeaveTypeData = leaveTypes?.find(
@@ -323,10 +339,15 @@ export default function CreateRequest({
                 },
             });
 
-            // Redirect to leave history on success
-            router.visit('/employee/leave/history', {
-                preserveState: false,
+            // Show success dialog with details
+            const leaveTypeData = leaveTypes.find(lt => lt.id.toString() === selectedLeaveType);
+            setSuccessDetails({
+                leaveType: leaveTypeData?.name || 'Leave',
+                startDate,
+                endDate,
+                daysRequested: numberOfDays,
             });
+            setShowSuccessDialog(true);
         } catch (error: unknown) {
             console.error('Failed to submit leave request', error);
             const axiosError = error as AxiosValidationError;
@@ -730,6 +751,70 @@ export default function CreateRequest({
                 </div>
             </div>
         </div>
+
+        {/* Success Dialog */}
+        <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <div className="flex items-center gap-3 mb-2">
+                        <CheckCircle2 className="h-6 w-6 text-green-600 dark:text-green-400" />
+                        <DialogTitle>Leave Request Submitted Successfully</DialogTitle>
+                    </div>
+                    <DialogDescription>
+                        Your leave request has been submitted for approval. You will receive a notification once it has been reviewed.
+                    </DialogDescription>
+                </DialogHeader>
+
+                {successDetails && (
+                    <div className="space-y-4 py-4">
+                        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 space-y-3">
+                            <div className="flex justify-between items-start">
+                                <div className="text-sm text-gray-600 dark:text-gray-400">Leave Type</div>
+                                <div className="font-medium text-gray-900 dark:text-gray-100">{successDetails.leaveType}</div>
+                            </div>
+                            <div className="flex justify-between items-start">
+                                <div className="text-sm text-gray-600 dark:text-gray-400">Start Date</div>
+                                <div className="font-medium text-gray-900 dark:text-gray-100">{format(parseISO(successDetails.startDate), 'MMM dd, yyyy')}</div>
+                            </div>
+                            <div className="flex justify-between items-start">
+                                <div className="text-sm text-gray-600 dark:text-gray-400">End Date</div>
+                                <div className="font-medium text-gray-900 dark:text-gray-100">{format(parseISO(successDetails.endDate), 'MMM dd, yyyy')}</div>
+                            </div>
+                            <div className="flex justify-between items-start border-t border-green-200 dark:border-green-800 pt-3">
+                                <div className="text-sm text-gray-600 dark:text-gray-400">Days Requested</div>
+                                <div className="font-semibold text-green-700 dark:text-green-300 text-lg">{successDetails.daysRequested} day(s)</div>
+                            </div>
+                        </div>
+
+                        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                            <p className="text-xs text-blue-800 dark:text-blue-200">
+                                <span className="font-semibold">Next Steps:</span> Your request will be reviewed by your supervisor and HR manager. Check your leave history to track the status.
+                            </p>
+                        </div>
+                    </div>
+                )}
+
+                <div className="flex gap-3 justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <Button
+                        variant="outline"
+                        onClick={() => setShowSuccessDialog(false)}
+                    >
+                        Continue Editing
+                    </Button>
+                    <Button
+                        onClick={() => {
+                            setShowSuccessDialog(false);
+                            router.visit('/employee/leave/history', {
+                                preserveState: false,
+                            });
+                        }}
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                    >
+                        View Leave History
+                    </Button>
+                </div>
+            </DialogContent>
+        </Dialog>
         </AppLayout>
     );
 }
