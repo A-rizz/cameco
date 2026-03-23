@@ -21,11 +21,11 @@ class PayrollPaymentsSeeder extends Seeder
         // Truncate payroll_payments table for fresh seeding
         \DB::statement('TRUNCATE TABLE payroll_payments RESTART IDENTITY CASCADE');
 
-        // Get approved or completed periods
-        $periods = PayrollPeriod::whereIn('status', ['approved', 'completed'])->get();
+        // Get all payroll periods (regardless of status)
+        $periods = PayrollPeriod::all();
         
         if ($periods->isEmpty()) {
-            $this->command->warn('No approved/completed payroll periods found. Run PayrollPeriodsSeeder first.');
+            $this->command->warn('No payroll periods found. Run PayrollPeriodsSeeder first.');
             return;
         }
 
@@ -85,20 +85,20 @@ class PayrollPaymentsSeeder extends Seeder
                 $netPay = $grossPay - $totalDeductions;
 
                 // Determine payment status based on period status and payment method
-                if ($period->status === 'completed') {
+                if (in_array($period->status, ['completed', 'approved'])) {
                     if ($paymentMethod->method_type === 'cash') {
                         // 90% claimed, 10% unclaimed for cash
                         $status = rand(1, 100) <= 90 ? 'paid' : 'unclaimed';
                         $paidAt = $status === 'paid' ? Carbon::parse($period->payment_date)->addHours(rand(0, 48)) : null;
                         $claimedAt = $paidAt;
                     } else {
-                        // All bank payments completed for completed periods
+                        // All bank payments completed for completed/approved periods
                         $status = 'paid';
                         $paidAt = Carbon::parse($period->payment_date)->addHours(rand(1, 6));
                         $claimedAt = null;
                     }
                 } else {
-                    // Approved but not yet paid
+                    // For all other statuses, mark as pending
                     $status = 'pending';
                     $paidAt = null;
                     $claimedAt = null;
