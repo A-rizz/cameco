@@ -859,6 +859,31 @@ export default function CreateRequest({
                 </div>
             </DialogContent>
         </Dialog>
+
+        {/* Validation Error Modal */}
+        <Dialog open={showValidationError} onOpenChange={setShowValidationError}>
+            <DialogContent className="max-w-md">
+                <DialogHeader>
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
+                            <AlertCircle className="h-6 w-6 text-red-600 dark:text-red-400" />
+                        </div>
+                        <DialogTitle className="text-lg">Unable to Submit</DialogTitle>
+                    </div>
+                </DialogHeader>
+                <DialogDescription className="text-base text-gray-700 dark:text-gray-300 leading-relaxed">
+                    {validationErrorMessage}
+                </DialogDescription>
+                <div className="flex justify-end gap-3 pt-6 border-t border-gray-200 dark:border-gray-700">
+                    <Button
+                        onClick={() => setShowValidationError(false)}
+                        className="bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 text-white"
+                    >
+                        Understood
+                    </Button>
+                </div>
+            </DialogContent>
+        </Dialog>
         </AppLayout>
     );
 }
