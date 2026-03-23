@@ -37,11 +37,19 @@ class PayslipsSeeder extends Seeder
             }
 
             $period = $payment->payrollPeriod;
+            // Skip 2nd half of March (by period name or number)
+            if (
+                (isset($period->period_name) && str_contains(strtolower($period->period_name), 'march') && str_contains(strtolower($period->period_name), '2nd')) ||
+                (isset($period->period_number) && preg_match('/^2026-03-2/', $period->period_number))
+            ) {
+                continue;
+            }
+
             $employee = $payment->employee;
 
             // Calculate earning breakdown
             $earnings = $this->generateEarningsBreakdown($payment->gross_pay);
-            
+
             // Calculate deduction breakdown (use actual values from payment)
             $deductions = [
                 'sss' => (float)$payment->sss_deduction,
