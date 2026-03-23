@@ -7,6 +7,7 @@ use App\Http\Requests\Employee\LeaveRequestRequest;
 use App\Models\LeaveBalance;
 use App\Models\LeavePolicy;
 use App\Models\LeaveRequest;
+use App\Services\HR\Leave\LeaveVariantService;
 use App\Services\HR\Workforce\WorkforceCoverageService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
@@ -30,10 +31,12 @@ use Inertia\Response;
 class LeaveController extends Controller
 {
     protected WorkforceCoverageService $coverageService;
+    protected LeaveVariantService $variantService;
 
-    public function __construct(WorkforceCoverageService $coverageService)
+    public function __construct(WorkforceCoverageService $coverageService, LeaveVariantService $variantService)
     {
         $this->coverageService = $coverageService;
+        $this->variantService = $variantService;
     }
 
     /**
@@ -374,6 +377,7 @@ class LeaveController extends Controller
                     'department' => $employee->department->name ?? 'N/A',
                 ],
                 'leaveTypes' => $leavePoliciesWithBalances,
+                'leaveVariants' => $this->variantService->getAvailableVariants(),
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to load leave request form', [
@@ -416,11 +420,29 @@ class LeaveController extends Controller
             $startDate = Carbon::parse($validated['start_date']);
             $endDate = Carbon::parse($validated['end_date']);
             
-            // Get leave policy first to check if it's a Half Day leave
+            // Get leave policy
             $policy = LeavePolicy::findOrFail($validated['leave_policy_id']);
             
-            // For Half Day AM/PM Leave, always count as 0.5 days
-            if ($policy->code === 'HAM' || $policy->code === 'HPM') {
+            // Extract and validate leave variant
+            $variant = $validated['leave_type_variant'] ?? null;
+            
+            if ($variant && !$this->variantService->isValidVariant($variant)) {
+                DB::rollBack();
+                return back()->withInput()->withErrors([
+                    'leave_type_variant' => 'Invalid leave variant selected.',
+                ]);
+            }
+            
+            // Only Sick Leave supports variants
+            if ($variant && $policy->code !== 'SL') {
+                DB::rollBack();
+                return back()->withInput()->withErrors([
+                    'leave_type_variant' => 'Leave variants are only available for Sick Leave.',
+                ]);
+            }
+            
+            // Calculate days based on variant
+            if ($variant && $this->variantService->isHalfDay($variant)) {
                 $daysRequested = 0.5;
             } else {
                 $daysRequested = $startDate->diffInDays($endDate) + 1;
@@ -472,6 +494,7 @@ class LeaveController extends Controller
                 'status' => 'pending',
                 'submitted_at' => now(),
                 'submitted_by' => $user->id,
+                'leave_type_variant' => $variant,
             ]);
 
             DB::commit();

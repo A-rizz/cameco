@@ -31,6 +31,11 @@ import { LeaveCoverageWarning } from '@/components/employee/leave-coverage-warni
 // Type Definitions
 // ============================================================================
 
+interface LeaveVariant {
+    code: string;
+    label: string;
+}
+
 interface LeaveType {
     id: number;
     name: string;
@@ -71,6 +76,7 @@ type AxiosValidationError = {
 
 interface CreateRequestProps {
     leaveTypes: LeaveType[];
+    leaveVariants: LeaveVariant[];
     employee: {
         id: number;
         employee_number: string;
@@ -86,10 +92,12 @@ interface CreateRequestProps {
 
 export default function CreateRequest({
     leaveTypes,
+    leaveVariants,
     employee,
 }: CreateRequestProps) {
     // Form state
     const [selectedLeaveType, setSelectedLeaveType] = useState<string>('');
+    const [selectedVariant, setSelectedVariant] = useState<string | null>(null);
     const [startDate, setStartDate] = useState<string>('');
     const [endDate, setEndDate] = useState<string>('');
     const [reason, setReason] = useState<string>('');
@@ -118,9 +126,13 @@ export default function CreateRequest({
     useEffect(() => {
         if (startDate && endDate) {
             try {
-                // For Half Day AM/PM Leave, always count as 0.5 days
+                // Check for variant (new approach: variant on SL)
                 let days: number;
-                if (selectedLeaveTypeData?.code === 'HAM' || selectedLeaveTypeData?.code === 'HPM') {
+                if (selectedVariant && ['half_am', 'half_pm'].includes(selectedVariant)) {
+                    days = 0.5;
+                }
+                // Legacy: check for deprecated HAM/HPM policies
+                else if (selectedLeaveTypeData?.code === 'HAM' || selectedLeaveTypeData?.code === 'HPM') {
                     days = 0.5;
                 } else {
                     const start = parseISO(startDate);
@@ -144,7 +156,16 @@ export default function CreateRequest({
             setNumberOfDays(0);
             setBalanceError('');
         }
-    }, [startDate, endDate, selectedLeaveTypeData]);
+    }, [startDate, endDate, selectedLeaveTypeData, selectedVariant]);
+
+    // Auto-set end date to match start date when half-day variant is selected
+    useEffect(() => {
+        if (selectedVariant && ['half_am', 'half_pm'].includes(selectedVariant)) {
+            if (startDate && endDate !== startDate) {
+                setEndDate(startDate);
+            }
+        }
+    }, [selectedVariant, startDate]);
 
     // Debounced coverage calculation
     const calculateCoverage = useCallback(
@@ -286,6 +307,9 @@ export default function CreateRequest({
             formData.append('start_date', startDate);
             formData.append('end_date', endDate);
             formData.append('reason', reason);
+            if (selectedVariant && ['half_am', 'half_pm'].includes(selectedVariant)) {
+                formData.append('leave_type_variant', selectedVariant);
+            }
             if (contactDuringLeave.trim()) {
                 formData.append('contact_during_leave', contactDuringLeave);
             }
@@ -401,11 +425,36 @@ export default function CreateRequest({
                                     )}
                                 </div>
 
+                                {/* Leave Duration (Variant Selector) - Only for Sick Leave */}
+                                {selectedLeaveTypeData?.code === 'SL' && (
+                                    <div className="space-y-2">
+                                        <Label htmlFor="leave_variant">
+                                            Leave Duration <span className="text-red-500">*</span>
+                                        </Label>
+                                        <Select
+                                            value={selectedVariant || 'full_day'}
+                                            onValueChange={(val) => setSelectedVariant(val === 'full_day' ? null : val)}
+                                        >
+                                            <SelectTrigger id="leave_variant">
+                                                <SelectValue placeholder="Select duration" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="full_day">Full Day (1.0 days)</SelectItem>
+                                                <SelectItem value="half_am">Half Day AM (0.5 days)</SelectItem>
+                                                <SelectItem value="half_pm">Half Day PM (0.5 days)</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                                            Select whether you are taking leave for the full day or just the morning/afternoon. Half day leave counts as 0.5 days against your balance.
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Date Selection */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <Label htmlFor="start_date">
-                                            Start Date <span className="text-red-500">*</span>
+                                            {selectedVariant && ['half_am', 'half_pm'].includes(selectedVariant) ? 'Leave Date' : 'Start Date'} <span className="text-red-500">*</span>
                                         </Label>
                                         <Input
                                             id="start_date"
@@ -416,19 +465,31 @@ export default function CreateRequest({
                                             required
                                         />
                                     </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="end_date">
-                                            End Date <span className="text-red-500">*</span>
-                                        </Label>
-                                        <Input
-                                            id="end_date"
-                                            type="date"
-                                            value={endDate}
+                                    {!selectedVariant || !['half_am', 'half_pm'].includes(selectedVariant) ? (
+                                        <div className="space-y-2">
+                                            <Label htmlFor="end_date">
+                                                End Date <span className="text-red-500">*</span>
+                                            </Label>
+                                            <Input
+                                                id="end_date"
+                                                type="date"
+                                                value={endDate}
                                             onChange={(e) => setEndDate(e.target.value)}
                                             min={startDate || format(new Date(), 'yyyy-MM-dd')}
                                             required
                                         />
-                                    </div>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-2">
+                                            <Label className="text-blue-600">Duration</Label>
+                                            <div className="p-3 rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 flex items-center h-[40px]">
+                                                <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                                                    {selectedVariant === 'half_am' ? 'Half Day AM (0.5 days)' : 'Half Day PM (0.5 days)'}
+                                                </span>
+                                            </div>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400">Half-day leave is for a single day only</p>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Number of Days Display */}

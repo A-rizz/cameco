@@ -9,6 +9,7 @@ use App\Models\LeaveBalance;
 use App\Models\LeavePolicy;
 use App\Services\HR\Leave\LeaveApprovalService;
 use App\Services\HR\Leave\LeaveBalanceService;
+use App\Services\HR\Leave\LeaveVariantService;
 use App\Services\LeaveAccrualService;
 use App\Events\HR\Leave\LeaveRequestSubmitted;
 use App\Events\HR\Leave\LeaveRequestApproved;
@@ -77,7 +78,8 @@ class LeaveRequestController extends Controller
     public function __construct(
         protected LeaveApprovalService $approvalService,
         protected LeaveBalanceService $balanceService,
-        protected LeaveAccrualService $accrualService
+        protected LeaveAccrualService $accrualService,
+        protected LeaveVariantService $variantService
     ) {}
 
     /**
@@ -219,9 +221,13 @@ class LeaveRequestController extends Controller
             'annual_entitlement' => $p->annual_entitlement,
         ])->toArray();
 
+        // Get leave variants using the variant service
+        $leaveVariants = $this->variantService->getAvailableVariants();
+
         return Inertia::render('HR/Leave/CreateRequest', [
             'employees' => $employees,
             'leaveTypes' => $leaveTypes,
+            'leaveVariants' => $leaveVariants,
         ]);
     }
 
@@ -288,10 +294,22 @@ class LeaveRequestController extends Controller
         // STEP 3: Calculate number of days requested
         $startDate = \Carbon\Carbon::parse($validated['start_date']);
         $endDate = \Carbon\Carbon::parse($validated['end_date']);
+        
+        // Check for leave_type_variant (half-day AM/PM)
+        $variant = $validated['leave_type_variant'] ?? null;
+        
+        // Validate variant: only allowed for Sick Leave
+        if ($variant && !$this->variantService->isValidVariant($variant)) {
+            return back()->withInput()->withErrors(['leave_type_variant' => 'Invalid leave variant selected.']);
+        }
+        if ($variant && $policy->code !== 'SL') {
+            return back()->withInput()->withErrors(['leave_type_variant' => 'Leave variants are only available for Sick Leave.']);
+        }
+        
         // compute absolute difference (in case dates are accidentally swapped) and include both
         // start and end dates (+1)
-        // For Half Day AM/PM Leave, always count as 0.5 days regardless of dates
-        if ($policy->code === 'HAM' || $policy->code === 'HPM') {
+        // For half-day variants, always count as 0.5 days regardless of dates
+        if ($variant && $this->variantService->isHalfDay($variant)) {
             $daysRequested = 0.5;
         } else {
             $daysRequested = (int) ($endDate->diffInDays($startDate, true) + 1);
@@ -350,6 +368,7 @@ class LeaveRequestController extends Controller
             'employee_id' => $employee->id,
             'leave_policy_id' => $validated['leave_policy_id'],
             'leave_type' => $policy->name,
+            'leave_type_variant' => $variant, // Store the variant (null, 'half_am', 'half_pm')
             'start_date' => $validated['start_date'],
             'end_date' => $validated['end_date'],
             'days_requested' => $daysRequested,
