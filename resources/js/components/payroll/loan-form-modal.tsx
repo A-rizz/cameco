@@ -100,7 +100,20 @@ export function LoanFormModal({
             return;
         }
 
-        onSubmit(formData);
+        // Map frontend fields to backend API fields
+        const payload = {
+            employee_id: formData.employee_id,
+            loan_type: formData.loan_type,
+            amount: formData.principal_amount, // backend expects 'amount'
+            interest_rate: formData.interest_rate,
+            number_of_months: formData.number_of_installments, // backend expects 'number_of_months'
+            start_date: formData.start_date,
+            reason: formData.reason,
+            remarks: formData.remarks,
+            approved_by: formData.approved_by,
+        };
+
+        onSubmit(payload);
         onClose();
     };
 
