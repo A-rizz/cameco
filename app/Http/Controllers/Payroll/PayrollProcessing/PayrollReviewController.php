@@ -12,7 +12,7 @@ use Inertia\Inertia;
 
 class PayrollReviewController extends Controller
 {
-    private const REVIEWABLE_STATUSES = ['calculated', 'approved'];
+    private const REVIEWABLE_STATUSES = ['calculated', 'approved', 'completed', 'finalized'];
 
     /**
      * Display payroll review and approval page
