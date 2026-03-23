@@ -364,6 +364,10 @@ class LeaveRequestController extends Controller
 
         // STEP 4: Create leave request record in database
         // Status starts as "Pending" - awaiting supervisor approval
+        // Unless auto_approve flag is set by HR staff
+        $autoApproveFlag = $request->boolean('auto_approve', false);
+        $initialStatus = $autoApproveFlag ? 'approved' : 'pending';
+        
         $leaveRequestData = [
             'employee_id' => $employee->id,
             'leave_policy_id' => $validated['leave_policy_id'],
@@ -373,18 +377,18 @@ class LeaveRequestController extends Controller
             'end_date' => $validated['end_date'],
             'days_requested' => $daysRequested,
             'reason' => $validated['reason'] ?? '',
-            'status' => 'pending', // Initial status: awaiting supervisor approval
+            'status' => $initialStatus, // 'approved' if auto-approved, 'pending' otherwise
             'submitted_by' => auth()->id(), // HR Staff who entered the request
             'submitted_at' => now(),
             'supervisor_id' => $employee->immediate_supervisor_id, // Route to supervisor for approval
-            'supervisor_comments' => null,
-            'supervisor_approved_at' => null,
+            'supervisor_comments' => $autoApproveFlag ? 'Auto-approved by HR staff' : null,
+            'supervisor_approved_at' => $autoApproveFlag ? now() : null,
             'manager_id' => null,
             'manager_comments' => null,
             'manager_approved_at' => null,
             'hr_notes' => $validated['hr_notes'] ?? '',
-            'hr_processed_by' => null,
-            'hr_processed_at' => null,
+            'hr_processed_by' => $autoApproveFlag ? auth()->id() : null,
+            'hr_processed_at' => $autoApproveFlag ? now() : null,
             'cancellation_reason' => null,
             'cancelled_at' => null,
         ];
@@ -392,10 +396,18 @@ class LeaveRequestController extends Controller
         // Persist to database
         $leaveRequest = LeaveRequest::create($leaveRequestData);
 
-        // STEP 5: Determine approval route using the new service
+        // STEP 5: If auto-approved by HR, dispatch approval event and return early
+        if ($autoApproveFlag) {
+            event(new LeaveRequestApproved($leaveRequest, 'hr'));
+            
+            return redirect()->route('hr.leave.requests')
+                ->with('success', "Leave request for {$employee->profile->first_name} {$employee->profile->last_name} has been created and auto-approved by HR!");
+        }
+
+        // STEP 6: Determine approval route using the new service (for pending requests)
         $route = $this->approvalService->determineApprovalRoute($leaveRequest);
 
-        // STEP 6: Check if can auto-approve
+        // STEP 7: Check if can auto-approve through normal workflow
         if ($route['route'] === 'auto') {
             $autoApprovalResult = $this->approvalService->processAutoApproval($leaveRequest);
             
@@ -408,7 +420,7 @@ class LeaveRequestController extends Controller
             }
         }
 
-        // STEP 7: Not auto-approved - dispatch submitted event
+        // STEP 8: Not auto-approved - dispatch submitted event
         event(new LeaveRequestSubmitted($leaveRequest, $route));
 
         // Always redirect to the leave requests list after filing

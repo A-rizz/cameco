@@ -38,6 +38,7 @@ export default function CreateRequest({ employees = [], leaveTypes = [], leaveVa
         end_date: new Date().toISOString().split('T')[0],
         reason: '',
         hr_notes: '',
+        auto_approve: false as boolean,
     });
 
     const [employeeBalances, setEmployeeBalances] = useState<Record<number, EmployeeBalance>>({});
@@ -358,6 +359,21 @@ export default function CreateRequest({ employees = [], leaveTypes = [], leaveVa
                                     required
                                 />
                                 {form.errors.hr_notes && <div className="text-sm text-red-500">{form.errors.hr_notes}</div>}
+                            </div>
+
+                            <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                                <input
+                                    id="auto_approve"
+                                    name="auto_approve"
+                                    type="checkbox"
+                                    checked={form.data.auto_approve}
+                                    onChange={(e) => form.setData('auto_approve', e.target.checked)}
+                                    className="w-4 h-4 rounded cursor-pointer"
+                                />
+                                <Label htmlFor="auto_approve" className="cursor-pointer flex-1 m-0">
+                                    <div className="font-medium text-blue-900">Auto-approve this leave request</div>
+                                    <p className="text-xs text-blue-700 mt-1">Check this box to immediately approve the leave request. Use for same-day or urgent leave requests.</p>
+                                </Label>
                             </div>
 
                             <div className="flex items-center gap-2">

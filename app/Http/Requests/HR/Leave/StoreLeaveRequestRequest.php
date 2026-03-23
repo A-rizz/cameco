@@ -25,6 +25,8 @@ class StoreLeaveRequestRequest extends FormRequest
             'hr_notes' => 'required|string|max:1000',
             // Leave type variant (for Sick Leave only)
             'leave_type_variant' => 'nullable|in:half_am,half_pm',
+            // Auto-approve flag - HR staff can auto-approve when creating
+            'auto_approve' => 'nullable|boolean',
         ];
     }
 
