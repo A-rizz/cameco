@@ -55,18 +55,11 @@ class PayslipsSeeder extends Seeder
                 'other' => (float)$payment->other_deductions,
             ];
 
-            // Determine payslip status and distribution
-            if ($payment->status === 'paid') {
-                $status = rand(1, 100) <= 70 ? 'distributed' : 'generated'; // 70% distributed
-                $distributedAt = Carbon::parse($period->approved_at)->addHours(2)->addMinutes(30);
-                $isViewed = $status === 'distributed' && rand(1, 100) <= 80; // 80% of distributed payslips viewed
-                $viewedAt = $isViewed ? $distributedAt->copy()->addHours(rand(1, 24)) : null;
-            } else {
-                $status = 'generated';
-                $distributedAt = null;
-                $isViewed = false;
-                $viewedAt = null;
-            }
+            // Always set payslip status to 'distributed' for all seeded payslips
+            $status = 'distributed';
+            $distributedAt = Carbon::parse($period->approved_at ?? $period->payment_date)->addHours(2)->addMinutes(30);
+            $isViewed = true;
+            $viewedAt = $distributedAt->copy()->addHours(rand(1, 24));
 
             $ytdMultiplier = rand(8, 12);
             $sssYtd = (float)$payment->sss_deduction * $ytdMultiplier;

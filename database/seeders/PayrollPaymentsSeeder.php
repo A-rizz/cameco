@@ -85,24 +85,10 @@ class PayrollPaymentsSeeder extends Seeder
                 $netPay = $grossPay - $totalDeductions;
 
                 // Determine payment status based on period status and payment method
-                if (in_array($period->status, ['completed', 'approved'])) {
-                    if ($paymentMethod->method_type === 'cash') {
-                        // 90% claimed, 10% unclaimed for cash
-                        $status = rand(1, 100) <= 90 ? 'paid' : 'unclaimed';
-                        $paidAt = $status === 'paid' ? Carbon::parse($period->payment_date)->addHours(rand(0, 48)) : null;
-                        $claimedAt = $paidAt;
-                    } else {
-                        // All bank payments completed for completed/approved periods
-                        $status = 'paid';
-                        $paidAt = Carbon::parse($period->payment_date)->addHours(rand(1, 6));
-                        $claimedAt = null;
-                    }
-                } else {
-                    // For all other statuses, mark as pending
-                    $status = 'pending';
-                    $paidAt = null;
-                    $claimedAt = null;
-                }
+                // Always set payment status to 'paid' for all seeded payments
+                $status = 'paid';
+                $paidAt = Carbon::parse($period->payment_date)->addHours(rand(0, 48));
+                $claimedAt = $paidAt;
 
                 $payments[] = [
                     'employee_id' => $employee->id,
