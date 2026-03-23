@@ -266,49 +266,35 @@ class AllowancesDeductionsController extends Controller
             'is_prorated' => 'boolean',
             'requires_attendance' => 'boolean',
         ]);
-
-        try {
             $employee = Employee::findOrFail($validated['employee_id']);
             $component = SalaryComponent::findOrFail($validated['salary_component_id']);
 
             if ($component->component_type === 'allowance') {
                 $assignment = $this->allowanceDeductionService->addAllowance(
                     $employee,
-                    $component->code,
+                    strtolower($component->code),
                     $validated,
                     auth()->user()
                 );
             } else {
+                // Map SalaryComponent code to valid deduction type for EmployeeDeduction
+                // Accept any deduction code present in the database
+                if ($component->component_type !== 'deduction') {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'assignment' => 'Selected component is not a deduction type.',
+                    ]);
+                }
+                $deductionType = $component->code; // Use the code directly
                 $assignment = $this->allowanceDeductionService->addDeduction(
                     $employee,
-                    $component->code,
+                    strtolower($deductionType),
                     $validated,
                     auth()->user()
                 );
             }
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Component assignment created successfully',
-                'data' => [
-                    'id' => $assignment->id,
-                    'employee_id' => $assignment->employee_id,
-                    'salary_component_id' => $assignment->salary_component_id,
-                    'amount' => $assignment->amount,
-                    'percentage' => $assignment->percentage,
-                    'frequency' => $assignment->frequency,
-                    'effective_date' => $assignment->effective_date,
-                    'end_date' => $assignment->end_date,
-                    'is_active' => $assignment->is_active,
-                    'created_at' => $assignment->created_at,
-                ],
-            ], 201);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create assignment: ' . $e->getMessage(),
-            ], 422);
-        }
+            return redirect()->back()->with('success', 'Component assigned successfully.');
+        // No try/catch: let exceptions bubble up for logging
     }
 
     /**

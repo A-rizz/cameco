@@ -116,11 +116,15 @@ class AllowanceDeductionService
      */
     public function addDeduction(Employee $employee, string $deductionType, array $data, User $creator): EmployeeDeduction
     {
-        // Validate deduction type
-        $validTypes = ['insurance', 'union_dues', 'canteen', 'loan', 'uniform_fund', 'medical', 'educational', 'savings', 'cooperative', 'other'];
-        if (!in_array($deductionType, $validTypes)) {
+        // Accept any deduction code from SalaryComponent
+        $deductionType = strtolower($deductionType);
+        $component = \App\Models\SalaryComponent::where('code', $deductionType)
+            ->where('component_type', 'deduction')
+            ->where('is_active', true)
+            ->first();
+        if (!$component) {
             throw ValidationException::withMessages([
-                'deduction_type' => "Invalid deduction type. Allowed: " . implode(', ', $validTypes),
+                'deduction_type' => "Invalid deduction type. No active deduction component found for code: $deductionType",
             ]);
         }
 

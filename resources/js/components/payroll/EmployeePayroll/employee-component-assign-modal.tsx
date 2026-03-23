@@ -1,21 +1,10 @@
 import React, { useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -86,6 +75,7 @@ export const EmployeeComponentAssignModal: React.FC<EmployeeComponentAssignModal
   initialData,
   isLoading = false,
   mode = 'create',
+  submitError,
 }) => {
   const [formData, setFormData] = useState<EmployeeComponentAssignmentFormData>(() =>
     initialData || {
@@ -103,7 +93,7 @@ export const EmployeeComponentAssignModal: React.FC<EmployeeComponentAssignModal
   );
 
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [submitError, setSubmitError] = useState<string | null>(null);
+  // submitError is now passed as a prop from parent
 
   const selectedComponent = components.find((c) => c.id === formData.salary_component_id);
   const selectedEmployee = employees.find((e) => e.id === formData.employee_id);
