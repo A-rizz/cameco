@@ -119,6 +119,12 @@ class HiringPipelineController extends Controller
         ]);
 
         $application = Application::findOrFail($id);
+
+        // Explicit permission check for moving application in hiring pipeline
+        if (!auth()->user()->can('recruitment.hiring_pipeline.update')) {
+            abort(403, 'You do not have permission to move applications in the hiring pipeline.');
+        }
+
         $application->status = $validated['status'];
         $application->save();
 
