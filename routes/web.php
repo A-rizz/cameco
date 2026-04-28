@@ -25,6 +25,7 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
 // PUBLIC JOB POSTINGS (No Authentication Required)
 Route::prefix('job-postings')
     ->name('public.job-postings.')
+    ->middleware('module:ats')
     ->group(function () {
         Route::get('/', [JobPostingsController::class, 'index'])
             ->name('index');
