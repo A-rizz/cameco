@@ -38,7 +38,7 @@ Route::prefix('job-postings')
     });
 
 // HR ATS MODULE
-Route::middleware(['auth'])
+Route::middleware(['auth', 'module:ats'])
     ->prefix('hr/ats')
     ->name('hr.ats.')
     ->group(function () {

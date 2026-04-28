@@ -47,7 +47,7 @@ use App\Http\Controllers\HR\Offboarding\ReportController as OffboardingReportCon
 use App\Http\Middleware\EnsureHRAccess;
 // use App\Http\Middleware\EnsureProfileComplete; for future useronboarding workflow
 
-Route::middleware(['auth', 'verified' , EnsureHRAccess::class])
+Route::middleware(['auth', 'verified' , EnsureHRAccess::class, 'module:employee'])
     ->prefix('hr')
     ->name('hr.')
     ->group(function () {
@@ -124,7 +124,7 @@ Route::middleware(['auth', 'verified' , EnsureHRAccess::class])
         });
 
         // Leave Management
-        Route::prefix('leave')->name('leave.')->group(function () {
+        Route::prefix('leave')->name('leave.')->middleware('module:leave')->group(function () {
             Route::get('/requests', [LeaveRequestController::class, 'index'])->name('requests');
             Route::get('/requests/create', [LeaveRequestController::class, 'create'])->name('requests.create');
             Route::post('/requests', [LeaveRequestController::class, 'store'])->name('requests.store');
@@ -157,7 +157,7 @@ Route::middleware(['auth', 'verified' , EnsureHRAccess::class])
         });
 
         // Document Management Module
-        Route::prefix('documents')->name('documents.')->group(function () {
+        Route::prefix('documents')->name('documents.')->middleware('module:documents')->group(function () {
             // Employee Documents
             Route::get('/', [\App\Http\Controllers\HR\Documents\EmployeeDocumentController::class, 'index'])
                 ->middleware('permission:hr.documents.view')
@@ -280,7 +280,7 @@ Route::middleware(['auth', 'verified' , EnsureHRAccess::class])
         });
 
         // Appraisal & Performance Management Module
-        Route::prefix('appraisals')->name('appraisals.')->group(function () {
+        Route::prefix('appraisals')->name('appraisals.')->middleware('module:appraisals')->group(function () {
             // Appraisal Cycles
             Route::prefix('cycles')->name('cycles.')->group(function () {
                 Route::get('/', [AppraisalCycleController::class, 'index'])
@@ -363,7 +363,7 @@ Route::middleware(['auth', 'verified' , EnsureHRAccess::class])
         });
 
         // ATS (Applicant Tracking System) Module
-        Route::prefix('ats')->name('ats.')->group(function () {
+        Route::prefix('ats')->name('ats.')->middleware('module:ats')->group(function () {
             // Job Postings
             Route::get('/job-postings', [JobPostingController::class, 'index'])
                 ->middleware('permission:hr.ats.view')
@@ -500,7 +500,7 @@ Route::middleware(['auth', 'verified' , EnsureHRAccess::class])
         });
 
         // Workforce Management Module
-        Route::prefix('workforce')->name('workforce.')->group(function () {
+        Route::prefix('workforce')->name('workforce.')->middleware('module:workforce')->group(function () {
             // Work Schedules
             Route::get('/schedules', [ScheduleController::class, 'index'])
                 ->middleware('permission:hr.workforce.schedules.view')
@@ -671,7 +671,7 @@ Route::middleware(['auth', 'verified' , EnsureHRAccess::class])
         });
 
         // Offboarding Module
-        Route::prefix('offboarding')->name('offboarding.')->group(function () {
+        Route::prefix('offboarding')->name('offboarding.')->middleware('module:offboarding')->group(function () {
             // Offboarding Dashboard
             Route::get('/dashboard', [OffboardingDashboardController::class, 'index'])
                 ->middleware('permission:hr.offboarding.view')
@@ -815,7 +815,7 @@ Route::middleware(['auth', 'verified' , EnsureHRAccess::class])
         });
 
         // Timekeeping Module
-        Route::prefix('timekeeping')->name('timekeeping.')->group(function () {
+        Route::prefix('timekeeping')->name('timekeeping.')->middleware('module:timekeeping')->group(function () {
             // Attendance Management
             Route::get('/attendance', [AttendanceController::class, 'index'])
                 ->middleware('permission:hr.timekeeping.attendance.view')

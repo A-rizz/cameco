@@ -38,7 +38,7 @@ use \App\Http\Controllers\System\SystemAdministration\VendorContractController;
 use \App\Http\Controllers\System\Timekeeping\DeviceManagementController;
 
 
-Route::middleware(['auth', 'superadmin'])->group(function () {
+Route::middleware(['auth', 'superadmin', 'module:system'])->group(function () {
 
     // System Dashboard
     Route::get('/system/dashboard', [DashboardController::class, 'index'])

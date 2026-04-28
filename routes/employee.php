@@ -7,7 +7,7 @@ use App\Http\Middleware\EnsureEmployee;
 // NOTE: Controllers will be created in Phase 3 - these routes are prepared in advance
 // All routes require Employee role or Superadmin for access
 
-Route::middleware(['auth', 'verified', EnsureEmployee::class])
+Route::middleware(['auth', 'verified', EnsureEmployee::class, 'module:employee'])
     ->prefix('employee')
     ->name('employee.')
     ->group(function () {

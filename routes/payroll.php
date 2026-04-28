@@ -28,7 +28,7 @@ use App\Http\Controllers\Payroll\Reports\PayrollAuditController;
 use App\Http\Controllers\Payroll\EmployeePayroll\LoansController;
 use App\Http\Controllers\Payroll\AdvancesController;
 
-Route::prefix('payroll')->middleware(['auth', 'verified', EnsurePayrollOfficer::class])->group(function () {
+Route::prefix('payroll')->middleware(['auth', 'verified', EnsurePayrollOfficer::class, 'module:payroll'])->group(function () {
     Route::name('payroll.')->group(function () {
         // Dashboard - Single Page (returns all widget data in one response)
         Route::get('/dashboard', [PayrollDashboardController::class, 'index'])

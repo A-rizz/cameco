@@ -60,6 +60,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'timekeeping.api' => ValidateTimekeepingApiKey::class,
+            'module' => \App\Http\Middleware\CheckModuleEnabled::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
