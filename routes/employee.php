@@ -38,7 +38,7 @@ Route::middleware(['auth', 'verified', EnsureEmployee::class, 'module:employee']
         // ============================================================
         // ATTENDANCE & TIME LOGS (Self-Service)
         // ============================================================
-        Route::prefix('attendance')->name('attendance.')->group(function () {
+        Route::prefix('attendance')->name('attendance.')->middleware('module:timekeeping')->group(function () {
             // View own attendance records (daily, weekly, monthly views with RFID punch history)
             Route::get('/', [\App\Http\Controllers\Employee\AttendanceController::class, 'index'])
                 ->middleware('permission:employee.attendance.view')
@@ -53,7 +53,7 @@ Route::middleware(['auth', 'verified', EnsureEmployee::class, 'module:employee']
         // ============================================================
         // PAYSLIPS (Self-Service)
         // ============================================================
-        Route::prefix('payslips')->name('payslips.')->group(function () {
+        Route::prefix('payslips')->name('payslips.')->middleware('module:payroll')->group(function () {
             // List all own payslips
             Route::get('/', [\App\Http\Controllers\Employee\PayslipController::class, 'index'])
                 ->middleware('permission:employee.payslips.view')
@@ -85,7 +85,7 @@ Route::middleware(['auth', 'verified', EnsureEmployee::class, 'module:employee']
         // ============================================================
         // LEAVE MANAGEMENT (Self-Service)
         // ============================================================
-        Route::prefix('leave')->name('leave.')->group(function () {
+        Route::prefix('leave')->name('leave.')->middleware('module:leave')->group(function () {
             // View own leave balances by type (Vacation, Sick, Emergency, etc.)
             Route::get('/balances', [\App\Http\Controllers\Employee\LeaveController::class, 'balances'])
                 ->middleware('permission:employee.leave.view-balance')
@@ -159,7 +159,7 @@ Route::middleware(['auth', 'verified', EnsureEmployee::class, 'module:employee']
         // ============================================================
         // DOCUMENTS (Self-Service)
         // ============================================================
-        Route::prefix('documents')->name('documents.')->group(function () {
+        Route::prefix('documents')->name('documents.')->middleware('module:documents')->group(function () {
             // View own documents with filtering
             Route::get('/', [\App\Http\Controllers\Employee\DocumentController::class, 'index'])
                 ->middleware('permission:employee.documents.view')
