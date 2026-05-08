@@ -252,6 +252,7 @@ export default function CreateEmployee({ departments = [], positions = [], super
                 toast({
                     title: "Success",
                     description: response.data?.message || "Employee created successfully.",
+                    variant: "success",
                 });
                 // Redirect to show page on success
                 if (response.data?.employee_id) {

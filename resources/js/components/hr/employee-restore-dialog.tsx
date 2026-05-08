@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { CheckCircle2, RotateCcw } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface EmployeeRestoreDialogProps {
     open: boolean;
@@ -30,6 +31,7 @@ export function EmployeeRestoreDialog({
 }: EmployeeRestoreDialogProps) {
     const [notes, setNotes] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const { toast } = useToast();
 
     const handleRestore = () => {
         setIsSubmitting(true);
@@ -38,10 +40,20 @@ export function EmployeeRestoreDialog({
             notes,
         }, {
             onSuccess: () => {
+                toast({
+                    title: "Success",
+                    description: "Employee restored successfully.",
+                    variant: "success",
+                });
                 onOpenChange(false);
                 setNotes('');
             },
             onError: () => {
+                toast({
+                    title: "Error",
+                    description: "Failed to restore employee. Please try again.",
+                    variant: "destructive",
+                });
                 setIsSubmitting(false);
             },
             onFinish: () => {

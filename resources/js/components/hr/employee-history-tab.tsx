@@ -111,10 +111,6 @@ export function EmployeeHistoryTab({ employeeId, auditLogs = [] }: EmployeeHisto
                         Complete timeline of changes to this employee record
                     </p>
                 </div>
-                <Button variant="outline">
-                    <Filter className="mr-2 h-4 w-4" />
-                    Advanced Filters
-                </Button>
             </div>
 
             {/* Action Filters */}

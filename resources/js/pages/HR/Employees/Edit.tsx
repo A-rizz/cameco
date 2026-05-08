@@ -325,6 +325,7 @@ export default function EditEmployee({
                 toast({
                     title: "Success",
                     description: response.data?.message || "Employee updated successfully.",
+                    variant: "success",
                 });
                 // Redirect on success
                 router.visit(`/hr/employees/${employee.id}`, { method: 'get' });
