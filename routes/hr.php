@@ -67,6 +67,7 @@ Route::middleware(['auth', 'verified' , EnsureHRAccess::class, 'module:employee'
         Route::get('/employees/{id}/print', [EmployeeController::class, 'print'])->name('employees.print');
         Route::resource('employees', EmployeeController::class);
         Route::post('/employees/{id}/restore', [EmployeeController::class, 'restore'])->name('employees.restore');
+        Route::post('/employees/{id}/status', [EmployeeController::class, 'updateStatus'])->name('employees.status');
 
         // Employee-Specific Document API Routes (for Employee Profile → Documents Tab)
         // These routes are scoped to a single employee context
@@ -154,7 +155,9 @@ Route::middleware(['auth', 'verified' , EnsureHRAccess::class, 'module:employee'
         // Reports
         Route::prefix('reports')->name('reports.')->group(function () {
             Route::get('/employees', [ReportController::class, 'employees'])->name('employees');
-            Route::get('/leave', [ReportController::class, 'leave'])->name('leave');
+            Route::get('/leave', [ReportController::class, 'leave'])
+                ->middleware('module:leave')
+                ->name('leave');
         });
 
         // Document Management Module
