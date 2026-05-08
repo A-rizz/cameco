@@ -52,14 +52,14 @@ class DatabaseSeeder extends Seeder
             RolesAndPermissionsSeeder::class,
 
             // Module extensions — each adds permissions and calls givePermissionTo()
-            ATSPermissionsSeeder::class,
-            TimekeepingPermissionsSeeder::class,
-            BadgeManagementPermissionsSeeder::class,
-            WorkforceManagementPermissionsSeeder::class,
-            DocumentManagementPermissionsSeeder::class,
-            PayrollPermissionsSeeder::class,
-            OffboardingPermissionsSeeder::class,
-            AppraisalPermissionsSeeder::class,      // ← was using syncPermissions; now fixed
+            // ATSPermissionsSeeder::class,
+            // TimekeepingPermissionsSeeder::class,
+            // BadgeManagementPermissionsSeeder::class,
+            // WorkforceManagementPermissionsSeeder::class,
+            // DocumentManagementPermissionsSeeder::class,
+            // PayrollPermissionsSeeder::class,
+            // OffboardingPermissionsSeeder::class,
+            // AppraisalPermissionsSeeder::class,      // ← was using syncPermissions; now fixed
         ]);
 
         // ── STAGE 3: Flush Spatie cache ────────────────────────────────────
@@ -80,8 +80,8 @@ class DatabaseSeeder extends Seeder
 
         // ── STAGE 5: Additional accounts (these also assign roles internally) ──
         $this->call([
-            PayrollOfficerAccountSeeder::class,
-            OfficeAdminSeeder::class,
+            // PayrollOfficerAccountSeeder::class,
+            // OfficeAdminSeeder::class,
             EmployeeRoleSeeder::class,
             HRStaffAccountSeeder::class,
         ]);
@@ -91,103 +91,103 @@ class DatabaseSeeder extends Seeder
 
         // ── STAGE 6: System & config data ─────────────────────────────────
         $this->call([
-            SLASeeder::class,
-            CronJobSeeder::class,
-            SecurityPolicySeeder::class,
-            SecurityAuditLogSeeder::class,
+            // SLASeeder::class,
+            // CronJobSeeder::class,
+            // SecurityPolicySeeder::class,
+            // SecurityAuditLogSeeder::class,
             SystemSettingsSeeder::class,
-            SystemErrorLogSeeder::class,
-            ScheduledJobSeeder::class,
-            SystemHealthSeeder::class,
-            TaxBracketsSeeder::class,
-            GovernmentContributionRatesSeeder::class,
-            PayrollConfigurationSeeder::class,
-            SalaryComponentSeeder::class,
+            // SystemErrorLogSeeder::class,
+            // ScheduledJobSeeder::class,
+            // SystemHealthSeeder::class,
+            // TaxBracketsSeeder::class,
+            // GovernmentContributionRatesSeeder::class,
+            // PayrollConfigurationSeeder::class,
+            // SalaryComponentSeeder::class,
         ]);
 
         // ── STAGE 7: HR structure ──────────────────────────────────────────
         $this->call([
             DepartmentSeeder::class,
             PositionSeeder::class,
-            WorkScheduleSeeder::class,
+            // WorkScheduleSeeder::class,
         ]);
 
         // ── STAGE 8: ATS / Recruitment ────────────────────────────────────
-        $this->call([
-            JobPostingSeeder::class,
-            CandidateSeeder::class,
-            ApplicationSeeder::class,
-            InterviewSeeder::class,
-        ]);
+        // $this->call([
+        //     JobPostingSeeder::class,
+        //     CandidateSeeder::class,
+        //     ApplicationSeeder::class,
+        //     InterviewSeeder::class,
+        // ]);
 
         // ── STAGE 9: Offboarding system config ────────────────────────────
-        $this->call([
-            OffboardingSystemSeeder::class,
-        ]);
+        // $this->call([
+        //     OffboardingSystemSeeder::class,
+        // ]);
 
         // ── STAGE 10: Employees & profiles ────────────────────────────────
         $this->call([
             EmployeeSeeder::class,
             EmployeeAccountSeeder::class,
             LinkEmployeesToUsersSeeder::class,
-            EmployeePayrollInfoSeeder::class,
+            // EmployeePayrollInfoSeeder::class,
         ]);
 
         // ── STAGE 11: Document management ─────────────────────────────────
-        $this->call([
-            DocumentTemplateSeeder::class,
-        ]);
+        // $this->call([
+        //     DocumentTemplateSeeder::class,
+        // ]);
 
         // ── STAGE 12: Timekeeping & attendance ────────────────────────────
-        $this->call([
-            RfidLedgerSeeder::class,
-            AttendanceEventsSeeder::class,
-            DailyAttendanceSummarySeeder::class,
-        ]);
+        // $this->call([
+        //     RfidLedgerSeeder::class,
+        //     AttendanceEventsSeeder::class,
+        //     DailyAttendanceSummarySeeder::class,
+        // ]);
 
         // ── STAGE 13: Appraisals ──────────────────────────────────────────
-        $this->call([
-            AppraisalCycleSeeder::class,
-            AppraisalSeeder::class,
-        ]);
+        // $this->call([
+        //     AppraisalCycleSeeder::class,
+        //     AppraisalSeeder::class,
+        // ]);
 
         // ── STAGE 14: RFID / Badges ───────────────────────────────────────
-        $this->call([
-            RfidDeviceSeeder::class,
-            RfidCardMappingSeeder::class,
-        ]);
+        // $this->call([
+        //     RfidDeviceSeeder::class,
+        //     RfidCardMappingSeeder::class,
+        // ]);
 
         // ── STAGE 15: Leave & overtime ────────────────────────────────────
-        $this->call([
-            LeaveBalanceSeeder::class,
-            LeaveRequestSeeder::class,
-            OvertimeRequestSeeder::class,
-        ]);
+        // $this->call([
+        //     LeaveBalanceSeeder::class,
+        //     LeaveRequestSeeder::class,
+        //     OvertimeRequestSeeder::class,
+        // ]);
 
         // ── STAGE 16: Workforce & scheduling ──────────────────────────────
-        $this->call([
-            WorkforceSeeder::class,
-            WorkForceCoverageSeeder::class,
-        ]);
+        // $this->call([
+        //     WorkforceSeeder::class,
+        //     WorkForceCoverageSeeder::class,
+        // ]);
 
-        if (class_exists(OffboardingSeeder::class)) {
-            $this->call(OffboardingSeeder::class);
-        }
+        // if (class_exists(OffboardingSeeder::class)) {
+        //     $this->call(OffboardingSeeder::class);
+        // }
 
         // ── STAGE 17: Payroll ─────────────────────────────────────────────
-        $this->call([
-            PayrollPeriodsSeeder::class,
-            PaymentMethodsSeeder::class,
-            PayrollPaymentsSeeder::class,
-            CashDistributionBatchSeeder::class,
-            PayslipsSeeder::class,
-        ]);
+        // $this->call([
+        //     PayrollPeriodsSeeder::class,
+        //     PaymentMethodsSeeder::class,
+        //     PayrollPaymentsSeeder::class,
+        //     CashDistributionBatchSeeder::class,
+        //     PayslipsSeeder::class,
+        // ]);
 
         // ── STAGE 18: Government reports ─────────────────────────────────
-        $this->call([
-            GovernmentContributionsDemoSeeder::class,
-            GovernmentReportDemoSeeder::class,
-            PagIbigMCRFReportSeeder::class,
-        ]);
+        // $this->call([
+        //     GovernmentContributionsDemoSeeder::class,
+        //     GovernmentReportDemoSeeder::class,
+        //     PagIbigMCRFReportSeeder::class,
+        // ]);
     }
 }
