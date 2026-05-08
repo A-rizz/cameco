@@ -33,6 +33,7 @@ interface AuditLog {
 }
 
 interface EmployeeHistoryTabProps {
+    employeeId: number;
     auditLogs?: AuditLog[];
 }
 
@@ -148,7 +149,7 @@ const mockAuditLogs: AuditLog[] = [
     },
 ];
 
-export function EmployeeHistoryTab({ auditLogs = mockAuditLogs }: EmployeeHistoryTabProps) {
+export function EmployeeHistoryTab({ employeeId, auditLogs = mockAuditLogs }: EmployeeHistoryTabProps) {
     const [selectedFilter, setSelectedFilter] = useState<string>('all');
 
     const actionFilters = [

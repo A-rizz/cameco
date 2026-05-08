@@ -174,6 +174,24 @@ class EmployeeController extends Controller
     }
 
     /**
+     * Print the specified employee details.
+     */
+    public function print(int $id)
+    {
+        $employee = $this->employeeService->getEmployeeById($id);
+
+        if (!$employee) {
+            abort(404, 'Employee not found');
+        }
+
+        $this->authorize('view', $employee);
+
+        return Inertia::render('HR/Employees/Print', [
+            'employee' => $employee,
+        ]);
+    }
+
+    /**
      * Show the form for editing the specified employee.
      */
     public function edit(int $id)

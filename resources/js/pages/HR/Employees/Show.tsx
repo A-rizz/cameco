@@ -9,7 +9,7 @@ import { EmployeeHistoryTab } from '@/components/hr/employee-history-tab';
 import { EmployeeArchiveDialog } from '@/components/hr/employee-archive-dialog';
 import { RemarksSection } from '@/components/hr/forms/remarks-section';
 import { DependentsSection } from '@/components/hr/forms/dependents-section';
-import { ArrowLeft, Edit, Archive, FileText, History, User, Briefcase, MessageSquare, Users } from 'lucide-react';
+import { ArrowLeft, Edit, Archive, FileText, History, User, Briefcase, MessageSquare, Users, Printer } from 'lucide-react';
 import { useState } from 'react';
 import { PermissionGate } from '@/components/permission-gate';
 
@@ -614,6 +614,12 @@ export default function ShowEmployee({ employee }: ShowEmployeeProps) {
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
+                        <a href={`/hr/employees/${employee.id}/print`} target="_blank" rel="noopener noreferrer">
+                            <Button variant="outline">
+                                <Printer className="h-4 w-4 mr-2" />
+                                Print
+                            </Button>
+                        </a>
                         <PermissionGate permission="hr.employees.update">
                             <Link href={`/hr/employees/${employee.id}/edit`}>
                                 <Button variant="outline">

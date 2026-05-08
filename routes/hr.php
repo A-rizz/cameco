@@ -64,6 +64,7 @@ Route::middleware(['auth', 'verified' , EnsureHRAccess::class, 'module:employee'
         Route::get('/employees/import/template', [EmployeeExportImportController::class, 'downloadTemplate'])->name('employees.import.template');
 
         // Employee Management
+        Route::get('/employees/{id}/print', [EmployeeController::class, 'print'])->name('employees.print');
         Route::resource('employees', EmployeeController::class);
         Route::post('/employees/{id}/restore', [EmployeeController::class, 'restore'])->name('employees.restore');
 
