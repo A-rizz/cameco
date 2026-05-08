@@ -93,48 +93,58 @@ export default function ImportPage({ departments, positions }: ImportPageProps) 
         <AppLayout>
             <Head title="Import Employees" />
 
-            <div className="space-y-6 p-6">
+            <div className="max-w-[1000px] mx-auto space-y-8 p-6 md:p-8">
                 {/* Header */}
-                <div className="flex items-center gap-4">
-                    <Link href="/hr/employees">
-                        <Button variant="outline" size="icon">
-                            <ArrowLeft className="h-4 w-4" />
-                        </Button>
-                    </Link>
-                    <div>
-                        <h1 className="text-3xl font-bold tracking-tight">Import Employees</h1>
-                        <p className="text-muted-foreground mt-1">
-                            Bulk import employees from a CSV file
-                        </p>
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div className="flex items-center gap-5">
+                        <Link href="/hr/employees">
+                            <Button variant="ghost" size="icon" className="rounded-full h-11 w-11 hover:bg-muted transition-colors">
+                                <ArrowLeft className="h-5 w-5" />
+                            </Button>
+                        </Link>
+                        <div className="space-y-1">
+                            <h1 className="text-4xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">
+                                Import Employees
+                            </h1>
+                            <p className="text-lg text-muted-foreground">
+                                Bulk add staff members using a CSV data sheet.
+                            </p>
+                        </div>
                     </div>
                 </div>
 
                 {/* Main Card */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Upload CSV File</CardTitle>
-                        <CardDescription>
-                            Import multiple employees at once using a CSV file. Download the template below to see the required format.
+                <Card className="border-none shadow-2xl shadow-primary/5 bg-background/50 backdrop-blur-sm border border-border/50 rounded-3xl overflow-hidden">
+                    <CardHeader className="pb-8 border-b border-border/50 bg-muted/20">
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="p-2 bg-primary/10 rounded-xl">
+                                <Upload className="h-5 w-5 text-primary" />
+                            </div>
+                            <CardTitle className="text-2xl font-bold">Upload Data Sheet</CardTitle>
+                        </div>
+                        <CardDescription className="text-base">
+                            Quickly import multiple employees. Ensure your file follows our standard template for accurate data mapping.
                         </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-6">
-                        {/* Template Download */}
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                            <div className="flex items-start justify-between">
-                                <div>
-                                    <h3 className="font-semibold text-blue-900">Download Template</h3>
-                                    <p className="text-sm text-blue-700 mt-1">
-                                        Download the CSV template to see the required columns and format.
+                    <CardContent className="p-8 space-y-8">
+                        {/* Template Download Section */}
+                        <div className="relative group overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 to-transparent p-6 transition-all hover:shadow-md">
+                            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                                <div className="space-y-1 text-center md:text-left">
+                                    <h3 className="text-lg font-bold text-primary flex items-center justify-center md:justify-start gap-2">
+                                        <Download className="h-5 w-5" />
+                                        Need a template?
+                                    </h3>
+                                    <p className="text-sm text-muted-foreground max-w-md">
+                                        Download our pre-formatted CSV template to ensure all employee data is correctly mapped during import.
                                     </p>
                                 </div>
                                 <Button
                                     variant="outline"
-                                    size="sm"
                                     onClick={handleDownloadTemplate}
-                                    className="gap-2"
+                                    className="rounded-xl border-primary/30 hover:bg-primary hover:text-primary-foreground transition-all active:scale-95 font-semibold px-6 h-12 shadow-sm"
                                 >
-                                    <Download className="h-4 w-4" />
-                                    Download Template
+                                    Download CSV Template
                                 </Button>
                             </div>
                         </div>
@@ -157,22 +167,37 @@ export default function ImportPage({ departments, positions }: ImportPageProps) 
                             </Alert>
                         )}
 
-                        {/* File Upload */}
-                        <div className="space-y-4">
-                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-gray-400 transition"
-                                onClick={() => fileInputRef.current?.click()}>
-                                <Upload className="h-12 w-12 mx-auto text-gray-400 mb-3" />
-                                <p className="font-semibold text-gray-700">
-                                    Click to upload or drag and drop
-                                </p>
-                                <p className="text-sm text-gray-500 mt-1">
-                                    CSV files only (max 10MB)
-                                </p>
-                                {file && (
-                                    <p className="text-sm text-green-600 mt-2">
-                                        Selected: {file.name}
-                                    </p>
-                                )}
+                        {/* File Upload Area */}
+                        <div className="space-y-6">
+                            <div 
+                                className={`relative group border-2 border-dashed rounded-3xl p-12 text-center transition-all duration-300 ${
+                                    file 
+                                    ? 'border-primary/50 bg-primary/5 shadow-inner' 
+                                    : 'border-border/60 hover:border-primary/40 hover:bg-muted/30'
+                                } cursor-pointer`}
+                                onClick={() => fileInputRef.current?.click()}
+                            >
+                                <div className="space-y-4">
+                                    <div className={`mx-auto w-20 h-20 rounded-full flex items-center justify-center transition-transform duration-300 group-hover:scale-110 ${
+                                        file ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'
+                                    }`}>
+                                        <Upload className="h-10 w-10" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <p className="text-xl font-bold">
+                                            {file ? file.name : 'Click or drag to upload'}
+                                        </p>
+                                        <p className="text-sm text-muted-foreground">
+                                            Only CSV files are supported (Maximum 10MB)
+                                        </p>
+                                    </div>
+                                    {file && (
+                                        <div className="flex items-center justify-center gap-2 text-primary font-semibold animate-in fade-in zoom-in duration-300">
+                                            <CheckCircle className="h-5 w-5" />
+                                            <span>Ready for import</span>
+                                        </div>
+                                    )}
+                                </div>
                                 <input
                                     ref={fileInputRef}
                                     type="file"
@@ -182,28 +207,40 @@ export default function ImportPage({ departments, positions }: ImportPageProps) 
                                 />
                             </div>
 
-                            {/* Import Button */}
-                            <div className="flex gap-2">
+                            {/* Action Buttons */}
+                            <div className="flex items-center justify-center gap-4">
                                 <Button
                                     onClick={handleImport}
                                     disabled={!file || isImporting}
-                                    className="gap-2"
+                                    className="h-12 px-10 rounded-xl bg-primary shadow-lg shadow-primary/20 hover:shadow-xl transition-all active:scale-95 font-bold text-base gap-3"
                                 >
-                                    <Upload className="h-4 w-4" />
-                                    {isImporting ? 'Importing...' : 'Import'}
+                                    {isImporting ? (
+                                        <>
+                                            <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                            Processing...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <CheckCircle className="h-5 w-5" />
+                                            Start Import
+                                        </>
+                                    )}
                                 </Button>
-                                <Button
-                                    variant="outline"
-                                    onClick={() => {
-                                        setFile(null);
-                                        setResult(null);
-                                        if (fileInputRef.current) {
-                                            fileInputRef.current.value = '';
-                                        }
-                                    }}
-                                >
-                                    Clear
-                                </Button>
+                                {file && (
+                                    <Button
+                                        variant="ghost"
+                                        onClick={() => {
+                                            setFile(null);
+                                            setResult(null);
+                                            if (fileInputRef.current) {
+                                                fileInputRef.current.value = '';
+                                            }
+                                        }}
+                                        className="h-12 px-6 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-colors"
+                                    >
+                                        Remove File
+                                    </Button>
+                                )}
                             </div>
                         </div>
 

@@ -17,6 +17,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { usePage } from '@inertiajs/react';
@@ -155,7 +156,6 @@ export function DepartmentFormModal({
                 parent_id: formData.parent_id ? Number(formData.parent_id) : null,
                 is_active: formData.is_active,
             });
-            // Only close if no field errors (Inertia will set them if validation fails)
         } catch (err) {
             setError(err instanceof Error ? err.message : 'An error occurred');
         } finally {
@@ -170,133 +170,137 @@ export function DepartmentFormModal({
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-[500px]">
-                <DialogHeader>
-                    <DialogTitle>
+            <DialogContent className="sm:max-w-[550px] max-h-[95vh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
+                <DialogHeader className="p-6 pb-2">
+                    <DialogTitle className="text-2xl font-bold tracking-tight">
                         {mode === 'create' ? 'Create Department' : 'Edit Department'}
                     </DialogTitle>
-                    <DialogDescription>
+                    <DialogDescription className="text-muted-foreground">
                         {mode === 'create'
-                            ? 'Add a new department to your organization'
-                            : 'Update department information'}
+                            ? 'Add a new department to your company'
+                            : 'Update department settings'}
                     </DialogDescription>
                 </DialogHeader>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    {/* Error Message */}
-                    {error && (
-                        <div className="rounded-md bg-red-50 p-3 text-sm text-red-600 dark:bg-red-950 dark:text-red-200">
-                            {error}
+                <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+                    <ScrollArea className="flex-1 px-6">
+                        <div className="space-y-4 py-4">
+                            {/* Error Message */}
+                            {error && (
+                                <div className="rounded-md bg-red-50 p-3 text-sm text-red-600 dark:bg-red-950 dark:text-red-200 border border-red-200/50">
+                                    {error}
+                                </div>
+                            )}
+
+                            {/* Department Name */}
+                            <div className="space-y-2">
+                                <Label htmlFor="name" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Department Name *</Label>
+                                <Input
+                                    id="name"
+                                    name="name"
+                                    placeholder="e.g., Human Resources"
+                                    value={formData.name}
+                                    onChange={handleInputChange}
+                                    disabled={isLoading}
+                                    className={`h-10 ${fieldErrors.name ? 'border-red-500 bg-red-50/50' : ''}`}
+                                />
+                                {fieldErrors.name && (
+                                    <p className="text-[10px] font-bold text-red-600 uppercase tracking-tight">{fieldErrors.name}</p>
+                                )}
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {/* Department Code */}
+                                <div className="space-y-2">
+                                    <Label htmlFor="code" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Dept Code *</Label>
+                                    <Input
+                                        id="code"
+                                        name="code"
+                                        placeholder="e.g., HR-UNIT"
+                                        value={formData.code}
+                                        onChange={handleInputChange}
+                                        disabled={isLoading}
+                                        className={`h-10 ${fieldErrors.code ? 'border-red-500 bg-red-50/50' : ''}`}
+                                    />
+                                    {fieldErrors.code && (
+                                        <p className="text-[10px] font-bold text-red-600 uppercase tracking-tight">{fieldErrors.code}</p>
+                                    )}
+                                </div>
+
+                                {/* Parent Department */}
+                                <div className="space-y-2">
+                                    <Label htmlFor="parent_id" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Reports To (Parent Dept)</Label>
+                                    <Select value={formData.parent_id} onValueChange={handleSelectChange}>
+                                        <SelectTrigger id="parent_id" disabled={isLoading} className={`h-10 ${fieldErrors.parent_id ? 'border-red-500 bg-red-50/50' : ''}`}>
+                                            <SelectValue placeholder="Select parent..." />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="none">Root Department</SelectItem>
+                                            {availableDepartments.map(dept => (
+                                                <SelectItem key={dept.id} value={String(dept.id)}>
+                                                    {dept.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    {fieldErrors.parent_id && (
+                                        <p className="text-[10px] font-bold text-red-600 uppercase tracking-tight">{fieldErrors.parent_id}</p>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Description */}
+                            <div className="space-y-2">
+                                <Label htmlFor="description" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Description</Label>
+                                <Textarea
+                                    id="description"
+                                    name="description"
+                                    placeholder="What does this department do?"
+                                    value={formData.description}
+                                    onChange={handleInputChange}
+                                    disabled={isLoading}
+                                    rows={3}
+                                    className={`resize-none ${fieldErrors.description ? 'border-red-500 bg-red-50/50' : ''}`}
+                                />
+                                {fieldErrors.description && (
+                                    <p className="text-[10px] font-bold text-red-600 uppercase tracking-tight">{fieldErrors.description}</p>
+                                )}
+                            </div>
+
+                            {/* Active Status */}
+                            <div className="flex items-center justify-between bg-muted/30 p-4 rounded-lg border border-border/50">
+                                <div className="space-y-0.5">
+                                    <Label htmlFor="is_active" className="text-sm font-bold cursor-pointer">Department is Active</Label>
+                                    <p className="text-[10px] text-muted-foreground">Check this if the department is currently open.</p>
+                                </div>
+                                <Checkbox
+                                    id="is_active"
+                                    checked={formData.is_active}
+                                    onCheckedChange={handleCheckboxChange}
+                                    disabled={isLoading}
+                                />
+                            </div>
                         </div>
-                    )}
+                    </ScrollArea>
 
-                    {/* Department Name */}
-                    <div className="space-y-2">
-                        <Label htmlFor="name">Department Name *</Label>
-                        <Input
-                            id="name"
-                            name="name"
-                            placeholder="e.g., Human Resources"
-                            value={formData.name}
-                            onChange={handleInputChange}
-                            disabled={isLoading}
-                            className={fieldErrors.name ? 'border-red-500' : ''}
-                        />
-                        {fieldErrors.name && (
-                            <p className="text-sm text-red-600 dark:text-red-400">{fieldErrors.name}</p>
-                        )}
-                    </div>
-
-                    {/* Department Code */}
-                    <div className="space-y-2">
-                        <Label htmlFor="code">Department Code *</Label>
-                        <Input
-                            id="code"
-                            name="code"
-                            placeholder="e.g., HR"
-                            value={formData.code}
-                            onChange={handleInputChange}
-                            disabled={isLoading}
-                            className={fieldErrors.code ? 'border-red-500' : ''}
-                        />
-                        {fieldErrors.code && (
-                            <p className="text-sm text-red-600 dark:text-red-400">{fieldErrors.code}</p>
-                        )}
-                    </div>
-
-                    {/* Description */}
-                    <div className="space-y-2">
-                        <Label htmlFor="description">Description</Label>
-                        <Textarea
-                            id="description"
-                            name="description"
-                            placeholder="Department description..."
-                            value={formData.description}
-                            onChange={handleInputChange}
-                            disabled={isLoading}
-                            rows={3}
-                            className={fieldErrors.description ? 'border-red-500' : ''}
-                        />
-                        {fieldErrors.description && (
-                            <p className="text-sm text-red-600 dark:text-red-400">{fieldErrors.description}</p>
-                        )}
-                    </div>
-
-                    {/* Parent Department */}
-                    <div className="space-y-2">
-                        <Label htmlFor="parent_id">Parent Department (optional)</Label>
-                        <Select value={formData.parent_id} onValueChange={handleSelectChange}>
-                            <SelectTrigger id="parent_id" disabled={isLoading} className={fieldErrors.parent_id ? 'border-red-500' : ''}>
-                                <SelectValue placeholder="Select parent department..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {availableDepartments.map(dept => (
-                                    <SelectItem key={dept.id} value={String(dept.id)}>
-                                        {dept.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        {fieldErrors.parent_id && (
-                            <p className="text-sm text-red-600 dark:text-red-400">{fieldErrors.parent_id}</p>
-                        )}
-                    </div>
-
-                    {/* Active Status */}
-                    <div className="space-y-2">
-                        <div className="flex items-center space-x-2">
-                            <Checkbox
-                                id="is_active"
-                                checked={formData.is_active}
-                                onCheckedChange={handleCheckboxChange}
-                                disabled={isLoading}
-                            />
-                            <Label htmlFor="is_active" className="font-normal">
-                                Active
-                            </Label>
-                        </div>
-                        {fieldErrors.is_active && (
-                            <p className="text-sm text-red-600 dark:text-red-400">{fieldErrors.is_active}</p>
-                        )}
-                    </div>
-
-                    {/* Buttons */}
-                    <div className="flex justify-end gap-3 pt-4">
+                    {/* Buttons Footer - Fixed at bottom */}
+                    <div className="flex justify-end gap-3 p-6 border-t bg-muted/10">
                         <Button
                             type="button"
-                            variant="outline"
+                            variant="ghost"
                             onClick={onClose}
                             disabled={isLoading}
+                            className="font-bold text-xs uppercase tracking-widest"
                         >
                             Cancel
                         </Button>
                         <Button
                             type="submit"
                             disabled={isLoading}
-                            className="bg-blue-600 hover:bg-blue-700"
+                            className="bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/20 px-8 font-bold text-xs uppercase tracking-widest"
                         >
                             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            {mode === 'create' ? 'Create' : 'Update'}
+                            {mode === 'create' ? 'Create Department' : 'Save Changes'}
                         </Button>
                     </div>
                 </form>

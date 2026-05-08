@@ -23,6 +23,7 @@ export interface EmploymentInfoData {
 interface Department {
     id: number;
     name: string;
+    parent_id: number | null;
 }
 
 interface Position {
@@ -60,7 +61,24 @@ export function EmploymentInfoSection({
     supervisors = [],
     isEditMode = false
 }: EmploymentInfoSectionProps) {
-    // Filter positions based on selected department
+    // Calculate Main and Sub Departments
+    const mainDepartments = useMemo(() => departments.filter(d => !d.parent_id), [departments]);
+    
+    const currentDept = useMemo(() => 
+        departments.find(d => d.id === parseInt(data.department_id)), 
+    [data.department_id, departments]);
+
+    const initialMainDeptId = useMemo(() => {
+        if (!currentDept) return '';
+        return currentDept.parent_id ? String(currentDept.parent_id) : String(currentDept.id);
+    }, [currentDept]);
+
+    const subDepartments = useMemo(() => {
+        if (!initialMainDeptId) return [];
+        return departments.filter(d => String(d.parent_id) === initialMainDeptId);
+    }, [initialMainDeptId, departments]);
+
+    // Filter positions based on selected department (the specific one)
     const filteredPositions = useMemo(() => {
         if (data.department_id && data.department_id !== 'all' && data.department_id !== '') {
             const deptId = parseInt(data.department_id, 10);
@@ -71,17 +89,21 @@ export function EmploymentInfoSection({
         return positions;
     }, [data.department_id, positions]);
 
-    const handleDepartmentChange = (value: string) => {
+    const handleMainDepartmentChange = (value: string) => {
+        // When main department changes, we set the actual department_id to the main one
+        // and let the user refine it with the sub-department if they want.
         onChange('department_id', value);
-        // Clear position if it's not in the new department
-        if (data.position_id) {
-            const positionStillValid = positions.find(
-                p => p.id === parseInt(data.position_id) && p.department_id === parseInt(value)
-            );
-            if (!positionStillValid) {
-                onChange('position_id', '');
-            }
+        onChange('position_id', '');
+    };
+
+    const handleSubDepartmentChange = (value: string) => {
+        // If "None" is selected for sub-department, we revert to the main department
+        if (value === 'none') {
+            onChange('department_id', initialMainDeptId);
+        } else {
+            onChange('department_id', value);
         }
+        onChange('position_id', '');
     };
 
     return (
@@ -112,21 +134,21 @@ export function EmploymentInfoSection({
                     </div>
                 )}
 
-                {/* Department and Position */}
+                {/* Department and Sub-Department */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                        <Label htmlFor="department_id">
-                            Department <span className="text-destructive">*</span>
+                        <Label htmlFor="main_department_id">
+                            Main Department <span className="text-destructive">*</span>
                         </Label>
                         <Select 
-                            value={data.department_id} 
-                            onValueChange={handleDepartmentChange}
+                            value={initialMainDeptId} 
+                            onValueChange={handleMainDepartmentChange}
                         >
-                            <SelectTrigger id="department_id">
+                            <SelectTrigger id="main_department_id">
                                 <SelectValue placeholder="Select department" />
                             </SelectTrigger>
                             <SelectContent>
-                                {departments.map((dept) => (
+                                {mainDepartments.map((dept) => (
                                     <SelectItem key={dept.id} value={dept.id.toString()}>
                                         {dept.name}
                                     </SelectItem>
@@ -139,6 +161,29 @@ export function EmploymentInfoSection({
                     </div>
 
                     <div className="space-y-2">
+                        <Label htmlFor="sub_department_id">Sub-Department (Optional)</Label>
+                        <Select 
+                            value={currentDept?.parent_id ? data.department_id : 'none'} 
+                            onValueChange={handleSubDepartmentChange}
+                            disabled={!initialMainDeptId || subDepartments.length === 0}
+                        >
+                            <SelectTrigger id="sub_department_id">
+                                <SelectValue placeholder={subDepartments.length > 0 ? "Select sub-unit" : "No sub-units"} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="none">None (Use Main Department)</SelectItem>
+                                {subDepartments.map((dept) => (
+                                    <SelectItem key={dept.id} value={dept.id.toString()}>
+                                        {dept.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+
+                {/* Position */}
+                <div className="space-y-2">
                         <Label htmlFor="position_id">
                             Position <span className="text-destructive">*</span>
                         </Label>
@@ -173,7 +218,6 @@ export function EmploymentInfoSection({
                             </p>
                         )}
                     </div>
-                </div>
 
                 {/* Employment Type and Status */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

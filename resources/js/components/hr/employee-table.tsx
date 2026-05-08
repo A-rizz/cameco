@@ -1,10 +1,10 @@
-import { 
-    Table, 
-    TableBody, 
-    TableCell, 
-    TableHead, 
-    TableHeader, 
-    TableRow 
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow
 } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -21,11 +21,11 @@ import { EmployeeStatusBadge } from './employee-status-badge';
 import { EmployeeArchiveDialog } from './employee-archive-dialog';
 import { EmployeeRestoreDialog } from './employee-restore-dialog';
 import { Link, router } from '@inertiajs/react';
-import { 
-    MoreHorizontal, 
-    Eye, 
-    Edit, 
-    Archive, 
+import {
+    MoreHorizontal,
+    Eye,
+    Edit,
+    Archive,
     RotateCcw,
     ChevronUp,
     ChevronDown,
@@ -77,17 +77,17 @@ function getInitials(firstName: string, lastName: string): string {
 
 function getFullName(employee: Employee): string {
     const { first_name, middle_name, last_name } = employee.profile;
-    return middle_name 
+    return middle_name
         ? `${first_name} ${middle_name} ${last_name}`
         : `${first_name} ${last_name}`;
 }
 
 function formatDate(dateString: string): string {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'short', 
-        day: 'numeric' 
+    return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
     });
 }
 
@@ -102,11 +102,11 @@ function formatEmploymentType(type: string): string {
 // Sort Icon Component
 // ============================================================================
 
-function SortIcon({ 
-    column, 
-    sortColumn, 
-    sortDirection 
-}: { 
+function SortIcon({
+    column,
+    sortColumn,
+    sortDirection
+}: {
     column: string;
     sortColumn?: string;
     sortDirection?: 'asc' | 'desc';
@@ -114,7 +114,7 @@ function SortIcon({
     if (sortColumn !== column) {
         return <ChevronsUpDown className="h-4 w-4 ml-1 text-muted-foreground" />;
     }
-    return sortDirection === 'asc' 
+    return sortDirection === 'asc'
         ? <ChevronUp className="h-4 w-4 ml-1" />
         : <ChevronDown className="h-4 w-4 ml-1" />;
 }
@@ -123,8 +123,8 @@ function SortIcon({
 // Component
 // ============================================================================
 
-export function EmployeeTable({ 
-    employees, 
+export function EmployeeTable({
+    employees,
     onSort,
     sortColumn,
     sortDirection
@@ -135,12 +135,12 @@ export function EmployeeTable({
 
     const handleSort = (column: string) => {
         if (!onSort) return;
-        
-        const newDirection = 
-            sortColumn === column && sortDirection === 'asc' 
-                ? 'desc' 
+
+        const newDirection =
+            sortColumn === column && sortDirection === 'asc'
+                ? 'desc'
                 : 'asc';
-        
+
         onSort(column, newDirection);
     };
 
@@ -156,187 +156,187 @@ export function EmployeeTable({
 
     if (employees.length === 0) {
         return (
-            <div className="flex flex-col items-center justify-center py-12 text-center border rounded-lg">
-                <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-4">
-                    <Archive className="h-6 w-6 text-muted-foreground" />
+            <div className="flex flex-col items-center justify-center py-20 text-center border-none bg-muted/20 rounded-xl mx-6 my-6">
+                <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-6 ring-8 ring-muted/10">
+                    <Archive className="h-8 w-8 text-muted-foreground" />
                 </div>
-                <h3 className="text-lg font-semibold mb-1">No employees found</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                    Try adjusting your filters or create a new employee.
+                <h3 className="text-xl font-bold mb-2">No personnel records found</h3>
+                <p className="text-muted-foreground mb-6 max-w-sm">
+                    We couldn't find any employees matching your current search criteria. Try broadening your filters.
                 </p>
                 <Link href="/hr/employees/create">
-                    <Button>Add Employee</Button>
+                    <Button className="shadow-lg shadow-primary/20">Add First Employee</Button>
                 </Link>
             </div>
         );
     }
 
     return (
-        <div className="rounded-md border">
+        <div className="w-full">
             <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead className="w-12">
-                            {/* Checkbox for future bulk actions */}
+                <TableHeader className="bg-muted/50">
+                    <TableRow className="hover:bg-transparent border-b">
+                        <TableHead className="w-4 px-4">
+                            {/* Selection placeholder */}
                         </TableHead>
-                        <TableHead 
-                            className="cursor-pointer hover:bg-muted/50"
+                        <TableHead
+                            className="cursor-pointer transition-colors hover:text-primary py-4"
                             onClick={() => handleSort('employee_number')}
                         >
-                            <div className="flex items-center">
-                                Employee #
-                                <SortIcon 
-                                    column="employee_number" 
+                            <div className="flex items-center text-xs font-bold uppercase tracking-wider">
+                                ID CODE
+                                <SortIcon
+                                    column="employee_number"
                                     sortColumn={sortColumn}
                                     sortDirection={sortDirection}
                                 />
                             </div>
                         </TableHead>
-                        <TableHead 
-                            className="cursor-pointer hover:bg-muted/50"
+                        <TableHead
+                            className="cursor-pointer transition-colors hover:text-primary"
                             onClick={() => handleSort('name')}
                         >
-                            <div className="flex items-center">
-                                Name
-                                <SortIcon 
-                                    column="name" 
+                            <div className="flex items-center text-xs font-bold uppercase tracking-wider">
+                                PROFESSIONAL
+                                <SortIcon
+                                    column="name"
                                     sortColumn={sortColumn}
                                     sortDirection={sortDirection}
                                 />
                             </div>
                         </TableHead>
-                        <TableHead>Department</TableHead>
-                        <TableHead>Position</TableHead>
-                        <TableHead>Employment Type</TableHead>
-                        <TableHead 
-                            className="cursor-pointer hover:bg-muted/50"
+                        <TableHead className="text-xs font-bold uppercase tracking-wider">BUSINESS UNIT</TableHead>
+                        <TableHead className="text-xs font-bold uppercase tracking-wider">DESIGNATION</TableHead>
+                        <TableHead className="text-xs font-bold uppercase tracking-wider">CONTRACT</TableHead>
+                        <TableHead
+                            className="cursor-pointer transition-colors hover:text-primary"
                             onClick={() => handleSort('date_hired')}
                         >
-                            <div className="flex items-center">
-                                Hire Date
-                                <SortIcon 
-                                    column="date_hired" 
+                            <div className="flex items-center text-xs font-bold uppercase tracking-wider">
+                                JOIN DATE
+                                <SortIcon
+                                    column="date_hired"
                                     sortColumn={sortColumn}
                                     sortDirection={sortDirection}
                                 />
                             </div>
                         </TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
+                        <TableHead className="text-xs font-bold uppercase tracking-wider text-center">STATUS</TableHead>
+                        <TableHead className="text-right px-6"></TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {employees.map((employee) => (
-                        <TableRow 
+                        <TableRow
                             key={employee.id}
-                            className="hover:bg-muted/50 transition-colors cursor-pointer"
+                            className="group hover:bg-primary/[0.02] active:bg-primary/[0.05] transition-all cursor-pointer border-b last:border-0"
                             onClick={() => router.visit(`/hr/employees/${employee.id}`)}
                         >
-                            <TableCell onClick={(e) => e.stopPropagation()}>
-                                {/* Checkbox placeholder */}
+                            <TableCell className="px-4" onClick={(e) => e.stopPropagation()}>
+                                {/* Selection checkbox */}
                             </TableCell>
-                            <TableCell className="font-mono text-sm">
+                            <TableCell className="font-mono text-xs font-bold text-muted-foreground group-hover:text-primary transition-colors">
                                 {employee.employee_number}
                             </TableCell>
-                            <TableCell>
-                                <div className="flex items-center gap-3">
-                                    <Avatar className="h-8 w-8">
+                            <TableCell className="py-4">
+                                <div className="flex items-center gap-4">
+                                    <Avatar className="h-10 w-10 border-2 border-background shadow-sm ring-1 ring-border group-hover:ring-primary/30 transition-all">
                                         {employee.profile.profile_picture_path && (
-                                            <AvatarImage 
-                                                src={`/storage/${employee.profile.profile_picture_path}`} 
-                                                alt={getFullName(employee)} 
+                                            <AvatarImage
+                                                src={`/storage/${employee.profile.profile_picture_path}`}
+                                                alt={getFullName(employee)}
+                                                className="object-cover"
                                             />
                                         )}
-                                        <AvatarFallback className="text-xs">
+                                        <AvatarFallback className="bg-primary/5 text-primary font-bold text-xs">
                                             {getInitials(
-                                                employee.profile.first_name, 
+                                                employee.profile.first_name,
                                                 employee.profile.last_name
                                             )}
                                         </AvatarFallback>
                                     </Avatar>
                                     <div className="flex flex-col">
-                                        <span className="font-medium">
+                                        <span className="font-bold text-foreground group-hover:text-primary transition-colors">
                                             {getFullName(employee)}
+                                        </span>
+                                        <span className="text-[11px] text-muted-foreground font-medium uppercase tracking-tight">
+                                            {employee.position?.title || 'GENERAL STAFF'}
                                         </span>
                                     </div>
                                 </div>
                             </TableCell>
                             <TableCell>
-                                {employee.department ? (
-                                    <span className="text-sm">
-                                        {employee.department.name}
+                                <div className="flex flex-col">
+                                    <span className="text-sm font-semibold">
+                                        {employee.department?.name || 'Unassigned'}
                                     </span>
-                                ) : (
-                                    <span className="text-sm text-muted-foreground">
-                                        Not Assigned
+                                    <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">
+                                        Department
                                     </span>
-                                )}
+                                </div>
                             </TableCell>
                             <TableCell>
-                                {employee.position ? (
-                                    <span className="text-sm">
-                                        {employee.position.title}
-                                    </span>
-                                ) : (
-                                    <span className="text-sm text-muted-foreground">
-                                        Not Assigned
-                                    </span>
-                                )}
+                                <span className="text-sm font-medium text-muted-foreground">
+                                    {employee.position?.title || 'N/A'}
+                                </span>
                             </TableCell>
                             <TableCell>
-                                <Badge variant="outline" className="text-xs">
+                                <Badge variant="secondary" className="bg-muted/50 text-[10px] uppercase font-bold tracking-wider px-2 py-0">
                                     {formatEmploymentType(employee.employment_type)}
                                 </Badge>
                             </TableCell>
-                            <TableCell className="text-sm">
+                            <TableCell className="text-sm font-medium">
                                 {formatDate(employee.date_hired)}
                             </TableCell>
-                            <TableCell>
-                                <EmployeeStatusBadge status={employee.status} />
+                            <TableCell className="text-center">
+                                <EmployeeStatusBadge status={employee.status} className="mx-auto" />
                             </TableCell>
-                            <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                            <TableCell className="text-right px-6" onClick={(e) => e.stopPropagation()}>
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                        <Button 
-                                            variant="ghost" 
+                                        <Button
+                                            variant="ghost"
                                             size="sm"
-                                            className="h-8 w-8 p-0"
+                                            className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
                                         >
                                             <span className="sr-only">Open menu</span>
                                             <MoreHorizontal className="h-4 w-4" />
                                         </Button>
                                     </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                    <DropdownMenuContent align="end" className="w-48 shadow-xl border-none">
+                                        <DropdownMenuLabel className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground px-3 py-2">Operational Actions</DropdownMenuLabel>
                                         <DropdownMenuSeparator />
-                                        <DropdownMenuItem asChild>
-                                            <Link href={`/hr/employees/${employee.id}`}>
-                                                <Eye className="mr-2 h-4 w-4" />
-                                                View Details
+                                        <DropdownMenuItem asChild className="cursor-pointer px-3 py-2">
+                                            <Link href={`/hr/employees/${employee.id}`} className="flex items-center w-full">
+                                                <Eye className="mr-3 h-4 w-4 text-blue-500" />
+                                                <span className="font-medium">View Profile</span>
                                             </Link>
                                         </DropdownMenuItem>
                                         {!employee.deleted_at && (
                                             <>
-                                                <DropdownMenuItem asChild>
-                                                    <Link href={`/hr/employees/${employee.id}/edit`}>
-                                                        <Edit className="mr-2 h-4 w-4" />
-                                                        Edit
+                                                <DropdownMenuItem asChild className="cursor-pointer px-3 py-2">
+                                                    <Link href={`/hr/employees/${employee.id}/edit`} className="flex items-center w-full">
+                                                        <Edit className="mr-3 h-4 w-4 text-orange-500" />
+                                                        <span className="font-medium">Edit Profile</span>
                                                     </Link>
                                                 </DropdownMenuItem>
                                                 <DropdownMenuSeparator />
-                                                <DropdownMenuItem 
-                                                    className="text-destructive"
+                                                <DropdownMenuItem
+                                                    className="text-destructive cursor-pointer px-3 py-2 focus:bg-destructive/10"
                                                     onClick={() => openArchiveDialog(employee)}
                                                 >
-                                                    <Archive className="mr-2 h-4 w-4" />
-                                                    Archive
+                                                    <Archive className="mr-3 h-4 w-4" />
+                                                    <span className="font-medium">Archive Record</span>
                                                 </DropdownMenuItem>
                                             </>
                                         )}
                                         {employee.deleted_at && (
-                                            <DropdownMenuItem onClick={() => openRestoreDialog(employee)}>
-                                                <RotateCcw className="mr-2 h-4 w-4" />
-                                                Restore
+                                            <DropdownMenuItem
+                                                onClick={() => openRestoreDialog(employee)}
+                                                className="cursor-pointer px-3 py-2 text-green-600 focus:bg-green-50"
+                                            >
+                                                <RotateCcw className="mr-3 h-4 w-4" />
+                                                <span className="font-medium">Restore Intel</span>
                                             </DropdownMenuItem>
                                         )}
                                     </DropdownMenuContent>
@@ -371,3 +371,4 @@ export function EmployeeTable({
         </div>
     );
 }
+

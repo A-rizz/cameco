@@ -559,4 +559,49 @@ class EmployeeController extends Controller
 
         return back()->with('success', 'Employee status updated successfully.');
     }
+
+    /**
+     * Add a dependent to an employee.
+     */
+    public function addDependent(Request $request, int $id)
+    {
+        $request->validate([
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'middle_name' => 'nullable|string|max:255',
+            'date_of_birth' => 'required|date',
+            'relationship' => 'required|string|max:100',
+            'remarks' => 'nullable|string|max:500',
+        ]);
+
+        $employee = $this->employeeService->getEmployeeById($id);
+        if (!$employee) abort(404);
+        $this->authorize('update', $employee);
+
+        \App\Models\EmployeeDependent::create(array_merge($request->all(), ['employee_id' => $id]));
+
+        return back()->with('success', 'Dependent added successfully.');
+    }
+
+    /**
+     * Add a remark to an employee.
+     */
+    public function addRemark(Request $request, int $id)
+    {
+        $request->validate([
+            'remark' => 'required|string|max:1000',
+        ]);
+
+        $employee = $this->employeeService->getEmployeeById($id);
+        if (!$employee) abort(404);
+        $this->authorize('update', $employee);
+
+        \App\Models\EmployeeRemark::create([
+            'employee_id' => $id,
+            'remark' => $request->remark,
+            'created_by' => auth()->id(),
+        ]);
+
+        return back()->with('success', 'Remark added successfully.');
+    }
 }

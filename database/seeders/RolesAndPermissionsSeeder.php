@@ -175,6 +175,10 @@ class RolesAndPermissionsSeeder extends Seeder
             'hr.leave-policies.view', // Read-only access to policies
             'hr.leave-balances.view', // View leave balances
 
+            // Department & Position View Access
+            'hr.departments.view',
+            'hr.positions.view',
+
             // Timekeeping (hr.* prefixed - full access for HR Staff)
             'hr.timekeeping.view',
             'hr.timekeeping.manage',

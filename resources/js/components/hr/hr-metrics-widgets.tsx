@@ -13,6 +13,7 @@ import {
     Calendar
 } from 'lucide-react';
 import { Link } from '@inertiajs/react';
+import { usePermission } from '@/components/permission-gate';
 
 // ============================================================================
 // Type Definitions
@@ -176,6 +177,7 @@ export function ActiveEmployeesCard({ data }: { data: ActiveEmployeesData }) {
 }
 
 export function DepartmentBreakdownCard({ data }: { data: DepartmentBreakdownData }) {
+    const { hasPermission } = usePermission();
     const deptData = data.data || [];
     const hasData = deptData.length > 0;
     const displayData = deptData.slice(0, 5); // Show top 5 departments
@@ -224,7 +226,7 @@ export function DepartmentBreakdownCard({ data }: { data: DepartmentBreakdownDat
                         </div>
                     )}
                     <div className="flex items-center justify-end gap-1 text-xs text-primary pt-3 mt-auto">
-                        <span>Manage Departments</span>
+                        <span>{hasPermission('hr.departments.manage') ? 'Manage Departments' : 'View Departments'}</span>
                         <ArrowRight className="h-3 w-3" />
                     </div>
                 </CardContent>

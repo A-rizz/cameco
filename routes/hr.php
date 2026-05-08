@@ -68,6 +68,8 @@ Route::middleware(['auth', 'verified' , EnsureHRAccess::class, 'module:employee'
         Route::resource('employees', EmployeeController::class);
         Route::post('/employees/{id}/restore', [EmployeeController::class, 'restore'])->name('employees.restore');
         Route::post('/employees/{id}/status', [EmployeeController::class, 'updateStatus'])->name('employees.status');
+        Route::post('/employees/{id}/dependents', [EmployeeController::class, 'addDependent'])->name('employees.dependents.store');
+        Route::post('/employees/{id}/remarks', [EmployeeController::class, 'addRemark'])->name('employees.remarks.store');
 
         // Employee-Specific Document API Routes (for Employee Profile → Documents Tab)
         // These routes are scoped to a single employee context

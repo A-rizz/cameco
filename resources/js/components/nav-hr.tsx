@@ -206,6 +206,7 @@ export function NavHR() {
             icon: Calendar,
             href: '/hr/reports/leave',
             permission: 'hr.reports.view',
+            feature: 'leave',
         },
         {
             title: 'Analytics',
@@ -214,7 +215,10 @@ export function NavHR() {
             permission: 'hr.reports.view',
         },
     ];
-    const reportsItems = reportsItemsAll.filter(item => hasPermission(item.permission));
+    const reportsItems = reportsItemsAll.filter(item => {
+        if (item.feature && features[item.feature] === false) return false;
+        return hasPermission(item.permission);
+    });
 
     const timekeepingItemsAll = [
         {
