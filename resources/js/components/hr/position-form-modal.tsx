@@ -249,8 +249,11 @@ export function PositionFormModal({
                                     value={formData.title}
                                     onChange={handleInputChange}
                                     disabled={isLoading}
-                                    className="h-10"
+                                    className={`h-10 ${fieldErrors.title ? 'border-red-500 bg-red-50/50' : ''}`}
                                 />
+                                {fieldErrors.title && (
+                                    <p className="text-[10px] font-bold text-red-600 uppercase tracking-tight">{fieldErrors.title}</p>
+                                )}
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -264,8 +267,11 @@ export function PositionFormModal({
                                         value={formData.code}
                                         onChange={handleInputChange}
                                         disabled={isLoading}
-                                        className="h-10"
+                                        className={`h-10 ${fieldErrors.code ? 'border-red-500 bg-red-50/50' : ''}`}
                                     />
+                                    {fieldErrors.code && (
+                                        <p className="text-[10px] font-bold text-red-600 uppercase tracking-tight">{fieldErrors.code}</p>
+                                    )}
                                 </div>
 
                                 {/* Position Level */}
@@ -278,8 +284,11 @@ export function PositionFormModal({
                                         value={formData.level}
                                         onChange={handleInputChange}
                                         disabled={isLoading}
-                                        className="h-10"
+                                        className={`h-10 ${fieldErrors.level ? 'border-red-500 bg-red-50/50' : ''}`}
                                     />
+                                    {fieldErrors.level && (
+                                        <p className="text-[10px] font-bold text-red-600 uppercase tracking-tight">{fieldErrors.level}</p>
+                                    )}
                                 </div>
 
                                 {/* Department */}
@@ -289,7 +298,7 @@ export function PositionFormModal({
                                         value={formData.department_id}
                                         onValueChange={(value) => handleSelectChange('department_id', value)}
                                     >
-                                        <SelectTrigger id="department_id" disabled={isLoading} className="h-10">
+                                        <SelectTrigger id="department_id" disabled={isLoading} className={`h-10 ${fieldErrors.department_id ? 'border-red-500 bg-red-50/50' : ''}`}>
                                             <SelectValue placeholder="Select dept..." />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -300,6 +309,9 @@ export function PositionFormModal({
                                             ))}
                                         </SelectContent>
                                     </Select>
+                                    {fieldErrors.department_id && (
+                                        <p className="text-[10px] font-bold text-red-600 uppercase tracking-tight">{fieldErrors.department_id}</p>
+                                    )}
                                 </div>
 
                                 {/* Reports To */}
