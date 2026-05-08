@@ -20,7 +20,7 @@ import { Badge } from '@/components/ui/badge';
 import { EmployeeStatusBadge } from './employee-status-badge';
 import { EmployeeArchiveDialog } from './employee-archive-dialog';
 import { EmployeeRestoreDialog } from './employee-restore-dialog';
-import { Link } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
 import { 
     MoreHorizontal, 
     Eye, 
@@ -229,9 +229,10 @@ export function EmployeeTable({
                     {employees.map((employee) => (
                         <TableRow 
                             key={employee.id}
-                            className="hover:bg-muted/50 transition-colors"
+                            className="hover:bg-muted/50 transition-colors cursor-pointer"
+                            onClick={() => router.visit(`/hr/employees/${employee.id}`)}
                         >
-                            <TableCell>
+                            <TableCell onClick={(e) => e.stopPropagation()}>
                                 {/* Checkbox placeholder */}
                             </TableCell>
                             <TableCell className="font-mono text-sm">
@@ -293,7 +294,7 @@ export function EmployeeTable({
                             <TableCell>
                                 <EmployeeStatusBadge status={employee.status} />
                             </TableCell>
-                            <TableCell className="text-right">
+                            <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                         <Button 
