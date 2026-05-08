@@ -573,7 +573,12 @@ function EmploymentTab({ employee }: { employee: Employee }) {
 // Main Component
 // ============================================================================
 
-export default function ShowEmployee({ employee }: ShowEmployeeProps) {
+interface ShowEmployeeProps {
+    employee: Employee;
+    auditLogs: any[];
+}
+
+export default function ShowEmployee({ employee, auditLogs }: ShowEmployeeProps) {
     const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
 
     return (
@@ -690,7 +695,7 @@ export default function ShowEmployee({ employee }: ShowEmployeeProps) {
                     </TabsContent>
 
                     <TabsContent value="history" className="mt-6">
-                        <EmployeeHistoryTab employeeId={employee.id} /> {/* This tab will show the employee's history of changes, including status changes, position changes, etc. */}
+                        <EmployeeHistoryTab employeeId={employee.id} auditLogs={auditLogs} />
                     </TabsContent>
                 </Tabs>
 

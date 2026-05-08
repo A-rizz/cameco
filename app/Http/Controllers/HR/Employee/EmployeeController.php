@@ -168,8 +168,44 @@ class EmployeeController extends Controller
 
         $this->authorize('view', $employee);
 
+        $auditLogs = \App\Models\SecurityAuditLog::with('user:id,name')
+            ->whereJsonContains('metadata->employee_id', $id)
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($log) {
+                $action = 'updated';
+                if (str_contains($log->event_type, 'created')) $action = 'created';
+                elseif (str_contains($log->event_type, 'archived')) $action = 'archived';
+                elseif (str_contains($log->event_type, 'restored')) $action = 'restored';
+                elseif (str_contains($log->event_type, 'status')) $action = 'status_changed';
+                
+                $changes = [];
+                if (isset($log->metadata['updated_fields'])) {
+                    $fields = implode(', ', $log->metadata['updated_fields']);
+                    $changes[] = [
+                        'field' => 'Updated Fields',
+                        'old_value' => null,
+                        'new_value' => $fields,
+                    ];
+                }
+
+                return [
+                    'id' => $log->id,
+                    'action' => $action,
+                    'description' => $log->description ?: ucwords(str_replace('_', ' ', $log->event_type)),
+                    'changes' => $changes,
+                    'performed_by' => [
+                        'name' => $log->user ? $log->user->name : 'System',
+                        'role' => 'HR Staff',
+                    ],
+                    'performed_at' => $log->created_at->toISOString(),
+                    'ip_address' => $log->ip_address,
+                ];
+            });
+
         return Inertia::render('HR/Employees/Show', [
             'employee' => $employee,
+            'auditLogs' => $auditLogs,
         ]);
     }
 
