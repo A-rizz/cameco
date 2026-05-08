@@ -20,6 +20,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
+import { usePage } from '@inertiajs/react';
 
 // ============================================================================
 // Type Definitions
@@ -68,6 +69,7 @@ export function PositionFormModal({
     positions = [],
     mode = 'create'
 }: PositionFormModalProps) {
+    const page = usePage();
     const [formData, setFormData] = useState({
         title: '',
         code: '',
