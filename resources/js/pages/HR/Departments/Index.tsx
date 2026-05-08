@@ -12,6 +12,7 @@ import { DepartmentArchiveDialog } from '@/components/hr/department-archive-dial
 import { Building2, Plus, Edit, Archive, ChevronRight, Users, Network, TrendingUp, Layers } from 'lucide-react';
 import { useState, useMemo, useEffect } from 'react';
 import { usePermission } from '@/components/permission-gate';
+import { useToast } from '@/hooks/use-toast';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -97,6 +98,7 @@ export default function DepartmentIndex({
     statistics = {}
 }: DepartmentIndexProps) {
     const { hasPermission } = usePermission();
+    const { toast } = useToast();
     const page = usePage();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
@@ -173,9 +175,19 @@ export default function DepartmentIndex({
         router[method](url, data, {
             onSuccess: () => {
                 setIsModalOpen(false);
+                toast({
+                    title: "Success",
+                    description: `Department ${modalMode === 'create' ? 'created' : 'updated'} successfully.`,
+                    variant: "success",
+                });
             },
             onError: (errors) => {
-                // Validation errors handled by Inertia
+                const firstError = Object.values(errors)[0];
+                toast({
+                    title: "Error",
+                    description: firstError || `Failed to ${modalMode === 'create' ? 'create' : 'update'} department.`,
+                    variant: "destructive",
+                });
             }
         });
     };

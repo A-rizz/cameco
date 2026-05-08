@@ -18,7 +18,7 @@ class UpdatePositionRequest extends FormRequest
 
         return [
             'title'       => ['required', 'string', 'max:150', Rule::unique('positions', 'title')->ignore($id)->whereNull('deleted_at')],
-            'code'        => ['nullable', 'string', 'max:32'],
+            'code'        => ['nullable', 'string', 'max:32', Rule::unique('positions', 'code')->ignore($id)->whereNull('deleted_at')],
             'description' => ['nullable', 'string', 'max:1000'],
             'level'       => ['required', 'string', 'max:50'],
             'department_id' => ['required', 'integer', 'exists:departments,id'],

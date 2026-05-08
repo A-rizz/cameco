@@ -59,6 +59,7 @@ export function NavHR() {
         { title: 'Leave Requests', icon: ClipboardList, href: '/hr/leave/requests', permission: 'hr.leave-requests.view' },
         { title: 'Leave Balances', icon: Calendar, href: '/hr/leave/balances', permission: 'hr.leave-balances.view' },
         { title: 'Leave Policies', icon: Shield, href: '/hr/leave/policies', permission: 'hr.leave-policies.view' },
+        { title: 'Leave Reports', icon: BarChart3, href: '/hr/reports/leave', permission: 'hr.reports.view' },
     ].filter(item => hasPermission(item.permission));
 
     const documentItems = [
@@ -104,25 +105,19 @@ export function NavHR() {
         { title: 'Analytics', icon: BarChart3, href: '/hr/offboarding/analytics', permission: 'hr.offboarding.view' },
     ].filter(item => hasPermission(item.permission));
 
-    const reportItems = [
-        { title: 'Employee Reports', icon: BarChart3, href: '/hr/reports/employees', permission: 'hr.reports.view' },
-        { title: 'Leave Reports', icon: Calendar, href: '/hr/reports/leave', permission: 'hr.reports.view', feature: 'leave' },
-        { title: 'Analytics', icon: BarChart3, href: '/hr/reports/analytics', permission: 'hr.reports.view' },
-    ].filter(item => {
-        if (item.feature && features[item.feature] === false) return false;
-        return hasPermission(item.permission);
-    });
+    const analyticsLink = { title: 'HR Analytics', icon: BarChart3, href: '/hr/reports/analytics', permission: 'hr.reports.view' };
+    const showAnalytics = hasPermission(analyticsLink.permission);
 
     // Active State Helpers
     const isEmployeeActive = page.url.startsWith('/hr/employees') || page.url.startsWith('/hr/departments') || page.url.startsWith('/hr/positions') || page.url === '/hr/dashboard';
-    const isLeaveActive = page.url.startsWith('/hr/leave');
+    const isLeaveActive = page.url.startsWith('/hr/leave') || page.url === '/hr/reports/leave';
     const isWorkforceActive = page.url.startsWith('/hr/workforce');
     const isTimekeepingActive = page.url.startsWith('/hr/timekeeping');
     const isRecruitmentActive = page.url.startsWith('/hr/ats');
     const isAppraisalActive = page.url.startsWith('/hr/appraisals') || page.url.startsWith('/hr/performance-metrics') || page.url.startsWith('/hr/rehire-recommendations');
     const isOffboardingActive = page.url.startsWith('/hr/offboarding');
     const isDocumentsActive = page.url.startsWith('/hr/documents');
-    const isReportsActive = page.url.startsWith('/hr/reports');
+    const isAnalyticsActive = page.url === '/hr/reports/analytics';
 
     // Group Visibility Calculations
     const showEmployeeGroup = true; // Dashboard/Overview is always visible
@@ -133,7 +128,7 @@ export function NavHR() {
         (appraisalItems.length > 0 && features.appraisals !== false);
     const showAdminGroup = (documentItems.length > 0 && features.documents !== false) ||
         (offboardingItems.length > 0 && features.offboarding !== false) ||
-        (reportItems.length > 0);
+        showAnalytics;
 
     return (
         <div className="space-y-4">
@@ -148,6 +143,7 @@ export function NavHR() {
                                 <SidebarMenuButton
                                     asChild
                                     isActive={page.url === item.href || page.url.startsWith(item.href + '/')}
+                                    tooltip={item.title}
                                 >
                                     <Link href={item.href}>
                                         <item.icon />
@@ -384,33 +380,20 @@ export function NavHR() {
                             </Collapsible>
                         )}
 
-                        {/* Reports */}
-                        {reportItems.length > 0 && (
-                            <Collapsible defaultOpen={isReportsActive} className="group/collapsible">
-                                <SidebarMenuItem className="list-none">
-                                    <CollapsibleTrigger asChild>
-                                        <SidebarMenuButton tooltip="HR Reports & Analytics" isActive={isReportsActive}>
-                                            <BarChart3 />
-                                            <span>Reports</span>
-                                            <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                                        </SidebarMenuButton>
-                                    </CollapsibleTrigger>
-                                    <CollapsibleContent>
-                                        <SidebarMenuSub>
-                                            {reportItems.map((item) => (
-                                                <SidebarMenuSubItem key={item.title}>
-                                                    <SidebarMenuSubButton asChild isActive={page.url.startsWith(item.href)}>
-                                                        <Link href={item.href}>
-                                                            <item.icon className="h-4 w-4" />
-                                                            <span>{item.title}</span>
-                                                        </Link>
-                                                    </SidebarMenuSubButton>
-                                                </SidebarMenuSubItem>
-                                            ))}
-                                        </SidebarMenuSub>
-                                    </CollapsibleContent>
-                                </SidebarMenuItem>
-                            </Collapsible>
+                        {/* HR Analytics (Flat Link) */}
+                        {showAnalytics && (
+                            <SidebarMenuItem className="list-none">
+                                <SidebarMenuButton
+                                    asChild
+                                    isActive={isAnalyticsActive}
+                                    tooltip={analyticsLink.title}
+                                >
+                                    <Link href={analyticsLink.href}>
+                                        <analyticsLink.icon />
+                                        <span>{analyticsLink.title}</span>
+                                    </Link>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
                         )}
                     </div>
                 </SidebarGroup>

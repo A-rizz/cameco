@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { router } from '@inertiajs/react';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
 import {
     Dialog,
     DialogContent,
@@ -31,6 +31,7 @@ export function DepartmentArchiveDialog({
     routePrefix = '/hr',
     employeeCount = 0,
 }: DepartmentArchiveDialogProps) {
+    const { toast } = useToast();
     const [reason, setReason] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const hasEmployees = employeeCount > 0;
@@ -38,64 +39,64 @@ export function DepartmentArchiveDialog({
     const handleArchive = () => {
         setIsSubmitting(true);
         
-        // Debug: Log all parameters
-        console.log('[DepartmentArchive] Archive parameters:', {
-            departmentId,
-            departmentName,
-            routePrefix,
-            reason,
-        });
-
         // Construct URL explicitly
         const urlParts = [routePrefix, 'departments', String(departmentId)];
         const url = urlParts.join('/');
-        console.log('[DepartmentArchive] Constructed URL parts:', urlParts);
-        console.log('[DepartmentArchive] Final URL:', url);
 
         // Use Inertia router which handles redirects properly
         router.delete(url, {
             data: { reason },
             preserveScroll: true,
             onSuccess: (page) => {
-                console.log('[DepartmentArchive] Archive successful, page props:', {
-                    flash: page.props.flash,
-                    errors: page.props.errors,
-                });
-                
                 // Check if there's a flash message indicating error
                 const flashMessage = (page.props.flash as Record<string, any>)?.error;
                 if (flashMessage) {
-                    console.error('[DepartmentArchive] Backend error:', flashMessage);
-                    toast.error(flashMessage);
+                    toast({
+                        title: "Error",
+                        description: flashMessage,
+                        variant: "destructive",
+                    });
                     setIsSubmitting(false);
                     return;
                 }
                 
-                toast.success('Department archived successfully');
+                toast({
+                    title: "Success",
+                    description: "Department archived successfully.",
+                    variant: "success",
+                });
                 onOpenChange(false);
                 setReason('');
                 
                 // Reload the page to refresh the department list from server
                 setTimeout(() => {
-                    console.log('[DepartmentArchive] Reloading page');
                     router.reload();
                 }, 500);
             },
             onError: (errors) => {
-                console.error('[DepartmentArchive] Archive error:', errors);
-                
                 if (errors.message) {
-                    toast.error(errors.message);
+                    toast({
+                        title: "Error",
+                        description: errors.message,
+                        variant: "destructive",
+                    });
                 } else if (errors.policy) {
-                    toast.error(errors.policy);
+                    toast({
+                        title: "Error",
+                        description: errors.policy,
+                        variant: "destructive",
+                    });
                 } else {
                     const errorMessage = Object.values(errors).flat().join(', ') || 'Failed to archive department';
-                    toast.error(errorMessage);
+                    toast({
+                        title: "Error",
+                        description: errorMessage,
+                        variant: "destructive",
+                    });
                 }
                 setIsSubmitting(false);
             },
             onFinish: () => {
-                console.log('[DepartmentArchive] Request finished');
                 setIsSubmitting(false);
             },
         });

@@ -44,6 +44,7 @@ import {
     ArrowRight
 } from 'lucide-react';
 import { useState, useMemo, useEffect } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 // ============================================================================
 // Type Definitions
@@ -69,6 +70,7 @@ export default function PositionIndex({
     statistics = {}
 }: PositionIndexProps) {
     const { hasPermission } = usePermission();
+    const { toast } = useToast();
     const page = usePage();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedPosition, setSelectedPosition] = useState<Position | null>(null);
@@ -179,9 +181,20 @@ export default function PositionIndex({
                 setIsModalOpen(false);
                 setConfirmationOpen(false);
                 setPendingFormData(null);
+                toast({
+                    title: "Success",
+                    description: `Position ${modalMode === 'create' ? 'created' : 'updated'} successfully.`,
+                    variant: "success",
+                });
             },
-            onError: () => {
+            onError: (errors) => {
                 setIsSubmitting(false);
+                const firstError = Object.values(errors)[0];
+                toast({
+                    title: "Error",
+                    description: firstError || `Failed to ${modalMode === 'create' ? 'create' : 'update'} position.`,
+                    variant: "destructive",
+                });
             },
             onFinish: () => {
                 setIsSubmitting(false);

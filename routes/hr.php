@@ -56,6 +56,8 @@ Route::middleware(['auth', 'verified' , EnsureHRAccess::class, 'module:employee'
 
         // HR Reports & Analytics
         Route::get('/reports/analytics', [AnalyticsController::class, 'index'])->name('reports.analytics');
+        Route::get('/reports/analytics/export/csv', [AnalyticsController::class, 'exportCsv'])->name('reports.analytics.csv');
+        Route::get('/reports/analytics/export/pdf', [AnalyticsController::class, 'exportPdf'])->name('reports.analytics.pdf');
 
         // Employee Import/Export (must be before resource routes)
         Route::get('/employees/export/csv', [EmployeeExportImportController::class, 'export'])->name('employees.export');
@@ -156,7 +158,10 @@ Route::middleware(['auth', 'verified' , EnsureHRAccess::class, 'module:employee'
 
         // Reports
         Route::prefix('reports')->name('reports.')->group(function () {
-            Route::get('/employees', [ReportController::class, 'employees'])->name('employees');
+            Route::get('/employees', function () {
+                return redirect()->route('hr.reports.analytics');
+            })->name('employees');
+            
             Route::get('/leave', [ReportController::class, 'leave'])
                 ->middleware('module:leave')
                 ->name('leave');

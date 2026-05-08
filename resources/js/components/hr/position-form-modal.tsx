@@ -81,6 +81,7 @@ export function PositionFormModal({
     });
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
 
     // Initialize form with position data when editing
     useEffect(() => {
@@ -110,8 +111,16 @@ export function PositionFormModal({
                 is_active: true,
             });
         }
+
+        // Check for validation errors from Inertia
+        const errors = (page.props.errors as { [key: string]: string }) || {};
+        if (Object.keys(errors).length > 0) {
+            setFieldErrors(errors);
+        } else {
+            setFieldErrors({});
+        }
         setError(null);
-    }, [mode, position, isOpen]);
+    }, [mode, position, isOpen, page.props.errors]);
 
     const handleInputChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>

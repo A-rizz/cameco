@@ -25,7 +25,27 @@ class HRAnalyticsService
             'turnover_rate' => $this->getTurnoverRate(12),
             'average_employment_duration' => $this->getAverageEmploymentDuration(),
             'new_hires_this_month' => $this->getNewHiresThisMonth(),
+            'hiring_trend' => $this->getHiringTrend(12),
         ];
+    }
+
+    /**
+     * Get hiring trend for the last N months
+     */
+    public function getHiringTrend(int $months = 12): array
+    {
+        return collect(range(0, $months - 1))->map(function ($i) {
+            $month = Carbon::now()->subMonths($i);
+            $start = $month->copy()->startOfMonth();
+            $end = $month->copy()->endOfMonth();
+            
+            $count = Employee::whereBetween('date_hired', [$start, $end])->count();
+                
+            return [
+                'month' => $month->format('M Y'),
+                'count' => $count,
+            ];
+        })->reverse()->values()->toArray();
     }
 
     /**

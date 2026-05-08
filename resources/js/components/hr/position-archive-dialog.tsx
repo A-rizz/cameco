@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { router } from '@inertiajs/react';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
 import {
     Dialog,
     DialogContent,
@@ -31,6 +31,7 @@ export function PositionArchiveDialog({
     routePrefix = '/hr',
     employeeCount = 0,
 }: PositionArchiveDialogProps) {
+    const { toast } = useToast();
     const [reason, setReason] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const hasEmployees = employeeCount > 0;
@@ -46,12 +47,20 @@ export function PositionArchiveDialog({
             onSuccess: (page) => {
                 const flashMessage = (page.props.flash as Record<string, any>)?.error;
                 if (flashMessage) {
-                    toast.error(flashMessage);
+                    toast({
+                        title: "Error",
+                        description: flashMessage,
+                        variant: "destructive",
+                    });
                     setIsSubmitting(false);
                     return;
                 }
                 
-                toast.success('Position archived successfully');
+                toast({
+                    title: "Success",
+                    description: "Position archived successfully.",
+                    variant: "success",
+                });
                 onOpenChange(false);
                 setReason('');
                 
@@ -61,12 +70,24 @@ export function PositionArchiveDialog({
             },
             onError: (errors) => {
                 if (errors.message) {
-                    toast.error(errors.message);
+                    toast({
+                        title: "Error",
+                        description: errors.message,
+                        variant: "destructive",
+                    });
                 } else if (errors.policy) {
-                    toast.error(errors.policy);
+                    toast({
+                        title: "Error",
+                        description: errors.policy,
+                        variant: "destructive",
+                    });
                 } else {
                     const errorMessage = Object.values(errors).flat().join(', ') || 'Failed to archive position';
-                    toast.error(errorMessage);
+                    toast({
+                        title: "Error",
+                        description: errorMessage,
+                        variant: "destructive",
+                    });
                 }
                 setIsSubmitting(false);
             },
