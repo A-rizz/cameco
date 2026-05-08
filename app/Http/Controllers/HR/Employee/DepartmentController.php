@@ -36,10 +36,19 @@ class DepartmentController extends Controller
                 ];
             });
 
+        $largestDept = Department::withCount('employees')
+            ->orderByDesc('employees_count')
+            ->first();
+
         $stats = [
             'total' => Department::count(),
             'active' => Department::where('is_active', true)->count(),
             'inactive' => Department::where('is_active', false)->count(),
+            'largest_dept' => [
+                'name' => $largestDept ? $largestDept->name : 'N/A',
+                'count' => $largestDept ? $largestDept->employees_count : 0,
+            ],
+            'avg_size' => round(Department::withCount('employees')->get()->avg('employees_count') ?? 0, 1),
         ];
 
         return Inertia::render('HR/Departments/Index', [

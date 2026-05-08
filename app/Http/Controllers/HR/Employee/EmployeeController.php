@@ -43,7 +43,7 @@ class EmployeeController extends Controller
         );
 
         // Get all departments for the filter dropdown
-        $departments = \App\Models\Department::select('id', 'name')
+        $departments = \App\Models\Department::select('id', 'name', 'parent_id')
             ->orderBy('name')
             ->get();
 
@@ -58,12 +58,33 @@ class EmployeeController extends Controller
         // Get grand total of all employees (including archived)
         $grandTotal = \App\Models\Employee::withTrashed()->count();
 
+        // Calculate HR Metrics
+        $activeCount = $statistics['active'] ?? 0;
+        $terminatedCount = $statistics['terminated'] ?? 0;
+        $retentionRate = ($activeCount + $terminatedCount) > 0 
+            ? round(($activeCount / ($activeCount + $terminatedCount)) * 100, 1) 
+            : 100;
+
+        $newHiresThisMonth = \App\Models\Employee::whereYear('date_hired', now()->year)
+            ->whereMonth('date_hired', now()->month)
+            ->count();
+
+        $hrMetrics = [
+            'retention_rate' => $retentionRate,
+            'new_hires_month' => $newHiresThisMonth,
+            'terminations_month' => \App\Models\Employee::where('status', 'terminated')
+                ->whereYear('updated_at', now()->year)
+                ->whereMonth('updated_at', now()->month)
+                ->count(),
+        ];
+
         return Inertia::render('HR/Employees/Index', [
             'employees' => $employees,
             'filters' => $filters,
             'departments' => $departments,
             'statistics' => $statistics,
             'grandTotal' => $grandTotal,
+            'hrMetrics' => $hrMetrics,
         ]);
     }
 
@@ -74,7 +95,7 @@ class EmployeeController extends Controller
     {
         $this->authorize('create', EmployeeModel::class);
         // Get all departments for dropdown
-        $departments = \App\Models\Department::select('id', 'name')
+        $departments = \App\Models\Department::select('id', 'name', 'parent_id')
             ->orderBy('name')
             ->get();
 
@@ -259,7 +280,7 @@ class EmployeeController extends Controller
         $this->authorize('update', $employee);
 
         // Get all departments for dropdown
-        $departments = \App\Models\Department::select('id', 'name')
+        $departments = \App\Models\Department::select('id', 'name', 'parent_id')
             ->orderBy('name')
             ->get();
 
@@ -463,5 +484,79 @@ class EmployeeController extends Controller
 
         return back()
             ->withErrors(['error' => $result['message']]);
+    }
+    /**
+     * Update the status of an employee manually.
+     */
+    public function updateStatus(Request $request, int $id)
+    {
+        $request->validate([
+            'status' => 'required|in:active,on_leave,suspended,terminated',
+            'reason' => 'nullable|string|max:500',
+            'document' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+        ]);
+
+        $employee = $this->employeeService->getEmployeeById($id);
+        if (!$employee) {
+            abort(404, 'Employee not found');
+        }
+
+        $this->authorize('update', $employee);
+
+        $oldStatus = $employee->status;
+        $newStatus = $request->input('status');
+
+        if ($oldStatus === $newStatus) {
+            return back()->with('info', 'Status is already ' . ucwords(str_replace('_', ' ', $newStatus)));
+        }
+
+        $employee->update(['status' => $newStatus]);
+
+        // Handle supporting document
+        $documentModel = null;
+        if ($request->hasFile('document')) {
+            $file = $request->file('document');
+            $category = match($newStatus) {
+                'terminated' => 'separation',
+                'on_leave' => 'employment',
+                'suspended' => 'employment',
+                default => 'special',
+            };
+
+            $path = $file->store('employee-documents', 'local');
+            
+            $documentModel = \App\Models\EmployeeDocument::create([
+                'employee_id' => $id,
+                'document_category' => $category,
+                'document_type' => 'Status Update Support: ' . ucwords($newStatus),
+                'file_name' => $file->getClientOriginalName(),
+                'file_path' => basename($path),
+                'file_size' => $file->getSize(),
+                'mime_type' => $file->getMimeType(),
+                'uploaded_by' => auth()->id(),
+                'uploaded_at' => now(),
+                'status' => 'auto_approved',
+                'notes' => 'Auto-generated via manual status update. Reason: ' . $request->input('reason'),
+                'source' => 'manual',
+            ]);
+        }
+
+        // Log security audit
+        $this->auditLog(
+            eventType: 'employee_status_updated',
+            description: "Changed status of {$employee->employee_number} from {$oldStatus} to {$newStatus}",
+            severity: 'info',
+            module: 'employee',
+            metadata: [
+                'employee_id' => $id,
+                'employee_number' => $employee->employee_number,
+                'old_status' => $oldStatus,
+                'new_status' => $newStatus,
+                'reason' => $request->input('reason'),
+                'document_id' => $documentModel?->id,
+            ]
+        );
+
+        return back()->with('success', 'Employee status updated successfully.');
     }
 }

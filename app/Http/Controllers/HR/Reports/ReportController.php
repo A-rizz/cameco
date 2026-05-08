@@ -19,62 +19,100 @@ class ReportController extends Controller
     {
         $this->authorize('viewAny', Employee::class);
 
-        // Placeholder data for frontend development (will be replaced with real data in ISSUE-9 Phase 4)
+        // Fetch real data for statistics
+        $totalEmployees = Employee::withTrashed()->count();
+        $statusCounts = Employee::withTrashed()
+            ->selectRaw('status, COUNT(*) as count')
+            ->groupBy('status')
+            ->get()
+            ->pluck('count', 'status')
+            ->toArray();
+
+        $activeCount = $statusCounts['active'] ?? 0;
+        $onLeaveCount = $statusCounts['on_leave'] ?? 0;
+        $terminatedCount = $statusCounts['terminated'] ?? 0;
+        $archivedCount = $statusCounts['archived'] ?? 0;
+        $suspendedCount = $statusCounts['suspended'] ?? 0;
+        
+        $inactiveCount = $archivedCount + $suspendedCount;
+
+        // Calculate Average Tenure (PostgreSQL compatible)
+        $averageTenure = Employee::whereNotNull('date_hired')
+            ->selectRaw('AVG(CURRENT_DATE - date_hired) / 365.25 as avg_tenure')
+            ->value('avg_tenure') ?? 0;
+
         $summary = [
-            'total_employees' => 45,
-            'active_employees' => 38,
-            'inactive_employees' => 5,
-            'terminated_employees' => 2,
-            'on_leave_employees' => 3,
-            'average_tenure_years' => 4.5,
+            'total_employees' => $totalEmployees,
+            'active_employees' => $activeCount,
+            'inactive_employees' => $inactiveCount,
+            'terminated_employees' => $terminatedCount,
+            'on_leave_employees' => $onLeaveCount,
+            'average_tenure_years' => (float)$averageTenure,
         ];
 
-        $byDepartment = [
-            [
-                'department_id' => 1,
-                'department_name' => 'Engineering',
-                'employee_count' => 15,
-                'percentage' => 33.33,
-            ],
-            [
-                'department_id' => 2,
-                'department_name' => 'Sales',
-                'employee_count' => 12,
-                'percentage' => 26.67,
-            ],
-            [
-                'department_id' => 3,
-                'department_name' => 'Human Resources',
-                'employee_count' => 8,
-                'percentage' => 17.78,
-            ],
-            [
-                'department_id' => 4,
-                'department_name' => 'Finance',
-                'employee_count' => 6,
-                'percentage' => 13.33,
-            ],
-            [
-                'department_id' => 5,
-                'department_name' => 'Operations',
-                'employee_count' => 4,
-                'percentage' => 8.89,
-            ],
-        ];
+        // Headcount by Department
+        $byDepartment = \App\Models\Department::withCount('employees')
+            ->get()
+            ->map(function ($dept) use ($totalEmployees) {
+                return [
+                    'department_id' => $dept->id,
+                    'department_name' => $dept->name,
+                    'employee_count' => $dept->employees_count,
+                    'percentage' => $totalEmployees > 0 ? ($dept->employees_count / $totalEmployees) * 100 : 0,
+                ];
+            });
 
-        // Placeholder recent hires with mock data
-        $recentHires = [];
+        // Status Distribution
+        $byStatus = collect($statusCounts)->map(function ($count, $status) use ($totalEmployees) {
+            return [
+                'status' => $status,
+                'count' => $count,
+                'percentage' => $totalEmployees > 0 ? ($count / $totalEmployees) * 100 : 0,
+            ];
+        })->values();
+
+        // Employment Type Breakdown
+        $byEmploymentType = Employee::withTrashed()
+            ->selectRaw('employment_type, COUNT(*) as count')
+            ->groupBy('employment_type')
+            ->get()
+            ->map(function ($item) use ($totalEmployees) {
+                return [
+                    'type' => ucfirst($item->employment_type),
+                    'count' => $item->count,
+                    'percentage' => $totalEmployees > 0 ? ($item->count / $totalEmployees) * 100 : 0,
+                ];
+            });
+
+        // Hiring Trend (Last 12 months)
+        $hiringTrend = collect(range(0, 11))->map(function ($i) {
+            $month = now()->subMonths($i);
+            $start = $month->copy()->startOfMonth();
+            $end = $month->copy()->endOfMonth();
+            
+            $count = Employee::withTrashed()
+                ->whereBetween('date_hired', [$start->toDateString(), $end->toDateString()])
+                ->count();
+                
+            return [
+                'month' => $month->format('M Y'),
+                'count' => $count,
+            ];
+        })->reverse()->values();
+
+        // Recent Hires
+        $recentHires = Employee::with(['profile', 'position', 'department'])
+            ->orderBy('date_hired', 'desc')
+            ->limit(5)
+            ->get();
 
         return Inertia::render('HR/Reports/Employees', [
             'summary' => $summary,
             'by_department' => $byDepartment,
-            'by_status' => [
-                ['status' => 'active', 'count' => 38, 'percentage' => 84.44],
-                ['status' => 'inactive', 'count' => 5, 'percentage' => 11.11],
-                ['status' => 'terminated', 'count' => 2, 'percentage' => 4.44],
-            ],
+            'by_status' => $byStatus,
+            'by_employment_type' => $byEmploymentType,
             'recent_hires' => $recentHires,
-            'headcount_trend' => [],
+            'hiring_trend' => $hiringTrend,
             'can_export' => auth()->user()->can('hr.employees.export'),
         ]);
     }
