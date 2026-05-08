@@ -21,10 +21,8 @@ import {
     GovernmentIDsSection, 
     type GovernmentIDsData 
 } from '@/components/hr/forms/government-ids-section';
-import { 
-    DependentsSection, 
-    type EmployeeDependentData 
-} from '@/components/hr/forms/dependents-section';
+import { DependentsSection, type EmployeeDependentData } from '@/components/hr/forms/dependents-section';
+import { useToast } from '@/hooks/use-toast';
 
 // ============================================================================
 // Type Definitions
@@ -61,6 +59,7 @@ type EmployeeFormData = PersonalInfoData & EmploymentInfoData & EmergencyContact
 
 export default function CreateEmployee({ departments = [], positions = [], supervisors = [] }: CreateEmployeeProps) {
     const { hasPermission } = usePermission();
+    const { toast } = useToast();
     
     // Redirect if user doesn't have create permission
     useEffect(() => {
@@ -244,13 +243,16 @@ export default function CreateEmployee({ departments = [], positions = [], super
             }
         });
 
-        // Use axios for FormData upload instead of Inertia router
         axios.post('/hr/employees', formData, {
             headers: {
                 'Content-Type': 'multipart/form-data',
             },
         })
             .then((response) => {
+                toast({
+                    title: "Success",
+                    description: response.data?.message || "Employee created successfully.",
+                });
                 // Redirect to show page on success
                 if (response.data?.employee_id) {
                     router.visit(`/hr/employees/${response.data.employee_id}`, { method: 'get' });
@@ -264,6 +266,12 @@ export default function CreateEmployee({ departments = [], positions = [], super
                     status: error.response?.status,
                     data: error.response?.data,
                     errors: error.response?.data?.errors,
+                });
+
+                toast({
+                    title: "Error",
+                    description: error.response?.data?.message || "Failed to create employee. Please check the form for errors.",
+                    variant: "destructive",
                 });
                 
                 if (error.response?.data?.errors) {

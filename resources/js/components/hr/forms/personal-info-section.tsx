@@ -97,13 +97,13 @@ export function PersonalInfoSection({ data, onChange, onFileChange, errors = {} 
                         <div className="flex flex-col md:flex-row gap-6">
                             {/* Preview */}
                             <div className="flex-shrink-0">
-                                <div className="w-32 h-32 bg-muted rounded-lg flex items-center justify-center border-2 border-dashed border-muted-foreground/30 overflow-hidden">
+                                <div className="w-64 h-64 bg-muted rounded-lg flex items-center justify-center border-2 border-dashed border-muted-foreground/30 overflow-hidden shadow-sm">
                                     {previewUrl ? (
                                         <img src={previewUrl} alt="Profile preview" className="w-full h-full object-cover" />
                                     ) : data.profile_picture_path ? (
                                         <img src={`/storage/${data.profile_picture_path}`} alt="Current profile" className="w-full h-full object-cover" />
                                     ) : (
-                                        <User className="w-12 h-12 text-muted-foreground" />
+                                        <User className="w-24 h-24 text-muted-foreground/50" />
                                     )}
                                 </div>
                             </div>

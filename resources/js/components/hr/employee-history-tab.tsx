@@ -192,22 +192,49 @@ export function EmployeeHistoryTab({ employeeId, auditLogs = [] }: EmployeeHisto
                                                 <p className="text-xs font-semibold text-muted-foreground uppercase">
                                                     Changes Made
                                                 </p>
-                                                {log.changes.map((change, idx) => (
-                                                    <div key={idx} className="text-sm">
-                                                        <span className="font-medium">{change.field}:</span>
-                                                        {change.old_value && (
-                                                            <>
-                                                                <span className="text-muted-foreground line-through mx-2">
-                                                                    {change.old_value}
-                                                                </span>
-                                                                <span className="mx-1">→</span>
-                                                            </>
-                                                        )}
-                                                        <span className="text-green-600 font-medium">
-                                                            {change.new_value}
-                                                        </span>
-                                                    </div>
-                                                ))}
+                                                {log.changes.map((change, idx) => {
+                                                    if (change.field === 'Updated Fields') {
+                                                        const fieldsList = change.new_value.split(', ').filter(Boolean);
+                                                        if (fieldsList.length === 0) return null;
+                                                        
+                                                        return (
+                                                            <div key={idx} className="text-sm">
+                                                                <span className="font-medium block mb-2">{change.field}:</span>
+                                                                <div className="flex flex-wrap gap-1.5">
+                                                                    {fieldsList.map((f, i) => {
+                                                                        const formatted = f
+                                                                            .replace(/^profile\./, '')
+                                                                            .split('_')
+                                                                            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                                                                            .join(' ');
+                                                                        return (
+                                                                            <Badge key={i} variant="secondary" className="font-normal text-xs bg-background hover:bg-background">
+                                                                                {formatted}
+                                                                            </Badge>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    }
+
+                                                    return (
+                                                        <div key={idx} className="text-sm flex items-center flex-wrap gap-1">
+                                                            <span className="font-medium">{change.field}:</span>
+                                                            {change.old_value && (
+                                                                <>
+                                                                    <span className="text-muted-foreground line-through ml-1">
+                                                                        {change.old_value}
+                                                                    </span>
+                                                                    <span className="mx-1 text-muted-foreground">→</span>
+                                                                </>
+                                                            )}
+                                                            <span className="text-green-600 font-medium">
+                                                                {change.new_value}
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
                                         )}
 
@@ -230,26 +257,6 @@ export function EmployeeHistoryTab({ employeeId, auditLogs = [] }: EmployeeHisto
                     </div>
                 </div>
             )}
-
-            {/* Development Notice             <Card className="p-6 bg-blue-50 border-blue-200">
-                <div className="flex items-start gap-3">
-                    <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5" />
-                    <div>
-                        <h4 className="font-semibold text-blue-900 mb-1">
-                            Audit History System (Demonstration)
-                        </h4>
-                        <p className="text-sm text-blue-800 mb-2">
-                            <strong>Currently showing:</strong> Mock audit history data for demonstration purposes.
-                        </p>
-                        <p className="text-sm text-blue-800">
-                            Full audit logging will be implemented in Phase 4, tracking all changes to employee records including:
-                            status changes, department transfers, salary adjustments, document uploads, and personal information updates.
-                            Each log will include user details, IP address, timestamp, and detailed field changes.
-                        </p>
-                    </div>
-                </div>
-            </Card>*/}
-
         </div>
     );
 }

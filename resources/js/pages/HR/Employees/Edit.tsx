@@ -21,10 +21,8 @@ import {
     GovernmentIDsSection, 
     type GovernmentIDsData 
 } from '@/components/hr/forms/government-ids-section';
-import { 
-    DependentsSection, 
-    type EmployeeDependentData 
-} from '@/components/hr/forms/dependents-section';
+import { DependentsSection, type EmployeeDependentData } from '@/components/hr/forms/dependents-section';
+import { useToast } from '@/hooks/use-toast';
 
 // ============================================================================
 // Type Definitions
@@ -114,6 +112,7 @@ export default function EditEmployee({
     supervisors = [] 
 }: EditEmployeeProps) {
     const { hasPermission } = usePermission();
+    const { toast } = useToast();
     
     // Redirect if user doesn't have update permission
     useEffect(() => {
@@ -317,13 +316,16 @@ export default function EditEmployee({
             personalInfo_profile_picture: personalInfo.profile_picture,
         });
 
-        // Use axios for FormData upload instead of Inertia router
         axios.post(`/hr/employees/${employee.id}?_method=PUT`, formData, {
             headers: {
                 'Content-Type': 'multipart/form-data',
             },
         })
-            .then(() => {
+            .then((response) => {
+                toast({
+                    title: "Success",
+                    description: response.data?.message || "Employee updated successfully.",
+                });
                 // Redirect on success
                 router.visit(`/hr/employees/${employee.id}`, { method: 'get' });
             })
@@ -335,6 +337,12 @@ export default function EditEmployee({
                     errors: error.response?.data?.errors,
                 });
                 
+                toast({
+                    title: "Error",
+                    description: error.response?.data?.message || "Failed to update employee. Please check the form for errors.",
+                    variant: "destructive",
+                });
+
                 if (error.response?.data?.errors) {
                     setErrors(error.response.data.errors as Partial<Record<keyof EmployeeFormData, string>>);
                 } else if (error.response?.statusText) {
