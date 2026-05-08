@@ -594,15 +594,16 @@ export default function ShowEmployee({ employee, auditLogs }: ShowEmployeeProps)
                                 <ArrowLeft className="h-4 w-4" />
                             </Button>
                         </Link>
-                        <div className="flex items-start gap-4">
-                            <Avatar className="h-16 w-16">
+                        <div className="flex items-start gap-6">
+                            <Avatar className="h-32 w-32 border-4 border-background shadow-sm">
                                 {employee.profile.profile_picture_path ? (
                                     <AvatarImage 
                                         src={`/storage/${employee.profile.profile_picture_path}`} 
                                         alt={getFullName(employee)}
+                                        className="object-cover"
                                     />
                                 ) : null}
-                                <AvatarFallback className="text-lg">
+                                <AvatarFallback className="text-4xl bg-muted">
                                     {getInitials(employee.profile.first_name, employee.profile.last_name)}
                                 </AvatarFallback>
                             </Avatar>
