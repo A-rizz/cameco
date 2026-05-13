@@ -104,31 +104,32 @@ class BackupController extends Controller
      */
     public function trigger(Request $request)
     {
+        $validated = $request->validate([
+            'disks' => 'required|array',
+            'disks.*' => 'in:local,s3',
+        ]);
+
         // Create audit log entry
         $log = SystemBackupLog::create([
             'backup_type' => 'database',
             'status'      => 'in_progress',
             'started_at'  => now(),
+            'metadata'    => ['requested_disks' => $validated['disks']],
         ]);
 
         try {
-            // Run the backup synchronously (use queue dispatch in production)
-            Artisan::call('backup:run', ['--only-db' => true]);
-
-            $log->update([
-                'status'       => 'completed',
-                'completed_at' => now(),
-            ]);
+            // Dispatch the backup job to run in the background
+            \App\Jobs\System\ProcessBackupJob::dispatch($log, $validated['disks']);
 
             $this->auditLog(
                 'backup_triggered',
-                'Manual database backup triggered and completed',
+                'Manual database backup triggered (background)',
                 'info',
                 'Backup Management',
-                ['backup_log_id' => $log->id]
+                ['backup_log_id' => $log->id, 'disks' => $validated['disks']]
             );
 
-            return redirect()->back()->with('success', 'Database backup completed successfully.');
+            return redirect()->back()->with('success', 'Backup process initiated in the background.');
         } catch (\Exception $e) {
             $log->update([
                 'status'        => 'failed',
@@ -136,8 +137,20 @@ class BackupController extends Controller
                 'completed_at'  => now(),
             ]);
 
-            return redirect()->back()->with('error', 'Backup failed: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Failed to initiate backup: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Get the status of the most recent backup (for polling).
+     */
+    public function getStatus()
+    {
+        $latest = SystemBackupLog::latest('started_at')->first();
+
+        return response()->json([
+            'latest' => $latest,
+        ]);
     }
 
     /**

@@ -54,6 +54,7 @@ Route::middleware(['auth', 'superadmin', 'module:system'])->group(function () {
         Route::get('/', [BackupController::class, 'index'])->name('system.backups');
         Route::get('/{backup}', [BackupController::class, 'show'])->name('system.backups.show');
         Route::post('/trigger', [BackupController::class, 'trigger'])->name('system.backups.trigger');
+        Route::get('/status', [BackupController::class, 'getStatus'])->name('system.backups.status');
         Route::post('/download', [BackupController::class, 'download'])->name('system.backups.download');
         Route::post('/delete-file', [BackupController::class, 'deleteFile'])->name('system.backups.delete-file');
         Route::post('/schedule', [BackupController::class, 'updateSchedule'])->name('system.backups.schedule');
