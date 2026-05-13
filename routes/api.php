@@ -15,3 +15,12 @@ Route::prefix('rfid')->middleware('throttle:120,1')->group(function () {
     Route::post('tap',       [RfidTapController::class, 'tap']);
     Route::post('heartbeat', [RfidTapController::class, 'heartbeat']);
 });
+
+// Mock SigNoz API for local development (no Docker required)
+if (app()->environment('local')) {
+    Route::prefix('mock-signoz/api/v1')->group(function () {
+        Route::get('health',         [App\Http\Controllers\System\SystemAdministration\MockSigNozController::class, 'health']);
+        Route::get('query_range',    [App\Http\Controllers\System\SystemAdministration\MockSigNozController::class, 'queryRange']);
+        Route::get('top_operations', [App\Http\Controllers\System\SystemAdministration\MockSigNozController::class, 'topOperations']);
+    });
+}
