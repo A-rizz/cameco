@@ -10,10 +10,16 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class ProcessBackupJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    /**
+     * The number of seconds the job can run before timing out.
+     */
+    public $timeout = 600; // 10 minutes
 
     /**
      * Create a new job instance.
@@ -29,20 +35,52 @@ class ProcessBackupJob implements ShouldQueue
     public function handle(): void
     {
         try {
-            // Update config dynamically for this run if needed, 
-            // though spatie/laravel-backup is usually configured via config file.
-            // We'll rely on the config('backup.destination.disks') being set in config/backup.php,
-            // or we can try to override it if the user chose specific disks.
-            
+            // Ensure disks are configured
             if (!empty($this->disks)) {
                 config(['backup.backup.destination.disks' => $this->disks]);
             }
 
-            Artisan::call('backup:run', ['--only-db' => true]);
+            // Capture output for debugging
+            $exitCode = Artisan::call('backup:run', [
+                '--only-db' => true,
+                '--no-interaction' => true,
+            ]);
+
+            $output = Artisan::output();
+            
+            // Check if any file was actually created in the local disk
+            $appName = config('backup.backup.name');
+            $files = Storage::disk('local')->files($appName);
+            
+            // If exit code is not 0, it failed
+            if ($exitCode !== 0) {
+                 throw new \Exception("Backup command failed with exit code {$exitCode}. Output: " . $output);
+            }
+
+            // Verify if a new file appeared (rough check)
+            if (empty($files)) {
+                // If it's empty, maybe it's only on S3? But we usually expect it on local too.
+                // Let's check S3 if it was requested.
+                $foundOnAny = false;
+                foreach ($this->disks as $disk) {
+                    if (!empty(Storage::disk($disk)->files($appName))) {
+                        $foundOnAny = true;
+                        break;
+                    }
+                }
+                
+                if (!$foundOnAny) {
+                    throw new \Exception("Backup command finished but no files were found on the requested disks. Output: " . $output);
+                }
+            }
 
             $this->backupLog->update([
                 'status' => 'completed',
                 'completed_at' => now(),
+                'metadata' => array_merge($this->backupLog->metadata ?? [], [
+                    'artisan_output' => $output,
+                    'exit_code' => $exitCode
+                ]),
             ]);
 
             Log::channel('daily')->info("Manual backup #{$this->backupLog->id} completed successfully.");

@@ -95,6 +95,11 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => 'prefer',
+            'dump' => [
+               'dump_binary_path' => env('DB_DUMP_PATH', ''), // e.g. 'C:\Program Files\PostgreSQL\16\bin'
+               'use_single_transaction',
+               'timeout' => 60 * 5, // 5 minute timeout
+            ],
         ],
 
         'sqlsrv' => [
