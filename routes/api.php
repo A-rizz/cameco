@@ -21,6 +21,7 @@ if (app()->environment('local')) {
     Route::prefix('mock-signoz/api/v1')->group(function () {
         Route::get('health',         [App\Http\Controllers\System\SystemAdministration\MockSigNozController::class, 'health']);
         Route::get('query_range',    [App\Http\Controllers\System\SystemAdministration\MockSigNozController::class, 'queryRange']);
+        Route::get('query',          [App\Http\Controllers\System\SystemAdministration\MockSigNozController::class, 'query']);
         Route::get('top_operations', [App\Http\Controllers\System\SystemAdministration\MockSigNozController::class, 'topOperations']);
     });
 }

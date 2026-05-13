@@ -15,6 +15,7 @@ interface HealthMetrics {
     uptime: number;
     uptime_formatted: string;
     status: string;
+    source?: string;
 }
 
 interface DatabaseMetrics {
@@ -191,7 +192,14 @@ export default function Health({
                                     <Server className="h-5 w-5" />
                                     Current Server Status
                                 </CardTitle>
-                                <CardDescription>Live system metrics</CardDescription>
+                                <CardDescription className="flex items-center gap-2">
+                                    Live system metrics
+                                    {currentMetrics.source && (
+                                        <Badge variant="outline" className="h-4 px-1.5 py-0 text-[10px] border-blue-200 bg-blue-50 text-blue-600 font-bold uppercase">
+                                            {currentMetrics.source}
+                                        </Badge>
+                                    )}
+                                </CardDescription>
                             </div>
                             {getStatusBadge(currentMetrics.status)}
                         </div>

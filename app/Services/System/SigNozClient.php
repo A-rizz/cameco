@@ -169,6 +169,47 @@ class SigNozClient
     }
 
     /**
+     * Host-level infrastructure metrics (CPU, Memory, Storage) from SigNoz.
+     *
+     * @return array{cpu: float|null, memory: float|null, storage: float|null}
+     */
+    public function getHostMetrics(): array
+    {
+        $defaults = ['cpu' => null, 'memory' => null, 'storage' => null];
+
+        if (!$this->enabled && !$this->mock) {
+            return $defaults;
+        }
+
+        if ($this->mock) {
+            return [
+                'cpu'     => round(25.4 + (sin(now()->timestamp / 100) * 5), 2),
+                'memory'  => round(62.1 + (cos(now()->timestamp / 100) * 2), 2),
+                'storage' => 42.8,
+            ];
+        }
+
+        try {
+            // These PromQL-like queries depend on the 'hostmetrics' receiver being active in the OTEL collector
+            return [
+                'cpu'     => $this->queryInstantValue("avg(system_cpu_utilization) * 100"),
+                'memory'  => $this->queryInstantValue("(avg(system_memory_usage{state='used'}) / avg(system_memory_usage)) * 100"),
+                'storage' => $this->queryInstantValue("avg(system_filesystem_utilization) * 100"),
+            ];
+        } catch (\Throwable $e) {
+            Log::channel('daily')->warning('SigNoz host metrics fetch failed', ['error' => $e->getMessage()]);
+            return $defaults;
+        }
+    }
+
+    protected function queryInstantValue(string $query): ?float
+    {
+        $response = $this->get('/api/v1/query', ['query' => $query]);
+        $value = $response['data']['result'][0]['value'][1] ?? null;
+        return $value !== null ? round((float) $value, 2) : null;
+    }
+
+    /**
      * Overall service summary for the health dashboard.
      */
     public function getServiceSummary(): array

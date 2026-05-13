@@ -93,6 +93,34 @@ class MockSigNozController extends Controller
         ]);
     }
 
+    /**
+     * Generic SigNoz Instant Query (for Host Metrics)
+     */
+    public function query(Request $request)
+    {
+        $query = $request->get('query', '');
+        
+        $value = match(true) {
+            str_contains($query, 'cpu') => 25.4 + (sin(now()->timestamp / 100) * 5),
+            str_contains($query, 'memory') => 62.1 + (cos(now()->timestamp / 100) * 2),
+            str_contains($query, 'filesystem') || str_contains($query, 'storage') => 42.8,
+            default => 0,
+        };
+
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'resultType' => 'vector',
+                'result' => [
+                    [
+                        'metric' => (object)[],
+                        'value' => [now()->timestamp, (string) round($value, 2)]
+                    ]
+                ]
+            ]
+        ]);
+    }
+
     protected function generateLatencySeries($start, $end, $step)
     {
         $series = [];

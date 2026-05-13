@@ -128,9 +128,17 @@ class SystemHealthService
      */
     public function getServerHealthMetrics(int $days = 7): array
     {
+        // Get local defaults
         $cpuUsage = $this->getCpuUsage();
         $memoryUsage = $this->getMemoryUsage();
         $loadAverage = $this->getLoadAverage();
+
+        // Try to override with high-fidelity SigNoz host metrics if available
+        $signoz = app(SigNozClient::class);
+        $hostMetrics = $signoz->getHostMetrics();
+        
+        if ($hostMetrics['cpu'] !== null) $cpuUsage = $hostMetrics['cpu'];
+        if ($hostMetrics['memory'] !== null) $memoryUsage = $hostMetrics['memory'];
 
         // Always use real system uptime
         $uptime = $this->getUptime();
@@ -142,6 +150,7 @@ class SystemHealthService
             'uptime' => $uptime,
             'uptime_formatted' => $this->formatUptime($uptime),
             'status' => $this->determineServerStatus($cpuUsage, $memoryUsage),
+            'source' => $hostMetrics['cpu'] !== null ? 'SigNoz APM' : 'Local OS',
         ];
     }
 
