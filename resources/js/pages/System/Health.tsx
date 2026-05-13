@@ -142,13 +142,13 @@ export default function Health({
     const getStatusBadge = (status: string) => {
         switch (status) {
             case 'healthy':
-                return <Badge className="bg-green-500">Healthy</Badge>;
+                return <Badge className="bg-green-500 hover:bg-green-600 text-white border-transparent">Healthy</Badge>;
             case 'warning':
-                return <Badge className="bg-yellow-500">Warning</Badge>;
+                return <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white border-transparent">Warning</Badge>;
             case 'critical':
-                return <Badge className="bg-red-500">Critical</Badge>;
+                return <Badge className="bg-red-500 hover:bg-red-600 text-white border-transparent">Critical</Badge>;
             default:
-                return <Badge>Unknown</Badge>;
+                return <Badge variant="outline">Unknown</Badge>;
         }
     };
 
@@ -265,7 +265,7 @@ export default function Health({
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between">
                                     <span className="text-sm text-muted-foreground">Status</span>
-                                    <Badge className={databaseMetrics.connection_status === 'connected' ? 'bg-green-500' : 'bg-red-500'}>
+                                    <Badge className={databaseMetrics.connection_status === 'connected' ? 'bg-green-500 text-white border-transparent' : 'bg-red-500 text-white border-transparent'}>
                                         {databaseMetrics.connection_status}
                                     </Badge>
                                 </div>
@@ -292,7 +292,7 @@ export default function Health({
                                 </div>
                                 <div className="flex items-center justify-between">
                                     <span className="text-sm text-muted-foreground">Status</span>
-                                    <Badge className={cacheMetrics.connection === 'connected' ? 'bg-green-500' : 'bg-red-500'}>
+                                    <Badge className={cacheMetrics.connection === 'connected' ? 'bg-green-500 text-white border-transparent' : 'bg-red-500 text-white border-transparent'}>
                                         {cacheMetrics.connection}
                                     </Badge>
                                 </div>
