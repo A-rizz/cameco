@@ -224,16 +224,24 @@ class BackupController extends Controller
     {
         try {
             Artisan::call('backup:clean');
+            $output = Artisan::output();
+
+            // Determine if any files were actually pruned based on the command output
+            $wasPruned = str_contains($output, 'Deleted') || str_contains($output, 'Deleting');
+
+            $message = $wasPruned
+                ? 'Old backups cleaned up successfully.'
+                : 'No available old backups to be pruned based on retention policy.';
 
             $this->auditLog(
                 'backup_cleanup',
-                'Backup cleanup ran — old files pruned per retention policy',
+                $wasPruned ? 'Backup cleanup ran — old files pruned' : 'Backup cleanup ran — no files pruned',
                 'info',
                 'Backup Management',
-                []
+                ['output' => $output]
             );
 
-            return redirect()->back()->with('success', 'Old backups cleaned up successfully.');
+            return redirect()->back()->with('success', $message);
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Cleanup failed: ' . $e->getMessage());
         }

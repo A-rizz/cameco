@@ -40,7 +40,7 @@ return [
             'databases' => ['pgsql'],
         ],
 
-        'database_dump_compressor' => \Spatie\DbDumper\Compressors\GzipCompressor::class,
+        'database_dump_compressor' => null,
         'database_dump_file_extension' => '',
 
         'destination' => [
@@ -56,7 +56,6 @@ return [
              */
             'disks' => [
                 'local',
-                's3',
             ],
         ],
 
@@ -69,7 +68,7 @@ return [
          * The password to be used for archive encryption.
          * Set to null to disable encryption.
          */
-        'password' => env('BACKUP_ARCHIVE_PASSWORD', null),
+        'password' => env('BACKUP_ARCHIVE_PASSWORD') ?: null,
 
         'encryption' => 'default',
 
@@ -115,7 +114,7 @@ return [
     'monitor_backups' => [
         [
             'name'          => env('APP_NAME', 'cameco'),
-            'disks'         => ['local', 's3'],
+            'disks'         => ['local'],
             'health_checks' => [
                 \Spatie\Backup\Tasks\Monitor\HealthChecks\MaximumAgeInDays::class         => 1,
                 \Spatie\Backup\Tasks\Monitor\HealthChecks\MaximumStorageInMegabytes::class => 5000,
@@ -126,21 +125,13 @@ return [
     'cleanup' => [
         'strategy' => \Spatie\Backup\Tasks\Cleanup\Strategies\DefaultStrategy::class,
 
-        'defaultStrategy' => [
-            // Keep all backups for the first 7 days
-            'keepAllBackupsForDays' => 7,
-
-            // Keep one backup per day for the next 16 days
-            'keepDailyBackupsForDays' => 16,
-
-            // Keep one backup per week for the next 8 weeks
-            'keepWeeklyBackupsForWeeks' => 8,
-
-            // Keep one backup per month for the next 4 months
-            'keepMonthlyBackupsForMonths' => 4,
-
-            // Delete oldest backups when storage exceeds this size (MB)
-            'deleteOldestBackupsWhenUsingMoreMegabytesThan' => 5000,
+        'default_strategy' => [
+            'keep_all_backups_for_days' => 7,
+            'keep_daily_backups_for_days' => 16,
+            'keep_weekly_backups_for_weeks' => 8,
+            'keep_monthly_backups_for_months' => 4,
+            'keep_yearly_backups_for_years' => 2,
+            'delete_oldest_backups_when_using_more_megabytes_than' => 5000,
         ],
 
         'tries' => 1,
