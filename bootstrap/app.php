@@ -43,6 +43,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // RFID gate PC endpoints are called by the Python client with no browser session
         $middleware->validateCsrfTokens(except: [
             'rfid/*',
+            'mock-signoz/*',
         ]);
 
         $middleware->web(append: [
