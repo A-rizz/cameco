@@ -203,13 +203,15 @@ Route::middleware(['auth', 'superadmin', 'module:system'])->group(function () {
         Route::post('/cache/clear', [VendorContractController::class, 'clearCache'])->name('system.vendor-contract.cache.clear');
     });
 
-    // Timekeeping Device Management (RFID)
-    Route::prefix('system/timekeeping/devices')->group(function () {
-        Route::get('/', [DeviceManagementController::class, 'index'])->name('system.timekeeping.devices.index');
-        Route::post('/', [DeviceManagementController::class, 'store'])->name('system.timekeeping.devices.store');
-        Route::patch('/{device}', [DeviceManagementController::class, 'update'])->name('system.timekeeping.devices.update');
-        Route::delete('/{device}', [DeviceManagementController::class, 'destroy'])->name('system.timekeeping.devices.destroy');
-        Route::post('/{device}/generate-key', [DeviceManagementController::class, 'generateKey'])->name('system.timekeeping.devices.generate-key');
-        Route::post('/{device}/revoke-key', [DeviceManagementController::class, 'revokeKey'])->name('system.timekeeping.devices.revoke-key');
-    });
+    // Timekeeping Device Management (RFID) — requires timekeeping module to be enabled
+    Route::prefix('system/timekeeping/devices')
+        ->middleware('module:timekeeping')
+        ->group(function () {
+            Route::get('/', [DeviceManagementController::class, 'index'])->name('system.timekeeping.devices.index');
+            Route::post('/', [DeviceManagementController::class, 'store'])->name('system.timekeeping.devices.store');
+            Route::patch('/{device}', [DeviceManagementController::class, 'update'])->name('system.timekeeping.devices.update');
+            Route::delete('/{device}', [DeviceManagementController::class, 'destroy'])->name('system.timekeeping.devices.destroy');
+            Route::post('/{device}/generate-key', [DeviceManagementController::class, 'generateKey'])->name('system.timekeeping.devices.generate-key');
+            Route::post('/{device}/revoke-key', [DeviceManagementController::class, 'revokeKey'])->name('system.timekeeping.devices.revoke-key');
+        });
 });

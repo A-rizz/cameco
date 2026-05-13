@@ -73,6 +73,17 @@ return [
             'replace_placeholders' => true,
         ],
 
+        // ── Employee Management Module ─────────────────────────────────────
+        // Isolated daily-rotating channel for all HR employee operations.
+        // Files land in storage/logs/hr/employees/laravel-YYYY-MM-DD.log
+        'hr_employees' => [
+            'driver' => 'daily',
+            'path'   => storage_path('logs/hr/employees/employee.log'),
+            'level'  => env('LOG_LEVEL', 'info'),
+            'days'   => 30,
+            'replace_placeholders' => true,
+        ],
+
         'slack' => [
             'driver' => 'slack',
             'url' => env('LOG_SLACK_WEBHOOK_URL'),

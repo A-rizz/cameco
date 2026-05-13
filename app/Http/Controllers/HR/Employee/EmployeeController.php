@@ -9,6 +9,7 @@ use App\Models\Employee as EmployeeModel;
 use App\Services\HR\EmployeeService;
 use App\Traits\LogsSecurityAudits;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 class EmployeeController extends Controller
@@ -131,12 +132,20 @@ class EmployeeController extends Controller
         $this->authorize('create', EmployeeModel::class);
         $validated = $request->validated();
 
-        // Log the validated data
-        \Log::debug('Employee creation - validated data:', $validated);
+        Log::channel('hr_employees')->info('Employee creation initiated', [
+            'by_user'    => auth()->id(),
+            'data_keys'  => array_keys($validated),
+        ]);
 
         $result = $this->employeeService->createEmployee($validated);
 
         if ($result['success']) {
+            Log::channel('hr_employees')->info('Employee created', [
+                'employee_id'     => $result['employee']->id,
+                'employee_number' => $result['employee']->employee_number,
+                'by_user'         => auth()->id(),
+            ]);
+
             // Log security audit
             $this->logAudit(
                 eventType: 'employee_created',
@@ -315,13 +324,10 @@ class EmployeeController extends Controller
      */
     public function update(UpdateEmployeeRequest $request, int $id)
     {
-        // Debug: Log request data
-        \Log::debug('Update request received', [
-            'id' => $id,
-            'has_file' => $request->hasFile('profile_picture'),
-            'all_data_keys' => array_keys($request->all()),
-            'dependents_type' => gettype($request->get('dependents')),
-            'dependents_value' => substr($request->get('dependents') ?? '', 0, 100),
+        Log::channel('hr_employees')->info('Employee update initiated', [
+            'employee_id' => $id,
+            'by_user'     => auth()->id(),
+            'data_keys'   => array_keys($request->all()),
         ]);
 
         $employee = $this->employeeService->getEmployeeById($id);
@@ -339,6 +345,12 @@ class EmployeeController extends Controller
         $result = $this->employeeService->updateEmployee($id, $request->validated());
 
         if ($result['success']) {
+            Log::channel('hr_employees')->info('Employee updated', [
+                'employee_id'     => $result['employee']->id,
+                'employee_number' => $result['employee']->employee_number,
+                'by_user'         => auth()->id(),
+            ]);
+
             // Determine actually changed fields
             $changedFields = [];
             foreach ($request->validated() as $key => $newValue) {

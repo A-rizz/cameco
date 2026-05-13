@@ -8,12 +8,14 @@ import {
     SidebarMenuSubItem,
 } from '@/components/ui/sidebar';
 import { Link, usePage } from '@inertiajs/react';
+import type { SharedData } from '@/types';
 import { Activity, HardDrive, Database, Shield, Calendar, Lock, Users, BarChart3, AlertCircle, Cpu } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 export function NavSystemAdmin() {
-    const page = usePage();
-    
+    const page = usePage<SharedData>();
+    const features = page.props.features ?? {};
+
     const systemAdminItems = [
         {
             title: 'System Health',
@@ -45,11 +47,12 @@ export function NavSystemAdmin() {
             icon: Calendar,
             href: '/system/cron',
         },
-        {
+        // Only show when the timekeeping module is enabled
+        ...(features.timekeeping ? [{
             title: 'Timekeeping Devices',
             icon: Cpu,
             href: '/system/timekeeping/devices',
-        },
+        }] : []),
     ];
 
     const securityAccessItems = [
