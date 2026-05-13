@@ -96,7 +96,7 @@ export default function UsersPage({
 	const [deactivateReason, setDeactivateReason] = useState('');
 
 	// Flash messages from Inertia
-	const { flash } = usePage<{ flash?: { success?: string; error?: string } }>().props;
+	const { flash } = usePage<{ flash?: { success?: string; error?: string; new_password?: string } }>().props;
 
 	// Edit user form
 	const editForm = useForm({
@@ -104,6 +104,8 @@ export default function UsersPage({
 		email: '',
 		roles: [] as number[],
 	});
+
+	const [resetResult, setResetResult] = useState<{ name: string; password: string } | null>(null);
 
 	const handleEditOpen = (user: User) => {
 		const roleIds = safeRoles.filter((r) => user.roles.includes(r.name)).map((r) => r.id);
@@ -133,8 +135,16 @@ export default function UsersPage({
 		);
 	};
 
-	const handleResetPassword = (userId: number) => {
-		router.post(`/system/users/${userId}/password-reset`, {}, { preserveScroll: true });
+	const handleResetPassword = (user: User) => {
+		router.post(`/system/users/${user.id}/password-reset`, {}, {
+			preserveScroll: true,
+			onSuccess: (page) => {
+				const flashProps = page.props.flash as { new_password?: string };
+				if (flashProps.new_password) {
+					setResetResult({ name: user.name, password: flashProps.new_password });
+				}
+			}
+		});
 	};
 
 	const handleActivate = (userId: number) => {
@@ -222,7 +232,7 @@ export default function UsersPage({
 				</div>
 
 				{/* Flash messages */}
-				{flash?.success && (
+				{flash?.success && !flash?.new_password && (
 					<div className="rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-800 dark:bg-green-950 dark:text-green-200">
 						{flash.success}
 					</div>
@@ -389,7 +399,7 @@ export default function UsersPage({
 														<Pencil className="h-4 w-4 mr-2" />
 														Edit
 													</DropdownMenuItem>
-													<DropdownMenuItem onClick={() => handleResetPassword(user.id)}>
+													<DropdownMenuItem onClick={() => handleResetPassword(user)}>
 														<KeyRound className="h-4 w-4 mr-2" />
 														Reset Password
 													</DropdownMenuItem>
@@ -714,6 +724,36 @@ export default function UsersPage({
 						</form>
 					</DialogContent>
 				</Dialog>
+
+			{/* Password Reset Result Modal */}
+			<Dialog open={resetResult !== null} onOpenChange={() => setResetResult(null)}>
+				<DialogContent className="max-w-md">
+					<DialogHeader>
+						<DialogTitle className="flex items-center gap-2">
+							<KeyRound className="h-5 w-5 text-amber-500" />
+							Password Reset Successful
+						</DialogTitle>
+						<DialogDescription>
+							A new password has been generated for <strong>{resetResult?.name}</strong>.
+						</DialogDescription>
+					</DialogHeader>
+
+					<div className="space-y-4 py-4">
+						<div className="rounded-lg bg-slate-950 p-4 font-mono text-2xl text-center tracking-widest text-amber-400 select-all border border-amber-500/20 shadow-inner">
+							{resetResult?.password}
+						</div>
+						<p className="text-xs text-muted-foreground text-center">
+							Please copy this password now. It will not be shown again for security reasons.
+						</p>
+					</div>
+
+					<DialogFooter>
+						<Button onClick={() => setResetResult(null)} className="w-full bg-amber-600 hover:bg-amber-700 text-white">
+							I have copied the password
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 		</AppLayout>
 	);
 }

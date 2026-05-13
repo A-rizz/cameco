@@ -56,6 +56,7 @@ class HandleInertiaRequests extends Middleware
                 'error'             => $request->session()->get('error'),
                 'generated_api_key' => $request->session()->get('generated_api_key'),
                 'for_device_id'     => $request->session()->get('for_device_id'),
+                'new_password'      => $request->session()->get('new_password'),
             ],
         ];
     }
