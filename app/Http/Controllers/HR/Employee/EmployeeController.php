@@ -444,6 +444,13 @@ class EmployeeController extends Controller
         );
 
         if ($result['success']) {
+            Log::channel('hr_employees')->info('Employee archived', [
+                'employee_id'     => $id,
+                'employee_number' => $employee->employee_number,
+                'reason'          => request()->input('reason'),
+                'by_user'         => auth()->id(),
+            ]);
+
             // Log security audit
             $this->logAudit(
                 eventType: 'employee_archived',
@@ -479,6 +486,12 @@ class EmployeeController extends Controller
         $result = $this->employeeService->restoreEmployee($id);
 
         if ($result['success']) {
+            Log::channel('hr_employees')->info('Employee restored', [
+                'employee_id'     => $result['employee']->id,
+                'employee_number' => $result['employee']->employee_number,
+                'by_user'         => auth()->id(),
+            ]);
+
             // Log security audit
             $this->logAudit(
                 eventType: 'employee_restored',
@@ -553,6 +566,15 @@ class EmployeeController extends Controller
             ]);
         }
 
+        Log::channel('hr_employees')->info('Employee status changed', [
+            'employee_id'     => $id,
+            'employee_number' => $employee->employee_number,
+            'old_status'      => $oldStatus,
+            'new_status'      => $newStatus,
+            'reason'          => $request->input('reason'),
+            'by_user'         => auth()->id(),
+        ]);
+
         // Log security audit
         $this->auditLog(
             eventType: 'employee_status_updated',
@@ -592,6 +614,11 @@ class EmployeeController extends Controller
 
         \App\Models\EmployeeDependent::create(array_merge($request->all(), ['employee_id' => $id]));
 
+        Log::channel('hr_employees')->info('Dependent added', [
+            'employee_id' => $id,
+            'by_user'     => auth()->id(),
+        ]);
+
         return back()->with('success', 'Dependent added successfully.');
     }
 
@@ -610,8 +637,13 @@ class EmployeeController extends Controller
 
         \App\Models\EmployeeRemark::create([
             'employee_id' => $id,
-            'remark' => $request->remark,
-            'created_by' => auth()->id(),
+            'remark'      => $request->remark,
+            'created_by'  => auth()->id(),
+        ]);
+
+        Log::channel('hr_employees')->info('Remark added', [
+            'employee_id' => $id,
+            'by_user'     => auth()->id(),
         ]);
 
         return back()->with('success', 'Remark added successfully.');

@@ -143,6 +143,33 @@ if (config('modules.offboarding')) {
         });
 }
 
+// ── Database Backups (always runs — system-level) ─────────────────────────
+// Nightly DB dump → local + S3 at 02:00 Asia/Manila
+Schedule::command('backup:run', ['--only-db' => true])
+    ->dailyAt('02:00')
+    ->name('nightly-database-backup')
+    ->timezone('Asia/Manila')
+    ->withoutOverlapping()
+    ->onSuccess(function (Stringable $output) {
+        recordScheduledCommandResult('backup:run', 0, (string) $output);
+    })
+    ->onFailure(function (Stringable $output) {
+        recordScheduledCommandResult('backup:run', 1, (string) $output);
+    });
+
+// Cleanup old backups per retention policy at 03:00
+Schedule::command('backup:clean')
+    ->dailyAt('03:00')
+    ->name('backup-cleanup')
+    ->timezone('Asia/Manila')
+    ->withoutOverlapping()
+    ->onSuccess(function (Stringable $output) {
+        recordScheduledCommandResult('backup:clean', 0, (string) $output);
+    })
+    ->onFailure(function (Stringable $output) {
+        recordScheduledCommandResult('backup:clean', 1, (string) $output);
+    });
+
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
