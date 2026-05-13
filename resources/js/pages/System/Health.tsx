@@ -27,6 +27,30 @@ interface CacheMetrics {
     connection: string;
 }
 
+interface SigNozAPM {
+    available: boolean;
+    service: string;
+    dashboard_url: string;
+    latency: {
+        p50: number | null;
+        p90: number | null;
+        p99: number | null;
+        unit: string;
+    };
+    error_rate: {
+        rate: number | null;
+        total_errors: number | null;
+        total_requests: number | null;
+        period_hours: number;
+    };
+    slow_endpoints: Array<{
+        endpoint: string;
+        method: string;
+        avg_latency_ms: number;
+        calls: number;
+    }>;
+}
+
 interface QueueMetrics {
     pending_jobs: number;
     failed_jobs: number;
@@ -74,6 +98,7 @@ interface Props {
         };
     };
     selectedDays: number;
+    apm: SigNozAPM;
 }
 
 export default function Health({
@@ -84,6 +109,7 @@ export default function Health({
     storageMetrics,
     historicalData,
     selectedDays,
+    apm,
 }: Props) {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [days, setDays] = useState(selectedDays.toString());
@@ -294,6 +320,130 @@ export default function Health({
                                     </Badge>
                                 </div>
                             </div>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* SigNoz APM Integration */}
+                <div className="grid gap-6">
+                    <Card className={apm.available ? 'border-blue-200' : 'opacity-80'}>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                            <div>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Activity className={`h-5 w-5 ${apm.available ? 'text-blue-500' : 'text-muted-foreground'}`} />
+                                    Application Performance (SigNoz APM)
+                                </CardTitle>
+                                <CardDescription>Real-time telemetry for service: <span className="font-mono text-blue-600">{apm.service}</span></CardDescription>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                {!apm.available && (
+                                    <Badge variant="outline" className="text-amber-600 bg-amber-50 border-amber-200">
+                                        APM Idle / Connecting...
+                                    </Badge>
+                                )}
+                                {apm.available && (
+                                    <Badge className="bg-blue-500">Connected</Badge>
+                                )}
+                                <Button variant="ghost" size="sm" asChild>
+                                    <a href={apm.dashboard_url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600">
+                                        Open SigNoz Dashboard
+                                    </a>
+                                </Button>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            {!apm.available ? (
+                                <div className="py-8 text-center bg-muted/20 rounded-lg border-2 border-dashed">
+                                    <p className="text-sm font-medium text-muted-foreground">SigNoz Collector not responding or disabled.</p>
+                                    <p className="text-xs text-muted-foreground mt-1">APM metrics will appear here once the SigNoz agent is active on the server.</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-6">
+                                    <div className="grid gap-6 md:grid-cols-3">
+                                        {/* Latency Cards */}
+                                        <div className="p-4 rounded-xl border bg-card shadow-sm">
+                                            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Response Latency</p>
+                                            <div className="flex items-end justify-between gap-2">
+                                                <div className="text-center">
+                                                    <p className="text-2xl font-bold text-blue-600">{apm.latency.p50 ?? '—'}</p>
+                                                    <p className="text-[10px] text-muted-foreground font-bold">P50 (Median)</p>
+                                                </div>
+                                                <div className="text-center">
+                                                    <p className="text-2xl font-bold text-indigo-600">{apm.latency.p90 ?? '—'}</p>
+                                                    <p className="text-[10px] text-muted-foreground font-bold">P90</p>
+                                                </div>
+                                                <div className="text-center">
+                                                    <p className="text-2xl font-bold text-purple-600">{apm.latency.p99 ?? '—'}</p>
+                                                    <p className="text-[10px] text-muted-foreground font-bold">P99 (Tail)</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Error Rate */}
+                                        <div className="p-4 rounded-xl border bg-card shadow-sm">
+                                            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Error Stability</p>
+                                            <div className="flex items-center gap-4">
+                                                <div className="text-3xl font-bold">
+                                                    {apm.error_rate.rate !== null ? `${apm.error_rate.rate}%` : '0.00%'}
+                                                </div>
+                                                <div className="flex-1">
+                                                    <Progress 
+                                                        value={apm.error_rate.rate ?? 0} 
+                                                        className="h-2" 
+                                                        style={{ backgroundColor: '#f0f0f0' }}
+                                                    />
+                                                    <p className="text-[10px] text-muted-foreground mt-1">
+                                                        {apm.error_rate.total_errors ?? 0} errors in last {apm.error_rate.period_hours}h
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Throughput */}
+                                        <div className="p-4 rounded-xl border bg-card shadow-sm">
+                                            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Traffic Intensity</p>
+                                            <div className="flex items-center justify-between">
+                                                <div>
+                                                    <p className="text-3xl font-bold">{apm.error_rate.total_requests ?? '—'}</p>
+                                                    <p className="text-[10px] text-muted-foreground uppercase font-bold">Total Requests (24h)</p>
+                                                </div>
+                                                <div className="h-10 w-10 rounded-full bg-blue-50 flex items-center justify-center">
+                                                    <RefreshCw className="h-5 w-5 text-blue-500" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Slow Endpoints Table */}
+                                    <div className="rounded-lg border overflow-hidden">
+                                        <div className="bg-muted/50 px-4 py-2 border-b">
+                                            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Top 5 Slowest Endpoints (Tail Latency Analysis)</p>
+                                        </div>
+                                        <div className="divide-y">
+                                            {apm.slow_endpoints.length > 0 ? apm.slow_endpoints.slice(0, 5).map((op, i) => (
+                                                <div key={i} className="px-4 py-3 flex items-center justify-between hover:bg-muted/30 transition-colors">
+                                                    <div className="flex items-center gap-3">
+                                                        <Badge variant="outline" className="font-mono text-[10px]">{op.method}</Badge>
+                                                        <span className="text-sm font-medium">{op.endpoint}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-6">
+                                                        <div className="text-right">
+                                                            <p className="text-sm font-bold text-red-600">{op.avg_latency_ms}ms</p>
+                                                            <p className="text-[10px] text-muted-foreground">avg latency</p>
+                                                        </div>
+                                                        <div className="text-right min-w-[60px]">
+                                                            <p className="text-sm font-bold">{op.calls}</p>
+                                                            <p className="text-[10px] text-muted-foreground">calls</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )) : (
+                                                <div className="p-4 text-center text-sm text-muted-foreground">No tracing data collected for endpoints yet.</div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 </div>

@@ -19,6 +19,7 @@ class SigNozClient
     protected string $serviceName;
     protected int    $timeout;
     protected bool   $enabled;
+    protected bool   $mock;
 
     public function __construct()
     {
@@ -26,6 +27,7 @@ class SigNozClient
         $this->serviceName = config('signoz.service_name', 'cameco-api');
         $this->timeout     = (int) config('signoz.timeout', 5);
         $this->enabled     = (bool) config('signoz.enabled', false);
+        $this->mock        = (bool) env('SIGNOZ_MOCK', false);
     }
 
     /**
@@ -33,6 +35,10 @@ class SigNozClient
      */
     public function isAvailable(): bool
     {
+        if ($this->mock) {
+            return true;
+        }
+
         if (!$this->enabled) {
             return false;
         }
@@ -167,6 +173,21 @@ class SigNozClient
      */
     public function getServiceSummary(): array
     {
+        if ($this->mock) {
+            return [
+                'available'      => true,
+                'service'        => $this->serviceName . ' (Mock Mode)',
+                'dashboard_url'  => '#',
+                'latency'        => ['p50' => 42.5, 'p90' => 156.2, 'p99' => 892.4, 'unit' => 'ms'],
+                'error_rate'     => ['rate' => 0.45, 'total_errors' => 12, 'total_requests' => 2650, 'period_hours' => 24],
+                'slow_endpoints' => [
+                    ['endpoint' => '/api/v1/assets/search', 'method' => 'GET', 'avg_latency_ms' => 1240.5, 'calls' => 156],
+                    ['endpoint' => '/api/v1/reports/compliance', 'method' => 'POST', 'avg_latency_ms' => 890.2, 'calls' => 42],
+                    ['endpoint' => '/api/v1/employees/profile', 'method' => 'GET', 'avg_latency_ms' => 450.1, 'calls' => 890],
+                ],
+            ];
+        }
+
         return [
             'available'      => $this->isAvailable(),
             'service'        => $this->serviceName,
