@@ -76,7 +76,7 @@ jobs:
         php-version: '8.3'
 
     - name: Install Composer Dependencies
-      run: composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
+      run: composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist --ignore-platform-reqs
 
     - name: Copy Environment
       run: cp .env.testing .env
@@ -123,7 +123,7 @@ jobs:
         cd /opt/cameco
         php artisan down --refresh=15 --secret="cameco-deployment"
         git pull origin main
-        composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
+        composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev --ignore-platform-reqs
         npm install
         npm run build
         php artisan migrate --force
