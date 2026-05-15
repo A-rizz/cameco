@@ -31,13 +31,8 @@ yarn-error.log
 /.zed
 /tests/TestReport/
 
-.github/
-.aiplans/
-.junie/
-docs/WORKFORCE_IMPLEMENTATION_ROADMAP.md
-PHASE5_VALIDATION_SUMMARY.md
+# forgot to put this in the .gitignore file, but here it is now.
+# later for when they wanna set up their own domain
 
-
-forgot to put this shit in the .gitignore file, but here it is now.
 cameco.local-key.pem
 cameco.local.pem
