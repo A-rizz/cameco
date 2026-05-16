@@ -49,7 +49,10 @@ class SigNozClient
             if ($apiKey) {
                 $headers['SIGNOZ-API-KEY'] = $apiKey;
             }
-            $response = Http::timeout(2)->withHeaders($headers)->get("{$this->baseUrl}/api/v1/health");
+            $response = Http::timeout(2)
+                ->acceptJson()
+                ->withHeaders($headers)
+                ->get("{$this->baseUrl}/api/v1/health");
             return $response->successful();
         } catch (\Throwable) {
             return false;
@@ -284,12 +287,13 @@ class SigNozClient
 
         $response = Http::timeout($this->timeout)
             ->baseUrl($this->baseUrl)
+            ->acceptJson()
             ->withHeaders($headers)
             ->get($path, $params);
 
         $response->throw();
 
-        return $response->json();
+        return $response->json() ?? [];
     }
 
     protected function extractPercentile(array $data, string $percentile): ?float
