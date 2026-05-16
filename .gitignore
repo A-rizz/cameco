@@ -31,6 +31,9 @@ yarn-error.log
 /.zed
 /tests/TestReport/
 
+# observability for server only
+/signoz-deploy
+
 # forgot to put this in the .gitignore file, but here it is now.
 # later for when they wanna set up their own domain
 
