@@ -134,6 +134,10 @@ return [
             'handler' => NullHandler::class,
         ],
 
+        'otlp' => [
+            'driver' => 'otlp',
+        ],
+
         'emergency' => [
             'path' => storage_path('logs/laravel.log'),
         ],
