@@ -176,7 +176,13 @@ Schedule::command('system:record-health')
     ->everyFiveMinutes()
     ->name('system-health-recording')
     ->withoutOverlapping()
-    ->onOneServer();
+    ->onOneServer()
+    ->onSuccess(function (Stringable $output) {
+        recordScheduledCommandResult('system:record-health', 0, (string) $output);
+    })
+    ->onFailure(function (Stringable $output) {
+        recordScheduledCommandResult('system:record-health', 1, (string) $output);
+    });
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
