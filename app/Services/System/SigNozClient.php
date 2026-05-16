@@ -44,7 +44,12 @@ class SigNozClient
         }
 
         try {
-            $response = Http::timeout(2)->get("{$this->baseUrl}/api/v1/health");
+            $headers = [];
+            $apiKey  = config('signoz.api_key');
+            if ($apiKey) {
+                $headers['SIGNOZ-API-KEY'] = $apiKey;
+            }
+            $response = Http::timeout(2)->withHeaders($headers)->get("{$this->baseUrl}/api/v1/health");
             return $response->successful();
         } catch (\Throwable) {
             return false;
@@ -243,16 +248,19 @@ class SigNozClient
 
     protected function get(string $path, array $params = []): array
     {
-        $apiKey = config('signoz.api_key');
-
-        $request = Http::timeout($this->timeout)
-            ->baseUrl($this->baseUrl);
+        $apiKey  = config('signoz.api_key');
+        $headers = [];
 
         if ($apiKey) {
-            $request = $request->withToken($apiKey);
+            // SigNoz uses a custom header, NOT Authorization: Bearer
+            $headers['SIGNOZ-API-KEY'] = $apiKey;
         }
 
-        $response = $request->get($path, $params);
+        $response = Http::timeout($this->timeout)
+            ->baseUrl($this->baseUrl)
+            ->withHeaders($headers)
+            ->get($path, $params);
+
         $response->throw();
 
         return $response->json();
