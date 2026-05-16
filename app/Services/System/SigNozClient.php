@@ -57,6 +57,35 @@ class SigNozClient
     }
 
     /**
+     * Fetch service overview (latency + error rate) from SigNoz Services API.
+     * Caches the raw response so latency + error rate share one HTTP call.
+     *
+     * @return array|null  Raw service row from SigNoz, or null on failure
+     */
+    protected function getServiceOverview(int $hours = 24): ?array
+    {
+        try {
+            $end   = now()->timestamp * 1000;
+            $start = now()->subHours($hours)->timestamp * 1000;
+
+            $response = $this->get('/api/v1/services/overview', [
+                'start' => $start,
+                'end'   => $end,
+                'step'  => 60,
+                'selectedTags' => '[]',
+            ]);
+
+            $services = $response['data'] ?? [];
+
+            // Find the row matching our service name
+            return collect($services)->firstWhere('serviceName', $this->serviceName);
+        } catch (\Throwable $e) {
+            Log::channel('daily')->warning('SigNoz service overview fetch failed', ['error' => $e->getMessage()]);
+            return null;
+        }
+    }
+
+    /**
      * P50/P90/P99 latency for all endpoints over the last N hours.
      *
      * @param  int  $hours  Look-back window (default 24h)
@@ -71,22 +100,17 @@ class SigNozClient
         }
 
         try {
-            $end   = now()->timestamp * 1000;
-            $start = now()->subHours($hours)->timestamp * 1000;
+            $service = $this->getServiceOverview($hours);
 
-            $response = $this->get('/api/v1/query_range', [
-                'query' => "latency({$this->serviceName})",
-                'start' => $start,
-                'end'   => $end,
-                'step'  => 3600,
-            ]);
+            if (!$service) {
+                return $defaults;
+            }
 
-            $data = $response['data']['result'] ?? [];
-
+            // SigNoz returns latency in milliseconds already
             return [
-                'p50'  => $this->extractPercentile($data, 'p50'),
-                'p90'  => $this->extractPercentile($data, 'p90'),
-                'p99'  => $this->extractPercentile($data, 'p99'),
+                'p50'  => isset($service['p50']) ? round((float) $service['p50'], 2) : null,
+                'p90'  => isset($service['p90']) ? round((float) $service['p90'], 2) : null,
+                'p99'  => isset($service['p99']) ? round((float) $service['p99'], 2) : null,
                 'unit' => 'ms',
             ];
         } catch (\Throwable $e) {
@@ -109,24 +133,23 @@ class SigNozClient
         }
 
         try {
-            $end   = now()->timestamp * 1000;
-            $start = now()->subHours($hours)->timestamp * 1000;
+            $service = $this->getServiceOverview($hours);
 
-            $response = $this->get('/api/v1/query_range', [
-                'query' => "error_rate({$this->serviceName})",
-                'start' => $start,
-                'end'   => $end,
-                'step'  => 3600,
-            ]);
+            if (!$service) {
+                return $defaults;
+            }
 
-            $data   = $response['data']['result'] ?? [];
-            $latest = collect($data)->last();
+            $errorRate     = isset($service['errorRate']) ? round((float) $service['errorRate'], 2) : null;
+            $totalCalls    = isset($service['callRate']) ? (int) round((float) $service['callRate'] * $hours * 3600) : null;
+            $totalErrors   = ($errorRate !== null && $totalCalls !== null)
+                ? (int) round($totalCalls * $errorRate / 100)
+                : null;
 
             return [
-                'rate'            => isset($latest['value'][1]) ? round((float) $latest['value'][1], 2) : null,
-                'total_errors'    => $response['data']['total_errors'] ?? null,
-                'total_requests'  => $response['data']['total_requests'] ?? null,
-                'period_hours'    => $hours,
+                'rate'           => $errorRate,
+                'total_errors'   => $totalErrors,
+                'total_requests' => $totalCalls,
+                'period_hours'   => $hours,
             ];
         } catch (\Throwable $e) {
             Log::channel('daily')->warning('SigNoz error rate fetch failed', ['error' => $e->getMessage()]);
@@ -149,22 +172,25 @@ class SigNozClient
             $end   = now()->timestamp * 1000;
             $start = now()->subHours($hours)->timestamp * 1000;
 
-            $response = $this->get('/api/v1/top_operations', [
-                'service' => $this->serviceName,
-                'start'   => $start,
-                'end'     => $end,
-                'limit'   => $limit,
-                'orderBy' => 'latency',
+            $response = $this->get('/api/v1/services/top_operations', [
+                'serviceName' => $this->serviceName,
+                'start'       => $start,
+                'end'         => $end,
+                'step'        => 60,
+                'selectedTags' => '[]',
             ]);
 
-            return collect($response['data'] ?? [])
+            $ops = $response['data'] ?? [];
+
+            return collect($ops)
                 ->map(fn($op) => [
                     'endpoint'        => $op['name'] ?? $op['operation'] ?? 'unknown',
-                    'method'          => $op['spanKind'] ?? '',
-                    'avg_latency_ms'  => round((float) ($op['avgDuration'] ?? 0) / 1_000_000, 2), // ns → ms
-                    'calls'           => (int) ($op['numCalls'] ?? 0),
+                    'method'          => $op['spanKind'] ?? 'server',
+                    'avg_latency_ms'  => isset($op['p99']) ? round((float) $op['p99'], 2) : 0.0,
+                    'calls'           => isset($op['callRate']) ? (int) round((float) $op['callRate'] * $hours * 3600) : 0,
                 ])
                 ->sortByDesc('avg_latency_ms')
+                ->take($limit)
                 ->values()
                 ->toArray();
         } catch (\Throwable $e) {
