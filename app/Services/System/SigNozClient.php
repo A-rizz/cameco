@@ -71,11 +71,11 @@ class SigNozClient
             $end   = now()->timestamp * 1000;
             $start = now()->subHours($hours)->timestamp * 1000;
 
-            $response = $this->get('/api/v1/services/overview', [
-                'start' => $start,
-                'end'   => $end,
-                'step'  => 60,
-                'selectedTags' => '[]',
+            // Updated to use the correct v2 POST endpoint used by SigNoz UI
+            $response = $this->post('/api/v2/services', [
+                'start' => (string) $start,
+                'end'   => (string) $end,
+                'tags'  => [],
             ]);
 
             $services = $response['data'] ?? [];
@@ -86,6 +86,26 @@ class SigNozClient
             Log::channel('daily')->warning('SigNoz service overview fetch failed', ['error' => $e->getMessage()]);
             return null;
         }
+    }
+
+    /**
+     * Helper for POST requests
+     */
+    protected function post(string $path, array $data = []): array
+    {
+        $headers = [];
+        $apiKey  = config('signoz.api_key');
+        if ($apiKey) {
+            $headers['SIGNOZ-API-KEY'] = $apiKey;
+        }
+
+        $response = Http::timeout($this->timeout)
+            ->baseUrl($this->baseUrl)
+            ->acceptJson()
+            ->withHeaders($headers)
+            ->post($path, $data);
+
+        return $response->json() ?? [];
     }
 
     /**
