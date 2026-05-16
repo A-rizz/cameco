@@ -170,6 +170,14 @@ Schedule::command('backup:clean')
         recordScheduledCommandResult('backup:clean', 1, (string) $output);
     });
 
+// ── System Health Monitoring ──────────────────────────────────────────────
+// Records a snapshot of system metrics every 5 minutes for the dashboard
+Schedule::command('system:record-health')
+    ->everyFiveMinutes()
+    ->name('system-health-recording')
+    ->withoutOverlapping()
+    ->onOneServer();
+
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');

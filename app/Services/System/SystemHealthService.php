@@ -368,10 +368,34 @@ class SystemHealthService
         // Unix-like systems
         try {
             $load = sys_getloadavg();
-            return round($load[0] * 100, 2);
+            $coreCount = $this->getCpuCoreCount();
+            
+            // Normalize load average to percentage based on core count
+            // Load of 1.0 on a 4-core machine is 25% usage
+            $usage = ($load[0] / $coreCount) * 100;
+            
+            return round(min($usage, 100), 2);
         } catch (\Exception $e) {
             return 0.0;
         }
+    }
+
+    /**
+     * Get number of CPU cores
+     */
+    protected function getCpuCoreCount(): int
+    {
+        if (PHP_OS_FAMILY === 'Windows') {
+            return 1; // Fallback
+        }
+
+        if (is_file('/proc/cpuinfo')) {
+            $cpuinfo = file_get_contents('/proc/cpuinfo');
+            preg_match_all('/^processor/m', $cpuinfo, $matches);
+            return count($matches[0]) ?: 1;
+        }
+
+        return (int) shell_exec('nproc') ?: 1;
     }
 
     /**
