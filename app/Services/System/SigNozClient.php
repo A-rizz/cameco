@@ -232,7 +232,7 @@ class SigNozClient
         return [
             'available'      => $this->isAvailable(),
             'service'        => $this->serviceName,
-            'dashboard_url'  => 'http://' . request()->getHost() . ':3301',
+            'dashboard_url'  => 'http://' . request()->getHost() . ':8080',
             'latency'        => $this->getLatencyPercentiles(),
             'error_rate'     => $this->getErrorRate(),
             'slow_endpoints' => $this->getTopSlowEndpoints(),
