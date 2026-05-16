@@ -3,8 +3,17 @@ import AppLayout from '@/layouts/app-layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { 
+    Dialog, 
+    DialogContent, 
+    DialogDescription, 
+    DialogFooter, 
+    DialogHeader, 
+    DialogTitle 
+} from '@/components/ui/dialog';
 import { HardDrive, Folder, TrendingUp, Trash2, Database, FileCode, Package } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
+import { useState } from 'react';
 
 interface StorageMetrics {
     total_bytes: number;
@@ -38,10 +47,11 @@ interface Props {
 }
 
 export default function Storage({ storage, directories, trends }: Props) {
+    const [showCleanupDialog, setShowCleanupDialog] = useState(false);
+
     const handleCleanup = () => {
-        if (confirm('This will clear cache and delete old log files. Continue?')) {
-            router.post('/system/storage/cleanup');
-        }
+        setShowCleanupDialog(false);
+        router.post('/system/storage/cleanup');
     };
 
     const getStatusColor = (status: string) => {
@@ -95,7 +105,7 @@ export default function Storage({ storage, directories, trends }: Props) {
                         <h1 className="text-3xl font-bold tracking-tight dark:text-foreground">Storage Management</h1>
                         <p className="text-muted-foreground">Monitor and manage disk space utilization</p>
                     </div>
-                    <Button onClick={handleCleanup} variant="outline">
+                    <Button onClick={() => setShowCleanupDialog(true)} variant="outline">
                         <Trash2 className="h-4 w-4 mr-2" />
                         Clean Up Storage
                     </Button>
@@ -271,6 +281,32 @@ export default function Storage({ storage, directories, trends }: Props) {
                     </CardContent>
                 </Card>
             </div>
+
+            {/* Cleanup Confirmation Dialog */}
+            <Dialog open={showCleanupDialog} onOpenChange={setShowCleanupDialog}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Clean Up Storage</DialogTitle>
+                        <DialogDescription>
+                            This will clear the application cache and delete log files older than 30 days. This action cannot be undone.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button 
+                            variant="outline" 
+                            onClick={() => setShowCleanupDialog(false)}
+                        >
+                            Cancel
+                        </Button>
+                        <Button 
+                            variant="destructive" 
+                            onClick={handleCleanup}
+                        >
+                            Perform Cleanup
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </AppLayout>
     );
 }
