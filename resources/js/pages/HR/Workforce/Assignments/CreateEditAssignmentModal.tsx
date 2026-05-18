@@ -102,7 +102,9 @@ export default function CreateEditAssignmentModal({
 
     // Validate for conflicts when employee or date changes
     useEffect(() => {
-        if (formData.employee_id && formData.date) {
+        const employeeId = formData.employee_id;
+        const date = formData.date;
+        if (employeeId && date) {
             const validateAsync = async () => {
                 const timeValidation = validateShiftTimes(formData.shift_start || '06:00:00', formData.shift_end || '14:00:00');
                 if (!timeValidation.isValid) {
@@ -112,8 +114,10 @@ export default function CreateEditAssignmentModal({
                 }
 
                 const conflicts = await detectConflicts(
-                    formData.employee_id,
-                    formData.date
+                    employeeId,
+                    date,
+                    formData.shift_start || '06:00:00',
+                    formData.shift_end || '14:00:00'
                 );
 
                 setHasConflict(conflicts.hasConflict);
@@ -135,10 +139,14 @@ export default function CreateEditAssignmentModal({
             return;
         }
 
-        if (formData.employee_id && formData.date) {
+        const employeeId = formData.employee_id;
+        const date = formData.date;
+        if (employeeId && date) {
             const conflicts = await detectConflicts(
-                formData.employee_id,
-                formData.date
+                employeeId,
+                date,
+                formData.shift_start || '06:00:00',
+                formData.shift_end || '14:00:00'
             );
 
             setHasConflict(conflicts.hasConflict);
