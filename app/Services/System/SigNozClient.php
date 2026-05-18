@@ -34,6 +34,11 @@ class SigNozClient
     {
         if (!$this->enabled) return false;
 
+        // Bypass loopback HTTP call if local mock is active to avoid PHP dev server deadlock
+        if (app()->environment('local') && (env('SIGNOZ_MOCK', false) || str_contains($this->baseUrl, 'mock-signoz'))) {
+            return true;
+        }
+
         try {
             $response = Http::timeout(2)
                 ->baseUrl($this->baseUrl)
@@ -72,6 +77,17 @@ class SigNozClient
      */
     protected function getTopOperations(int $hours = 24): array
     {
+        // Bypass loopback HTTP call if local mock is active to avoid PHP dev server deadlock
+        if (app()->environment('local') && (env('SIGNOZ_MOCK', false) || str_contains($this->baseUrl, 'mock-signoz'))) {
+            try {
+                $controller = app(\App\Http\Controllers\System\SystemAdministration\MockSigNozController::class);
+                $response = $controller->topOperations(request());
+                return $response->getData(true)['data'] ?? [];
+            } catch (\Throwable $e) {
+                return [];
+            }
+        }
+
         try {
             $end = now()->timestamp * 1000;
             $start = now()->subHours($hours)->timestamp * 1000;
@@ -179,6 +195,20 @@ class SigNozClient
 
     protected function queryInstantValue(string $query): ?float
     {
+        // Bypass loopback HTTP call if local mock is active to avoid PHP dev server deadlock
+        if (app()->environment('local') && (env('SIGNOZ_MOCK', false) || str_contains($this->baseUrl, 'mock-signoz'))) {
+            try {
+                $controller = app(\App\Http\Controllers\System\SystemAdministration\MockSigNozController::class);
+                $request = new \Illuminate\Http\Request(['query' => $query]);
+                $response = $controller->query($request);
+                $data = $response->getData(true);
+                $value = $data['data']['result'][0]['value'][1] ?? null;
+                return $value !== null ? round((float) $value, 2) : null;
+            } catch (\Throwable $e) {
+                return null;
+            }
+        }
+
         try {
             $response = Http::timeout(2)
                 ->baseUrl($this->baseUrl)
