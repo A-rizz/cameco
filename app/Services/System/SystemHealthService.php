@@ -465,6 +465,45 @@ class SystemHealthService
     }
 
     /**
+     * Parse WMI DateTime format (YYYYMMDDHHMMSS.MMMMMM±UUU) to Unix timestamp
+     */
+    protected function parseWmiDateTime(string $wmiDateTime): ?int
+    {
+        $wmiDateTime = trim($wmiDateTime);
+        
+        // Format is YYYYMMDDHHMMSS.MMMMMM±UUU (e.g. 20260518062345.000000+480)
+        if (preg_match('/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})\.\d+([+-]\d+)$/', $wmiDateTime, $matches)) {
+            $year = $matches[1];
+            $month = $matches[2];
+            $day = $matches[3];
+            $hour = $matches[4];
+            $minute = $matches[5];
+            $second = $matches[6];
+            $offsetMinutes = (int) $matches[7];
+            
+            $offsetHours = intval($offsetMinutes / 60);
+            $offsetRemainingMinutes = abs($offsetMinutes % 60);
+            $offsetSign = $offsetMinutes >= 0 ? '+' : '-';
+            
+            $timezoneString = sprintf('%s%02d:%02d', $offsetSign, abs($offsetHours), $offsetRemainingMinutes);
+            $dateString = "{$year}-{$month}-{$day} {$hour}:{$minute}:{$second}{$timezoneString}";
+            
+            $timestamp = strtotime($dateString);
+            return $timestamp !== false ? $timestamp : null;
+        }
+        
+        // Fallback to basic 14-digit format without timezone offset
+        if (preg_match('/^(\d{14})/', $wmiDateTime, $matches)) {
+            $ts = $matches[1];
+            $dateString = substr($ts, 0, 4) . '-' . substr($ts, 4, 2) . '-' . substr($ts, 6, 2) . ' ' .
+                          substr($ts, 8, 2) . ':' . substr($ts, 10, 2) . ':' . substr($ts, 12, 2);
+            return strtotime($dateString) ?: null;
+        }
+        
+        return null;
+    }
+
+    /**
      * Get system uptime in seconds
      */
     protected function getUptime(): int
@@ -473,14 +512,10 @@ class SystemHealthService
             try {
                 // Try wmic first as it provides a standardized YYYYMMDDHHMMSS format
                 $output = shell_exec('wmic path Win32_OperatingSystem get LastBootUpTime /value');
-                if ($output && preg_match('/LastBootUpTime=(\d{14})/', $output, $matches)) {
-                    $ts = $matches[1];
-                    $bootTimestamp = strtotime(
-                        substr($ts, 0, 4) . '-' . substr($ts, 4, 2) . '-' . substr($ts, 6, 2) . ' ' .
-                        substr($ts, 8, 2) . ':' . substr($ts, 10, 2) . ':' . substr($ts, 12, 2)
-                    );
+                if ($output && preg_match('/LastBootUpTime=([^\r\n]+)/', $output, $matches)) {
+                    $bootTimestamp = $this->parseWmiDateTime($matches[1]);
                     if ($bootTimestamp) {
-                        return time() - $bootTimestamp;
+                        return max(0, time() - $bootTimestamp);
                     }
                 }
 
@@ -489,13 +524,10 @@ class SystemHealthService
                     $wmi = new \COM('winmgmts://');
                     $os = $wmi->ExecQuery('SELECT LastBootUpTime FROM Win32_OperatingSystem');
                     foreach ($os as $system) {
-                        $bootTime = $system->LastBootUpTime;
-                        $timestamp = substr($bootTime, 0, 14);
-                        $bootTimestamp = strtotime(
-                            substr($timestamp, 0, 4) . '-' . substr($timestamp, 4, 2) . '-' . substr($timestamp, 6, 2) . ' ' .
-                            substr($timestamp, 8, 2) . ':' . substr($timestamp, 10, 2) . ':' . substr($timestamp, 12, 2)
-                        );
-                        return time() - $bootTimestamp;
+                        $bootTimestamp = $this->parseWmiDateTime($system->LastBootUpTime);
+                        if ($bootTimestamp) {
+                            return max(0, time() - $bootTimestamp);
+                        }
                     }
                 }
             } catch (\Exception $e) {
@@ -509,7 +541,7 @@ class SystemHealthService
         // Unix-like systems
         if (file_exists('/proc/uptime')) {
             $uptime = file_get_contents('/proc/uptime');
-            return (int) floatval(explode(' ', $uptime)[0]);
+            return max(0, (int) floatval(explode(' ', $uptime)[0]));
         }
 
         return 0;
@@ -520,6 +552,7 @@ class SystemHealthService
      */
     protected function formatUptime(int $seconds): string
     {
+        $seconds = max(0, $seconds);
         if ($seconds === 0) {
             return 'Unknown';
         }
