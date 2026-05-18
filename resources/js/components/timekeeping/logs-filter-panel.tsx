@@ -362,23 +362,23 @@ export function LogsFilterPanel({
                 </div>
             </CardHeader>
 
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-4 p-4">
                 {/* Active Filter Chips */}
                 {activeChips.length > 0 && (
-                    <div className="flex flex-wrap gap-2 p-3 bg-slate-50 rounded-lg border">
-                        <span className="text-xs font-medium text-muted-foreground">Active Filters:</span>
+                    <div className="flex flex-wrap gap-1.5 p-2.5 bg-slate-50 rounded-lg border">
+                        <span className="text-[11px] font-semibold text-muted-foreground">Active Filters:</span>
                         {activeChips.map((chip, index) => (
                             <Badge 
                                 key={index}
                                 variant="secondary"
-                                className="flex items-center gap-1.5 pr-1"
+                                className="flex items-center gap-1 px-1.5 py-0 text-[10px]"
                             >
                                 {chip.label}
                                 <button
                                     onClick={() => removeFilter(chip.type)}
                                     className="ml-1 hover:bg-slate-300 rounded-full p-0.5 transition-colors"
                                 >
-                                    <X className="h-3 w-3" />
+                                    <X className="h-2.5 w-2.5" />
                                 </button>
                             </Badge>
                         ))}
@@ -386,23 +386,23 @@ export function LogsFilterPanel({
                 )}
 
                 {/* Basic Filters */}
-                <div className="space-y-4">
+                <div className="space-y-3">
                     {/* Date Range */}
-                    <div className="space-y-2">
-                        <Label className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4" />
+                    <div className="space-y-1">
+                        <Label className="flex items-center gap-1.5 text-xs font-semibold text-gray-700">
+                            <Calendar className="h-3.5 w-3.5 text-gray-500" />
                             Date Range
                         </Label>
                         <Select 
                             value={filters.dateRange} 
                             onValueChange={(value) => updateFilter('dateRange', value as LogsFilterConfig['dateRange'])}
                         >
-                            <SelectTrigger>
+                            <SelectTrigger className="h-8 text-xs">
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
                                 {dateRangeOptions.map(option => (
-                                    <SelectItem key={option.value} value={option.value}>
+                                    <SelectItem key={option.value} value={option.value} className="text-xs">
                                         {option.label}
                                     </SelectItem>
                                 ))}
@@ -411,23 +411,23 @@ export function LogsFilterPanel({
                         
                         {/* Custom Date Range Inputs */}
                         {filters.dateRange === 'custom' && (
-                            <div className="grid grid-cols-2 gap-2 mt-2">
+                            <div className="grid grid-cols-2 gap-1.5 mt-1.5">
                                 <div>
-                                    <Label className="text-xs">From</Label>
+                                    <Label className="text-[10px]">From</Label>
                                     <Input
                                         type="date"
                                         value={filters.customDateFrom || ''}
                                         onChange={(e) => updateFilter('customDateFrom', e.target.value)}
-                                        className="mt-1"
+                                        className="h-7 text-xs px-2 mt-0.5"
                                     />
                                 </div>
                                 <div>
-                                    <Label className="text-xs">To</Label>
+                                    <Label className="text-[10px]">To</Label>
                                     <Input
                                         type="date"
                                         value={filters.customDateTo || ''}
                                         onChange={(e) => updateFilter('customDateTo', e.target.value)}
-                                        className="mt-1"
+                                        className="h-7 text-xs px-2 mt-0.5"
                                     />
                                 </div>
                             </div>
@@ -435,21 +435,21 @@ export function LogsFilterPanel({
                     </div>
 
                     {/* Department */}
-                    <div className="space-y-2">
-                        <Label className="flex items-center gap-2">
-                            <Building2 className="h-4 w-4" />
+                    <div className="space-y-1">
+                        <Label className="flex items-center gap-1.5 text-xs font-semibold text-gray-700">
+                            <Building2 className="h-3.5 w-3.5 text-gray-500" />
                             Department
                         </Label>
                         <Select 
                             value={filters.department} 
                             onValueChange={(value) => updateFilter('department', value)}
                         >
-                            <SelectTrigger>
+                            <SelectTrigger className="h-8 text-xs">
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
                                 {mockDepartments.map(dept => (
-                                    <SelectItem key={dept.value} value={dept.value}>
+                                    <SelectItem key={dept.value} value={dept.value} className="text-xs">
                                         {dept.label}
                                     </SelectItem>
                                 ))}
@@ -458,19 +458,20 @@ export function LogsFilterPanel({
                     </div>
 
                     {/* Event Types */}
-                    <div className="space-y-2">
-                        <Label>Event Types</Label>
-                        <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                        <Label className="text-xs font-semibold text-gray-700">Event Types</Label>
+                        <div className="grid grid-cols-1 gap-1.5 bg-slate-50/50 p-2 rounded-lg border border-slate-100">
                             {eventTypeOptions.map(eventType => (
                                 <div key={eventType.value} className="flex items-center space-x-2">
                                     <Checkbox
                                         id={`event-${eventType.value}`}
                                         checked={filters.eventTypes.includes(eventType.value)}
                                         onCheckedChange={() => toggleEventType(eventType.value)}
+                                        className="h-3.5 w-3.5"
                                     />
                                     <Label 
                                         htmlFor={`event-${eventType.value}`}
-                                        className="text-sm font-normal cursor-pointer"
+                                        className="text-xs font-normal cursor-pointer select-none"
                                     >
                                         <span className="mr-1">{eventType.emoji}</span>
                                         {eventType.label}
@@ -481,45 +482,46 @@ export function LogsFilterPanel({
                     </div>
 
                     {/* Verification Status */}
-                    <div className="space-y-2">
-                        <Label>Verification Status</Label>
+                    <div className="space-y-1">
+                        <Label className="text-xs font-semibold text-gray-700">Verification Status</Label>
                         <Select 
                             value={filters.verificationStatus} 
                             onValueChange={(value) => updateFilter('verificationStatus', value as LogsFilterConfig['verificationStatus'])}
                         >
-                            <SelectTrigger>
+                            <SelectTrigger className="h-8 text-xs">
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">All Status</SelectItem>
-                                <SelectItem value="verified">✅ Verified</SelectItem>
-                                <SelectItem value="pending">⏳ Pending</SelectItem>
-                                <SelectItem value="failed">❌ Failed</SelectItem>
+                                <SelectItem value="all" className="text-xs">All Status</SelectItem>
+                                <SelectItem value="verified" className="text-xs">✅ Verified</SelectItem>
+                                <SelectItem value="pending" className="text-xs">⏳ Pending</SelectItem>
+                                <SelectItem value="failed" className="text-xs">❌ Failed</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
 
                     {/* Device Locations */}
-                    <div className="space-y-2">
-                        <Label className="flex items-center gap-2">
-                            <MapPin className="h-4 w-4" />
+                    <div className="space-y-1">
+                        <Label className="flex items-center gap-1.5 text-xs font-semibold text-gray-700">
+                            <MapPin className="h-3.5 w-3.5 text-gray-500" />
                             Device Locations
                         </Label>
-                        <div className="space-y-2">
+                        <div className="space-y-1.5 bg-slate-50/50 p-2 rounded-lg border border-slate-100 max-h-[140px] overflow-y-auto">
                             <div className="flex items-center space-x-2">
                                 <Checkbox
                                     id="location-all"
                                     checked={filters.deviceLocations.includes('all')}
                                     onCheckedChange={() => toggleDeviceLocation('all')}
+                                    className="h-3.5 w-3.5"
                                 />
                                 <Label 
                                     htmlFor="location-all"
-                                    className="text-sm font-medium cursor-pointer"
+                                    className="text-xs font-semibold cursor-pointer select-none"
                                 >
                                     All Locations
                                 </Label>
                             </div>
-                            <Separator />
+                            <Separator className="my-1" />
                             {mockDeviceLocations.map(location => (
                                 <div key={location.id} className="flex items-center space-x-2">
                                     <Checkbox
@@ -527,10 +529,11 @@ export function LogsFilterPanel({
                                         checked={filters.deviceLocations.includes(location.id)}
                                         onCheckedChange={() => toggleDeviceLocation(location.id)}
                                         disabled={filters.deviceLocations.includes('all')}
+                                        className="h-3.5 w-3.5"
                                     />
                                     <Label 
                                         htmlFor={`location-${location.id}`}
-                                        className="text-sm font-normal cursor-pointer"
+                                        className="text-xs font-normal cursor-pointer select-none truncate"
                                     >
                                         {location.label}
                                     </Label>
@@ -540,16 +543,17 @@ export function LogsFilterPanel({
                     </div>
 
                     {/* Employee Search */}
-                    <div className="space-y-2">
-                        <Label className="flex items-center gap-2">
-                            <Search className="h-4 w-4" />
+                    <div className="space-y-1">
+                        <Label className="flex items-center gap-1.5 text-xs font-semibold text-gray-700">
+                            <Search className="h-3.5 w-3.5 text-gray-500" />
                             Employee Search
                         </Label>
                         <Input
                             type="text"
-                            placeholder="Search by name or ID..."
+                            placeholder="Search name or ID..."
                             value={filters.employeeSearch}
                             onChange={(e) => updateFilter('employeeSearch', e.target.value)}
+                            className="h-8 text-xs"
                         />
                     </div>
                 </div>

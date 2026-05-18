@@ -295,82 +295,83 @@ export function LedgerHealthWidget({
     return (
         <>
             <Card className={cn(
-                'w-full border-2 transition-all duration-200',
+                'w-full border shadow-sm transition-all duration-200',
                 config.bgColor,
                 config.borderColor,
                 className
             )}>
-                <CardHeader>
+                <CardHeader className="pb-2.5 p-4 border-b bg-black/5">
                     <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <StatusIcon className={cn('h-5 w-5', config.iconColor)} />
-                            <CardTitle className={cn('text-lg', config.textColor)}>
+                        <div className="flex items-center gap-1.5">
+                            <StatusIcon className={cn('h-4 w-4', config.iconColor)} />
+                            <CardTitle className={cn('text-sm font-semibold', config.textColor)}>
                                 Ledger Health Monitor
                             </CardTitle>
                         </div>
                         <Badge 
                             variant={config.badgeVariant}
-                            className={cn('font-bold', config.badgeBg, config.badgeText)}
+                            className={cn('font-bold text-[10px] py-0 px-2', config.badgeBg, config.badgeText)}
                         >
                             {config.badge}
                         </Badge>
                     </div>
-                    <CardDescription className={config.textColor}>
-                        Real-time RFID event processing status
-                    </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-3 space-y-3">
                     <TooltipProvider>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
                             {/* Last Processed */}
-                            <div className="space-y-1">
-                                <div className="flex items-center gap-2 text-sm font-medium text-gray-600">
-                                    <Layers className="h-4 w-4" />
-                                    <span>Last Processed</span>
+                            <div className="p-2.5 rounded-lg border bg-white/80 shadow-sm flex flex-col justify-between min-h-[75px]">
+                                <div className="flex items-center justify-between text-xs font-semibold text-gray-500">
+                                    <div className="flex items-center gap-1">
+                                        <Layers className="h-3.5 w-3.5 text-gray-400" />
+                                        <span>Last Processed</span>
+                                    </div>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
-                                            <HelpCircle className="h-3.5 w-3.5 text-gray-400 cursor-help" />
+                                            <HelpCircle className="h-3 w-3 text-gray-400 cursor-help" />
                                         </TooltipTrigger>
                                         <TooltipContent className="max-w-xs">
-                                            <p className="text-sm">
+                                            <p className="text-xs">
                                                 The most recent event processed from the RFID ledger. 
                                                 Sequence number ensures chronological order and prevents gaps.
                                             </p>
                                         </TooltipContent>
                                     </Tooltip>
                                 </div>
-                                <div className="pl-6">
-                                    <div className="text-lg font-bold text-gray-900">
+                                <div className="mt-1">
+                                    <div className="text-sm font-bold text-gray-900 leading-tight">
                                         Sequence #{healthState.lastSequence.toLocaleString()}
                                     </div>
-                                    <div className="text-xs text-gray-500">
+                                    <div className="text-[10px] text-gray-500 mt-0.5">
                                         {healthState.lastProcessedAgo}
                                     </div>
                                 </div>
                             </div>
 
                             {/* Processing Speed */}
-                            <div className="space-y-1">
-                                <div className="flex items-center gap-2 text-sm font-medium text-gray-600">
-                                    <TrendingUp className="h-4 w-4" />
-                                    <span>Processing Speed</span>
+                            <div className="p-2.5 rounded-lg border bg-white/80 shadow-sm flex flex-col justify-between min-h-[75px]">
+                                <div className="flex items-center justify-between text-xs font-semibold text-gray-500">
+                                    <div className="flex items-center gap-1">
+                                        <TrendingUp className="h-3.5 w-3.5 text-gray-400" />
+                                        <span>Processing Speed</span>
+                                    </div>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
-                                            <HelpCircle className="h-3.5 w-3.5 text-gray-400 cursor-help" />
+                                            <HelpCircle className="h-3 w-3 text-gray-400 cursor-help" />
                                         </TooltipTrigger>
                                         <TooltipContent className="max-w-xs">
-                                            <p className="text-sm">
+                                            <p className="text-xs">
                                                 Current rate of RFID events being processed per minute. 
                                                 Optimal rate is 300+ events/min. Lower rates indicate processing delays.
                                             </p>
                                         </TooltipContent>
                                     </Tooltip>
                                 </div>
-                                <div className="pl-6">
-                                    <div className="text-lg font-bold text-gray-900">
+                                <div className="mt-1">
+                                    <div className="text-sm font-bold text-gray-900 leading-tight">
                                         {healthState.processingRate.toLocaleString()} events/min
                                     </div>
-                                    <div className="text-xs text-gray-500">
+                                    <div className="text-[10px] text-gray-500 mt-0.5">
                                         {healthState.processingRate > 300 ? 'Optimal rate' : 
                                          healthState.processingRate > 100 ? 'Below average' : 
                                          'Critical delay'}
@@ -379,130 +380,138 @@ export function LedgerHealthWidget({
                             </div>
 
                             {/* Integrity Status */}
-                            <div className="space-y-1">
-                                <div className="flex items-center gap-2 text-sm font-medium text-gray-600">
-                                    <Shield className="h-4 w-4" />
-                                    <span>Integrity Status</span>
+                            <div className="p-2.5 rounded-lg border bg-white/80 shadow-sm flex flex-col justify-between min-h-[75px]">
+                                <div className="flex items-center justify-between text-xs font-semibold text-gray-500">
+                                    <div className="flex items-center gap-1">
+                                        <Shield className="h-3.5 w-3.5 text-gray-400" />
+                                        <span>Integrity Status</span>
+                                    </div>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
-                                            <HelpCircle className="h-3.5 w-3.5 text-gray-400 cursor-help" />
+                                            <HelpCircle className="h-3 w-3 text-gray-400 cursor-help" />
                                         </TooltipTrigger>
                                         <TooltipContent className="max-w-xs">
-                                            <p className="text-sm">
+                                            <p className="text-xs">
                                                 Hash chain verification status ensures ledger tamper-resistance. 
                                                 Each event's hash must match the previous event's hash for integrity.
                                             </p>
                                         </TooltipContent>
                                     </Tooltip>
                                 </div>
-                                <div className="pl-6">
-                                    <div className={cn('text-lg font-bold', integrityDisplay.color)}>
+                                <div className="mt-1">
+                                    <div className={cn('text-xs font-bold leading-tight truncate', integrityDisplay.color)}>
                                         {integrityDisplay.icon} {integrityDisplay.text}
                                     </div>
-                                    <div className="text-xs text-gray-500">
+                                    <div className="text-[10px] text-gray-500 mt-0.5">
                                         Hash chain validation
                                     </div>
                                 </div>
                             </div>
 
                             {/* Device Status */}
-                            <div className="space-y-1">
-                                <div className="flex items-center gap-2 text-sm font-medium text-gray-600">
-                                    <Activity className="h-4 w-4" />
-                                    <span>Device Status</span>
+                            <div className="p-2.5 rounded-lg border bg-white/80 shadow-sm flex flex-col justify-between min-h-[75px]">
+                                <div className="flex items-center justify-between text-xs font-semibold text-gray-500">
+                                    <div className="flex items-center gap-1">
+                                        <Activity className="h-3.5 w-3.5 text-gray-400" />
+                                        <span>Device Status</span>
+                                    </div>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
-                                            <HelpCircle className="h-3.5 w-3.5 text-gray-400 cursor-help" />
+                                            <HelpCircle className="h-3 w-3 text-gray-400 cursor-help" />
                                         </TooltipTrigger>
                                         <TooltipContent className="max-w-xs">
-                                            <p className="text-sm">
+                                            <p className="text-xs">
                                                 Real-time connectivity status of RFID edge devices (gates, cafeteria). 
                                                 Offline devices may have cached events pending synchronization.
                                             </p>
                                         </TooltipContent>
                                     </Tooltip>
                                 </div>
-                                <div className="pl-6">
-                                    <div className="flex items-center gap-3">
+                                <div className="mt-1">
+                                    <div className="flex items-center gap-3 leading-tight">
                                         <div className="flex items-center gap-1">
-                                            <Wifi className="h-4 w-4 text-green-600" />
-                                            <span className="text-lg font-bold text-gray-900">
+                                            <Wifi className="h-3.5 w-3.5 text-green-600" />
+                                            <span className="text-sm font-bold text-gray-900">
                                                 {healthState.devicesOnline}
                                             </span>
-                                            <span className="text-xs text-gray-500">online</span>
+                                            <span className="text-[10px] text-gray-500">online</span>
                                         </div>
                                         {healthState.devicesOffline > 0 && (
                                             <div className="flex items-center gap-1">
-                                                <WifiOff className="h-4 w-4 text-red-600" />
-                                                <span className="text-lg font-bold text-red-600">
+                                                <WifiOff className="h-3.5 w-3.5 text-red-600" />
+                                                <span className="text-sm font-bold text-red-600">
                                                     {healthState.devicesOffline}
                                                 </span>
-                                                <span className="text-xs text-gray-500">offline</span>
+                                                <span className="text-[10px] text-gray-500">offline</span>
                                             </div>
                                         )}
+                                    </div>
+                                    <div className="text-[10px] text-gray-500 mt-0.5">
+                                        Edge connectivity
                                     </div>
                                 </div>
                             </div>
 
                             {/* Backlog */}
-                            <div className="space-y-1 md:col-span-2">
-                                <div className="flex items-center gap-2 text-sm font-medium text-gray-600">
-                                    <Clock className="h-4 w-4" />
-                                    <span>Backlog</span>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <HelpCircle className="h-3.5 w-3.5 text-gray-400 cursor-help" />
-                                        </TooltipTrigger>
-                                        <TooltipContent className="max-w-xs">
-                                            <p className="text-sm">
-                                                Number of unprocessed events in the ledger queue. 
-                                                High backlog may delay payroll calculations and requires attention.
-                                            </p>
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </div>
-                                <div className="pl-6">
+                            <div className="col-span-2 lg:col-span-4 p-2.5 rounded-lg border bg-white/80 shadow-sm flex flex-col justify-between">
+                                <div className="flex items-center justify-between text-xs font-semibold text-gray-500">
+                                    <div className="flex items-center gap-1">
+                                        <Clock className="h-3.5 w-3.5 text-gray-400" />
+                                        <span>Queue Backlog</span>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <HelpCircle className="h-3 w-3 text-gray-400 cursor-help" />
+                                            </TooltipTrigger>
+                                            <TooltipContent className="max-w-xs">
+                                                <p className="text-xs">
+                                                    Number of unprocessed events in the ledger queue. 
+                                                    High backlog may delay payroll calculations and requires attention.
+                                                </p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </div>
                                     <div className={cn(
-                                        'text-lg font-bold',
+                                        'text-xs font-bold',
                                         healthState.backlog === 0 ? 'text-green-700' :
                                         healthState.backlog < 500 ? 'text-yellow-700' :
                                         'text-red-700'
                                     )}>
                                         {healthState.backlog.toLocaleString()} pending events
                                     </div>
-                                    {healthState.backlog > 0 && (
-                                        <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
-                                            <div 
-                                                className={cn(
-                                                    'h-2 rounded-full transition-all duration-500',
-                                                    healthState.backlog < 500 ? 'bg-yellow-500' : 'bg-red-500'
-                                                )}
-                                                style={{ 
-                                                    width: `${Math.min((healthState.backlog / 2000) * 100, 100)}%` 
-                                                }}
-                                            />
-                                        </div>
-                                    )}
-                                    <div className="text-xs text-gray-500 mt-1">
+                                </div>
+                                {healthState.backlog > 0 && (
+                                    <div className="mt-1.5 w-full bg-gray-200 rounded-full h-1.5">
+                                        <div 
+                                            className={cn(
+                                                'h-1.5 rounded-full transition-all duration-500',
+                                                healthState.backlog < 500 ? 'bg-yellow-500' : 'bg-red-500'
+                                            )}
+                                            style={{ 
+                                                width: `${Math.min((healthState.backlog / 2000) * 100, 100)}%` 
+                                            }}
+                                        />
+                                    </div>
+                                )}
+                                <div className="text-[10px] text-gray-500 mt-1 flex justify-between">
+                                    <span>
                                         {healthState.backlog === 0 ? 'All events processed' :
                                          healthState.backlog < 100 ? 'Minor delay expected' :
                                          healthState.backlog < 500 ? 'Moderate processing delay' :
                                          'Significant backlog - action required'}
-                                    </div>
+                                    </span>
                                 </div>
                             </div>
                         </div>
                     </TooltipProvider>
+
                     {/* Processing Rate Mini-Chart */}
                     {healthState.processingRateHistory && healthState.processingRateHistory.length > 0 && (
-                        <div className="mt-6 p-4 border rounded-lg bg-white">
-                            <div className="flex items-center justify-between mb-3">
-                                <div>
-                                    <h4 className="text-sm font-semibold text-gray-900">Processing Rate Trend</h4>
-                                    <p className="text-xs text-gray-500">Last hour performance</p>
-                                </div>
+                        <div className="p-2.5 border rounded-lg bg-white/90 flex items-center justify-between gap-4">
+                            <div>
+                                <h4 className="text-xs font-semibold text-gray-900">Processing Rate Trend</h4>
+                                <p className="text-[10px] text-gray-500">Last hour performance</p>
                             </div>
-                            <div className="flex justify-center">
+                            <div className="flex-shrink-0">
                                 <MiniLineChart 
                                     data={healthState.processingRateHistory} 
                                     status={healthState.status}
@@ -511,18 +520,13 @@ export function LedgerHealthWidget({
                         </div>
                     )}
 
-                    {/* Status Summary Message */}
-                    <div className={cn(
-                        'mt-4 p-3 rounded-lg border-l-4',
-                        healthState.status === 'healthy' ? 'bg-green-50 border-green-500' :
-                        healthState.status === 'warning' ? 'bg-yellow-50 border-yellow-500' :
-                        'bg-red-50 border-red-500'
-                    )}>
+                    {/* Footer Row: Status Message + View Details Button */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-1.5">
                         <div className={cn(
-                            'text-sm font-medium',
-                            healthState.status === 'healthy' ? 'text-green-800' :
-                            healthState.status === 'warning' ? 'text-yellow-800' :
-                            'text-red-800'
+                            'flex-1 p-2 rounded-lg border-l-4 text-xs font-medium',
+                            healthState.status === 'healthy' ? 'bg-green-50 border-green-500 text-green-800' :
+                            healthState.status === 'warning' ? 'bg-yellow-50/70 border-yellow-500 text-yellow-800' :
+                            'bg-red-50/70 border-red-500 text-red-800'
                         )}>
                             {healthState.status === 'healthy' && 
                                 '✅ System operating normally. All ledger operations are healthy.'}
@@ -531,16 +535,14 @@ export function LedgerHealthWidget({
                             {healthState.status === 'critical' && 
                                 '🚨 Critical issues detected. Immediate attention required!'}
                         </div>
-                    </div>
-
-                    {/* View Details Button */}
-                    <div className="mt-4">
+                        
                         <Button 
                             variant="outline" 
-                            className="w-full"
+                            size="sm"
+                            className="sm:w-auto h-8 text-xs font-semibold shrink-0"
                             onClick={() => setShowDetailModal(true)}
                         >
-                            <ExternalLink className="h-4 w-4 mr-2" />
+                            <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
                             View Details
                         </Button>
                     </div>
