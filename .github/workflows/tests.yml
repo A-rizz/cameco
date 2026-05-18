@@ -10,6 +10,9 @@ on:
       - develop
       - main
 
+env:
+  OTEL_SDK_DISABLED: true
+
 jobs:
   ci:
     runs-on: ubuntu-latest
@@ -47,6 +50,4 @@ jobs:
         run: php artisan key:generate
 
       - name: Tests
-        env:
-          OTEL_SDK_DISABLED: true
         run: ./vendor/bin/phpunit

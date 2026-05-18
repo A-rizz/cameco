@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ "main" ]
 
+env:
+  OTEL_SDK_DISABLED: true
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -37,6 +40,4 @@ jobs:
         npm run build
 
     - name: Run Tests
-      env:
-        OTEL_SDK_DISABLED: true
       run: php artisan test

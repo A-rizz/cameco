@@ -10,6 +10,9 @@ on:
       - develop
       - main
 
+env:
+  OTEL_SDK_DISABLED: true
+
 permissions:
   contents: write
 
