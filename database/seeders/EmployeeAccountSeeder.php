@@ -57,7 +57,7 @@ class EmployeeAccountSeeder extends Seeder
                 'name' => "{$profile->first_name} {$profile->last_name}",
                 'username' => $username,
                 'email' => $profile->email,
-                'password' => Hash::make('password'), // Default temporary password
+                'password' => 'password', // Default temporary password
                 'email_verified_at' => now(),
             ]);
 

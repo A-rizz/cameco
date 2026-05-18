@@ -38,7 +38,7 @@ class HRStaffAccountSeeder extends Seeder
             [
                 'name'              => 'Maria Santos',
                 'username'          => 'hrstaff',
-                'password'          => Hash::make($passwordPlain),
+                'password'          => $passwordPlain,
                 'email_verified_at' => now(),
             ]
         );
