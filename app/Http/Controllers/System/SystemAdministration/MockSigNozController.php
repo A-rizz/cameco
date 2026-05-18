@@ -19,7 +19,7 @@ class MockSigNozController extends Controller
      */
     public function health()
     {
-        return response()->json(['status' => 'ready', 'version' => '0.50.0-mock']);
+        return response()->json(['status' => 'ok', 'version' => '0.50.0-mock']);
     }
 
     /**
@@ -60,36 +60,46 @@ class MockSigNozController extends Controller
             'status' => 'success',
             'data' => [
                 [
-                    'name' => '/api/v1/assets/search',
-                    'spanKind' => 'GET',
-                    'avgDuration' => 1240500000, // 1.24s in ns
+                    'name' => 'GET /api/v1/assets/search',
+                    'p50' => 450000000,
+                    'p95' => 1240000000,
+                    'p99' => 2100000000,
                     'numCalls' => 156,
+                    'errorCount' => 2,
                 ],
                 [
-                    'name' => '/api/v1/reports/compliance',
-                    'spanKind' => 'POST',
-                    'avgDuration' => 890200000, // 0.89s in ns
+                    'name' => 'POST /api/v1/reports/compliance',
+                    'p50' => 620000000,
+                    'p95' => 890000000,
+                    'p99' => 1500000000,
                     'numCalls' => 42,
+                    'errorCount' => 1,
                 ],
                 [
-                    'name' => '/api/v1/employees/profile',
-                    'spanKind' => 'GET',
-                    'avgDuration' => 450100000, // 0.45s in ns
+                    'name' => 'GET /api/v1/employees/profile',
+                    'p50' => 120000000,
+                    'p95' => 450000000,
+                    'p99' => 980000000,
                     'numCalls' => 890,
+                    'errorCount' => 0,
                 ],
                 [
-                    'name' => '/system/backups/trigger',
-                    'spanKind' => 'POST',
-                    'avgDuration' => 320000000,
+                    'name' => 'POST /system/backups/trigger',
+                    'p50' => 180000000,
+                    'p95' => 320000000,
+                    'p99' => 850000000,
                     'numCalls' => 12,
+                    'errorCount' => 0,
                 ],
                 [
-                    'name' => '/hr/payroll/process',
-                    'spanKind' => 'POST',
-                    'avgDuration' => 2100000000,
+                    'name' => 'POST /hr/payroll/process',
+                    'p50' => 1500000000,
+                    'p95' => 2100000000,
+                    'p99' => 3500000000,
                     'numCalls' => 5,
+                    'errorCount' => 0,
                 ]
-            ]
+             ]
         ]);
     }
 
