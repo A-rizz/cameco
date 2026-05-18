@@ -37,4 +37,6 @@ jobs:
         npm run build
 
     - name: Run Tests
+      env:
+        OTEL_SDK_DISABLED: true
       run: php artisan test

@@ -47,4 +47,6 @@ jobs:
         run: php artisan key:generate
 
       - name: Tests
+        env:
+          OTEL_SDK_DISABLED: true
         run: ./vendor/bin/phpunit

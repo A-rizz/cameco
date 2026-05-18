@@ -36,6 +36,5 @@ yarn-error.log
 
 # forgot to put this in the .gitignore file, but here it is now.
 # later for when they wanna set up their own domain
-
 cameco.local-key.pem
 cameco.local.pem
