@@ -19,6 +19,7 @@
         "laravel/wayfinder": "^0.1.9",
         "league/flysystem-aws-s3-v3": "3.0",
         "open-telemetry/exporter-otlp": "^1.4",
+        "open-telemetry/sdk": "^1.14",
         "php-http/guzzle7-adapter": "^1.1",
         "spatie/laravel-activitylog": "^4.12",
         "spatie/laravel-backup": "^9.3",
