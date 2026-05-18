@@ -87,7 +87,7 @@ interface RequestHistoryProps {
 // ============================================================================
 
 function getStatusIcon(iconName: string) {
-    const icons: Record<string, JSX.Element> = {
+    const icons: Record<string, React.ReactNode> = {
         Clock: <Clock className="h-4 w-4" />,
         FileText: <FileText className="h-4 w-4" />,
         CheckCircle: <CheckCircle className="h-4 w-4" />,

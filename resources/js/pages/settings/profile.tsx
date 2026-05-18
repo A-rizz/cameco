@@ -29,7 +29,7 @@ export default function Profile({
 }) {
     const { auth } = usePage<SharedData>().props;
 
-    const { data, setData, post, processing, errors, recentlySuccessful } = useForm({
+    const { data, setData, post, processing, errors, recentlySuccessful } = useForm<Record<string, string>>({
         name: auth.user.name || '',
         first_name: (auth.user?.profile as any)?.first_name ?? '',
         last_name: (auth.user?.profile as any)?.last_name ?? '',

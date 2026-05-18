@@ -140,7 +140,7 @@ export default function AdvancesIndex({
         setIsSubmitting(true);
         router.post(
             '/payroll/advances',
-            data,
+            data as any,
             {
                 onSuccess: () => { setIsRequestFormOpen(false); },
                 onFinish: () => setIsSubmitting(false),
