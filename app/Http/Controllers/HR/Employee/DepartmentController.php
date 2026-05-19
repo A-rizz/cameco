@@ -40,14 +40,19 @@ class DepartmentController extends Controller
             ->orderByDesc('employees_count')
             ->first();
 
+        // Only use it if it actually has employees
+        if ($largestDept && $largestDept->employees_count === 0) {
+            $largestDept = null;
+        }
+
         $stats = [
             'total' => Department::count(),
             'active' => Department::where('is_active', true)->count(),
             'inactive' => Department::where('is_active', false)->count(),
-            'largest_dept' => [
-                'name' => $largestDept ? $largestDept->name : 'N/A',
-                'count' => $largestDept ? $largestDept->employees_count : 0,
-            ],
+            'largest_dept' => $largestDept ? [
+                'name' => $largestDept->name,
+                'count' => $largestDept->employees_count,
+            ] : null,
             'avg_size' => round(Department::withCount('employees')->get()->avg('employees_count') ?? 0, 1),
         ];
 
