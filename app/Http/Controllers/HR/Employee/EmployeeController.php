@@ -62,10 +62,8 @@ class EmployeeController extends Controller
         // Calculate HR Metrics
         $activeCount = $statistics['active'] ?? 0;
         $terminatedCount = $statistics['terminated'] ?? 0;
-        $retentionRate = ($activeCount + $terminatedCount) > 0 
-            ? round(($activeCount / ($activeCount + $terminatedCount)) * 100, 1) 
-            : 100;
-
+        $retentionRate = $terminatedCount > 0 ? round(($activeCount / ($activeCount + $terminatedCount)) * 100, 1) : null;
+        
         $newHiresThisMonth = \App\Models\Employee::whereYear('date_hired', now()->year)
             ->whereMonth('date_hired', now()->month)
             ->count();

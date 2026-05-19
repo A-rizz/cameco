@@ -31,12 +31,18 @@ class DepartmentController extends Controller
             ->filter(fn($d) => !$d->parent_id)
             ->map(fn($d) => $this->formatDepartmentTree($d));
 
+        $largestDept = $departments->sortByDesc('employees_count')->first();
+
         $stats = [
-            'total' => $departments->count(),
-            'active' => $departments->where('is_active', true)->count(),
-            'inactive' => $departments->where('is_active', false)->count(),
-            'with_manager' => $departments->whereNotNull('manager_id')->count(),
-            'total_budget' => $departments->sum('budget'),
+            'total' => Department::count(),
+            'active' => Department::where('is_active', true)->count(),
+            'inactive' => Department::where('is_active', false)->count(),
+            'with_manager' => Department::whereNotNull('manager_id')->count(),
+            'total_budget' => Department::sum('budget'),
+            'largest_dept' => $largestDept ? [
+                'name' => $largestDept->name,
+                'count' => $largestDept->employees_count,
+            ] : null,
         ];
 
         return Inertia::render('System/Organization/Departments', [
