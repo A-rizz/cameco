@@ -104,7 +104,7 @@ class OfficeAdminSeeder extends Seeder
             [
                 'name'              => 'Bob Percival',
                 'username'          => 'officeadmin',
-                'password'          => Hash::make('password'),
+                'password'          => 'password',
                 'email_verified_at' => now(),
             ]
         );

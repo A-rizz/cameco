@@ -122,12 +122,12 @@ export default function JobPostingsIndex({
 
   const handleFormSubmit = (data: JobPostingFormData) => {
     if (editingJob?.id) {
-      router.put(`/hr/ats/job-postings/${editingJob.id}`, data, {
+      router.put(`/hr/ats/job-postings/${editingJob.id}`, data as any, {
         onSuccess: () => handleModalClose(),
         onError: () => toast.error('Failed to update job posting. Please try again.'),
       });
     } else {
-      router.post('/hr/ats/job-postings', data, {
+      router.post('/hr/ats/job-postings', data as any, {
         onSuccess: () => handleModalClose(),
         onError: () => toast.error('Failed to create job posting. Please try again.'),
       });

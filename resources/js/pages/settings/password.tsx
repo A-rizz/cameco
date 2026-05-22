@@ -31,13 +31,9 @@ export default function Password() {
         e.preventDefault();
         post('/settings/password/update', {
             preserveScroll: true,
-            resetOnError: [
-                'password',
-                'password_confirmation',
-                'current_password',
-            ],
-            resetOnSuccess: true,
+            onSuccess: () => reset(),
             onError: (errors: any) => {
+                reset('password', 'password_confirmation', 'current_password');
                 if (errors.password) {
                     passwordInput.current?.focus();
                 }

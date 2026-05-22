@@ -14,14 +14,14 @@ import { ApplicationStatusBadge } from '@/components/ats/application-status-badg
 import { ApplicationStatusModal } from '@/components/ats/application-status-modal';
 import { RejectApplicationModal } from '@/components/ats/reject-application-modal';
 import { OfferGenerationModal } from '@/components/ats/offer-generation-modal';
-import { InterviewScheduleModal } from '@/components/ats/interview-schedule-modal';
+import { InterviewScheduleModal, type ScheduleInterviewData } from '@/components/ats/interview-schedule-modal';
 import { AddNoteModal } from '@/components/ats/add-note-modal-v2';
 import { ApplicationDetailsTab } from '@/components/ats/application-details-tab';
 import { ApplicationInterviewsTab } from '@/components/ats/application-interviews-tab';
 import { ApplicationTimelineTab } from '@/components/ats/application-timeline-tab';
 import { ApplicationNotesTab } from '@/components/ats/application-notes-tab';
 import type { PageProps } from '@inertiajs/core';
-import type { Application, Interview, ApplicationStatusHistory, CandidateNote, ScheduleInterviewData } from '@/types/ats-pages';
+import type { Application, Interview, ApplicationStatusHistory, CandidateNote } from '@/types/ats-pages';
 import { formatDate } from '@/lib/date-utils';
 import axios from 'axios';
 import { router } from '@inertiajs/react';

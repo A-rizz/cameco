@@ -38,11 +38,13 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up'
     )
     ->withMiddleware(function (Middleware $middleware) {
+        $middleware->append(\Keepsuit\LaravelOpenTelemetry\Instrumentation\Support\Http\Server\TraceRequestMiddleware::class);
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
         // RFID gate PC endpoints are called by the Python client with no browser session
         $middleware->validateCsrfTokens(except: [
             'rfid/*',
+            'mock-signoz/*',
         ]);
 
         $middleware->web(append: [
@@ -60,6 +62,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'timekeeping.api' => ValidateTimekeepingApiKey::class,
+            'module' => \App\Http\Middleware\CheckModuleEnabled::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

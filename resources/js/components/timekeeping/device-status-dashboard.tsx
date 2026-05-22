@@ -57,6 +57,7 @@ interface Device {
 interface DeviceStatusDashboardProps {
     devices?: Device[];
     onViewDeviceLog?: (deviceId: string) => void;
+    showTitle?: boolean;
     className?: string;
 }
 
@@ -604,6 +605,7 @@ function DeviceCard({ device, onViewLog }: { device: Device; onViewLog?: (device
 export function DeviceStatusDashboard({
     devices = mockDevices,
     onViewDeviceLog,
+    showTitle = true,
     className
 }: DeviceStatusDashboardProps) {
     const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
@@ -636,93 +638,134 @@ export function DeviceStatusDashboard({
     const avgUptime = (devices.reduce((sum, d) => sum + d.uptime, 0) / totalDevices).toFixed(1);
 
     return (
-        <div className={cn('space-y-6', className)}>
-            {/* Summary Header */}
-            <Card>
-                <CardHeader>
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <CardTitle className="text-2xl">RFID Device Status Dashboard</CardTitle>
-                            <CardDescription>Real-time monitoring of all attendance scanning devices</CardDescription>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            {/* View Toggle */}
-                            <div className="flex items-center gap-1 bg-slate-100 rounded-lg border border-slate-200 p-1">
-                                <Button
-                                    variant={viewMode === 'grid' ? 'default' : 'ghost'}
-                                    size="sm"
-                                    onClick={() => setViewMode('grid')}
-                                    className="h-8"
-                                >
-                                    <LayoutGrid className="h-4 w-4 mr-1" />
-                                    Grid
-                                </Button>
-                                <Button
-                                    variant={viewMode === 'map' ? 'default' : 'ghost'}
-                                    size="sm"
-                                    onClick={() => setViewMode('map')}
-                                    className="h-8"
-                                >
-                                    <MapIcon className="h-4 w-4 mr-1" />
-                                    Map
-                                </Button>
+        <div className={cn('space-y-4', className)}>
+            {/* Summary Header / Stats Grid */}
+            {showTitle ? (
+                <Card>
+                    <CardHeader className="pb-2.5 p-4 border-b bg-black/5">
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                            <div>
+                                <CardTitle className="text-base font-semibold">RFID Device Status Dashboard</CardTitle>
+                                <CardDescription className="text-xs">Real-time monitoring of all attendance scanning devices</CardDescription>
                             </div>
-                            <Separator orientation="vertical" className="h-6" />
-                            <TrendingUp className="h-5 w-5 text-green-600" />
-                            <span className="text-sm font-medium text-muted-foreground">
-                                {totalScansToday.toLocaleString()} scans today
-                            </span>
+                            <div className="flex items-center gap-3">
+                                {/* View Toggle */}
+                                <div className="flex items-center gap-1 bg-slate-100 rounded-lg border border-slate-200 p-1">
+                                    <Button
+                                        variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                                        size="sm"
+                                        onClick={() => setViewMode('grid')}
+                                        className="h-8 text-xs"
+                                    >
+                                        <LayoutGrid className="h-4 w-4 mr-1" />
+                                        Grid
+                                    </Button>
+                                    <Button
+                                        variant={viewMode === 'map' ? 'default' : 'ghost'}
+                                        size="sm"
+                                        onClick={() => setViewMode('map')}
+                                        className="h-8 text-xs"
+                                    >
+                                        <MapIcon className="h-4 w-4 mr-1" />
+                                        Map
+                                    </Button>
+                                </div>
+                                <Separator orientation="vertical" className="h-6" />
+                                <TrendingUp className="h-4 w-4 text-green-600" />
+                                <span className="text-xs font-semibold text-muted-foreground">
+                                    {totalScansToday.toLocaleString()} scans today
+                                </span>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="p-3">
+                        <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+                            {/* Stats */}
+                            <div className="text-center p-2.5 bg-slate-50 rounded-lg border border-slate-100">
+                                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">Total Devices</div>
+                                <div className="text-xl font-bold">{totalDevices}</div>
+                            </div>
+                            <div className="text-center p-2.5 bg-green-50/50 rounded-lg border border-green-100">
+                                <div className="text-[10px] font-bold text-green-700 uppercase tracking-wider mb-0.5">🟢 Online</div>
+                                <div className="text-xl font-bold text-green-600">{onlineDevices}</div>
+                            </div>
+                            <div className="text-center p-2.5 bg-yellow-50/50 rounded-lg border border-yellow-100">
+                                <div className="text-[10px] font-bold text-yellow-700 uppercase tracking-wider mb-0.5">🟡 Idle</div>
+                                <div className="text-xl font-bold text-yellow-600">{idleDevices}</div>
+                            </div>
+                            <div className="text-center p-2.5 bg-red-50/50 rounded-lg border border-red-100">
+                                <div className="text-[10px] font-bold text-red-700 uppercase tracking-wider mb-0.5">🔴 Offline</div>
+                                <div className="text-xl font-bold text-red-600">{offlineDevices}</div>
+                            </div>
+                            <div className="text-center p-2.5 bg-blue-50/50 rounded-lg border border-blue-100">
+                                <div className="text-[10px] font-bold text-blue-700 uppercase tracking-wider mb-0.5">🔧 Maint.</div>
+                                <div className="text-xl font-bold text-blue-600">{maintenanceDevices}</div>
+                            </div>
+                            <div className="text-center p-2.5 bg-slate-50 rounded-lg border border-slate-100">
+                                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">Avg Uptime</div>
+                                <div className="text-xl font-bold text-slate-900">{avgUptime}%</div>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            ) : (
+                <div className="space-y-3">
+                    <div className="flex items-center justify-between flex-wrap gap-2.5">
+                        <div className="flex items-center gap-1 bg-slate-100 rounded-lg border border-slate-200 p-0.5">
+                            <Button
+                                variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                                size="sm"
+                                onClick={() => setViewMode('grid')}
+                                className="h-7 px-2.5 text-xs"
+                            >
+                                <LayoutGrid className="h-3.5 w-3.5 mr-1" />
+                                Grid
+                            </Button>
+                            <Button
+                                variant={viewMode === 'map' ? 'default' : 'ghost'}
+                                size="sm"
+                                onClick={() => setViewMode('map')}
+                                className="h-7 px-2.5 text-xs"
+                            >
+                                <MapIcon className="h-3.5 w-3.5 mr-1" />
+                                Map
+                            </Button>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground bg-slate-50 border px-2.5 py-1 rounded-full">
+                            <TrendingUp className="h-3.5 w-3.5 text-green-600" />
+                            <span>{totalScansToday.toLocaleString()} scans today</span>
                         </div>
                     </div>
-                </CardHeader>
-                <CardContent>
-                    <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-                        {/* Total Devices */}
-                        <div className="text-center p-3 bg-slate-50 rounded-lg">
-                            <div className="text-xs text-muted-foreground mb-1">Total Devices</div>
-                            <div className="text-2xl font-bold">{totalDevices}</div>
-                        </div>
 
-                        {/* Online */}
-                        <div className="text-center p-3 bg-green-50 rounded-lg border border-green-200">
-                            <div className="text-xs text-green-700 mb-1 flex items-center justify-center gap-1">
-                                🟢 Online
-                            </div>
-                            <div className="text-2xl font-bold text-green-600">{onlineDevices}</div>
+                    <div className="grid grid-cols-2 md:grid-cols-6 gap-2.5">
+                        {/* Stats */}
+                        <div className="text-center p-2 bg-slate-50/50 rounded-lg border border-slate-100">
+                            <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">Total Devices</div>
+                            <div className="text-lg font-bold">{totalDevices}</div>
                         </div>
-
-                        {/* Idle */}
-                        <div className="text-center p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                            <div className="text-xs text-yellow-700 mb-1 flex items-center justify-center gap-1">
-                                🟡 Idle
-                            </div>
-                            <div className="text-2xl font-bold text-yellow-600">{idleDevices}</div>
+                        <div className="text-center p-2 bg-green-50/50 rounded-lg border border-green-100">
+                            <div className="text-[9px] font-bold text-green-700 uppercase tracking-wider mb-0.5">🟢 Online</div>
+                            <div className="text-lg font-bold text-green-600">{onlineDevices}</div>
                         </div>
-
-                        {/* Offline */}
-                        <div className="text-center p-3 bg-red-50 rounded-lg border border-red-200">
-                            <div className="text-xs text-red-700 mb-1 flex items-center justify-center gap-1">
-                                🔴 Offline
-                            </div>
-                            <div className="text-2xl font-bold text-red-600">{offlineDevices}</div>
+                        <div className="text-center p-2 bg-yellow-50/50 rounded-lg border border-yellow-100">
+                            <div className="text-[9px] font-bold text-yellow-700 uppercase tracking-wider mb-0.5">🟡 Idle</div>
+                            <div className="text-lg font-bold text-yellow-600">{idleDevices}</div>
                         </div>
-
-                        {/* Maintenance */}
-                        <div className="text-center p-3 bg-blue-50 rounded-lg border border-blue-200">
-                            <div className="text-xs text-blue-700 mb-1 flex items-center justify-center gap-1">
-                                🔧 Maintenance
-                            </div>
-                            <div className="text-2xl font-bold text-blue-600">{maintenanceDevices}</div>
+                        <div className="text-center p-2 bg-red-50/50 rounded-lg border border-red-100">
+                            <div className="text-[9px] font-bold text-red-700 uppercase tracking-wider mb-0.5">🔴 Offline</div>
+                            <div className="text-lg font-bold text-red-600">{offlineDevices}</div>
                         </div>
-
-                        {/* Avg Uptime */}
-                        <div className="text-center p-3 bg-slate-50 rounded-lg">
-                            <div className="text-xs text-muted-foreground mb-1">Avg Uptime</div>
-                            <div className="text-2xl font-bold text-slate-900">{avgUptime}%</div>
+                        <div className="text-center p-2 bg-blue-50/50 rounded-lg border border-blue-100">
+                            <div className="text-[9px] font-bold text-blue-700 uppercase tracking-wider mb-0.5">🔧 Maint.</div>
+                            <div className="text-lg font-bold text-blue-600">{maintenanceDevices}</div>
+                        </div>
+                        <div className="text-center p-2 bg-slate-50/50 rounded-lg border border-slate-100">
+                            <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">Avg Uptime</div>
+                            <div className="text-lg font-bold text-slate-900">{avgUptime}%</div>
                         </div>
                     </div>
-                </CardContent>
-            </Card>
+                </div>
+            )}
 
             {/* Device Grid or Map View */}
             {viewMode === 'grid' ? (

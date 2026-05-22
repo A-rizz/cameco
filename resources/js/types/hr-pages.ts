@@ -430,8 +430,13 @@ export interface EmployeeReportsPageProps {
         count: number;
         percentage: number;
     }>;
+    by_employment_type: Array<{
+        type: string;
+        count: number;
+        percentage: number;
+    }>;
     recent_hires: Employee[];
-    headcount_trend?: Array<{
+    hiring_trend: Array<{
         month: string;
         count: number;
     }>;

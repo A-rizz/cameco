@@ -8,7 +8,7 @@ import { ImportDetailModal } from '@/components/timekeeping/import-detail-modal'
 import { ImportBatch, ImportError } from '@/types/timekeeping-pages';
 
 interface ImportManagementProps {
-    batches: ImportBatch[];
+    batches: ImportBatch[] | { data: ImportBatch[] };
     summary: {
         total_imports: number;
         pending: number;
@@ -19,7 +19,8 @@ interface ImportManagementProps {
 }
 
 export default function ImportManagement() {
-    const { batches = [], summary } = usePage().props as unknown as ImportManagementProps;
+    const { batches, summary } = usePage().props as unknown as ImportManagementProps;
+    const batchList = Array.isArray(batches) ? batches : (batches?.data || []);
 
     // Modal states
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -141,7 +142,7 @@ export default function ImportManagement() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {batches.slice(0, 10).map((batch) => (
+                                    {batchList.slice(0, 10).map((batch) => (
                                         <tr key={batch.id} className="border-b hover:bg-muted/50">
                                             <td className="py-3 px-4">{batch.id}</td>
                                             <td className="py-3 px-4">{batch.file_name}</td>

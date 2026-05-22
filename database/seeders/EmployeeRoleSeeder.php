@@ -140,7 +140,7 @@ class EmployeeRoleSeeder extends Seeder
                 [
                     'name' => $profile->full_name ?? "Employee {$employee->employee_number}",
                     'username' => $username,
-                    'password' => \Illuminate\Support\Facades\Hash::make('password123'),
+                    'password' => 'password123',
                     'email_verified_at' => now(),
                 ]
             );

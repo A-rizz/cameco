@@ -5,7 +5,15 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import AppLayout from '@/layouts/app-layout';
 import { Head } from '@inertiajs/react';
-import { AlertTriangle, Lock, Shield, Clock } from 'lucide-react';
+import { AlertTriangle, Lock, Shield, Clock, Info, User, Activity } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Separator } from '@/components/ui/separator';
 
 interface FailedLoginAttempt {
   user_id: number;
@@ -81,6 +89,7 @@ export default function SecurityReports({
   const [fromDate, setFromDate] = useState(from_date);
   const [toDate, setToDate] = useState(to_date);
   const [severityFilter, setSeverityFilter] = useState<'all' | 'critical' | 'warning'>('all');
+  const [selectedAlert, setSelectedAlert] = useState<SuspiciousAlert | null>(null);
 
   const handleDateFilter = () => {
     const params = new URLSearchParams({
@@ -377,21 +386,30 @@ export default function SecurityReports({
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {filteredAlerts.length > 0 ? (
                 filteredAlerts.map((alert, idx) => (
-                  <div key={idx} className="border rounded p-3 hover:bg-gray-200 dark:hover:bg-neutral-800">
+                  <div 
+                    key={idx} 
+                    className="group border rounded p-4 hover:bg-gray-100 dark:hover:bg-neutral-800 cursor-pointer transition-all duration-200 hover:border-amber-500/50 hover:shadow-md"
+                    onClick={() => setSelectedAlert(alert)}
+                  >
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        <Badge className={getSeverityColor(alert.severity)}>
+                        <Badge className={`${getSeverityColor(alert.severity)} font-bold`}>
                           {alert.severity.toUpperCase()}
                         </Badge>
-                        <span className="font-mono text-xs text-muted-foreground">User ID: {alert.user_id}</span>
+                        <span className="font-mono text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">ID: {alert.user_id}</span>
                       </div>
                       <span className="text-xs text-muted-foreground flex items-center gap-1">
                         <Clock className="h-3 w-3" />
                         {new Date(alert.timestamp).toLocaleString()}
                       </span>
                     </div>
-                    <p className="text-sm font-medium">{alert.action}</p>
-                    <p className="text-sm text-muted-foreground">{alert.description}</p>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-bold group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">{alert.action}</p>
+                        <p className="text-sm text-muted-foreground line-clamp-1">{alert.description}</p>
+                      </div>
+                      <Info className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
                   </div>
                 ))
               ) : (
@@ -400,6 +418,73 @@ export default function SecurityReports({
             </div>
           </CardContent>
         </Card>
+
+        {/* Alert Details Modal */}
+        <Dialog open={selectedAlert !== null} onOpenChange={(open) => !open && setSelectedAlert(null)}>
+          <DialogContent className="max-w-xl">
+            {selectedAlert && (
+              <>
+                <DialogHeader>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Badge className={`${getSeverityColor(selectedAlert.severity)} font-bold`}>
+                      {selectedAlert.severity.toUpperCase()}
+                    </Badge>
+                    <Badge variant="outline" className="font-mono">{selectedAlert.action}</Badge>
+                  </div>
+                  <DialogTitle className="text-xl flex items-center gap-2">
+                    <AlertTriangle className={`h-5 w-5 ${selectedAlert.severity === 'critical' ? 'text-red-500' : 'text-amber-500'}`} />
+                    Suspicious Activity Details
+                  </DialogTitle>
+                  <DialogDescription>
+                    Event recorded on {new Date(selectedAlert.timestamp).toLocaleString()}
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-4 py-4">
+                  <div className="flex items-center gap-4 p-3 rounded-lg bg-muted/50">
+                    <div className="h-10 w-10 rounded-full bg-background flex items-center justify-center border">
+                      <User className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold">Involved User</p>
+                      <p className="text-xs text-muted-foreground font-mono">User ID: {selectedAlert.user_id}</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="text-sm font-semibold mb-1 flex items-center gap-2">
+                      <Activity className="h-4 w-4" />
+                      Incident Description
+                    </h4>
+                    <p className="text-sm bg-muted/30 p-3 rounded-md border italic">
+                      "{selectedAlert.description}"
+                    </p>
+                  </div>
+
+                  <Separator />
+
+                  <div>
+                    <h4 className="text-sm font-semibold mb-2">Granular Metadata</h4>
+                    <div className="bg-slate-950 p-4 rounded-lg font-mono text-xs text-amber-400 overflow-x-auto">
+                      <pre>{JSON.stringify(selectedAlert.details, null, 2)}</pre>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setSelectedAlert(null)}>
+                    Dismiss
+                  </Button>
+                  <Button asChild>
+                    <a href={`/system/users/${selectedAlert.user_id}`}>
+                      View User Profile
+                    </a>
+                  </Button>
+                </div>
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </AppLayout>
   );

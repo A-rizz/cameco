@@ -95,7 +95,8 @@ class EmployeeRepository implements EmployeeRepositoryInterface
             'supervisor.profile',
             'subordinates.profile',
             'dependents',
-            'remarks.createdBy'
+            'remarks.createdBy',
+            'leaveBalances.leavePolicy'
         ])->find($id);
     }
 

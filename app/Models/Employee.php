@@ -315,4 +315,12 @@ class Employee extends Model
     {
         return $this->hasMany(OffboardingCase::class);
     }
+
+    /**
+     * Get all leave balances for this employee.
+     */
+    public function leaveBalances(): HasMany
+    {
+        return $this->hasMany(LeaveBalance::class);
+    }
 }

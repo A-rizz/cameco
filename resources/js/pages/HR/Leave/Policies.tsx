@@ -233,7 +233,7 @@ export default function LeavePolicies({ policies }: LeavePoliciesProps) {
                         isOpen={isDetailsModalOpen}
                         onClose={() => setIsDetailsModalOpen(false)}
                         policy={selectedPolicy}
-                        onEdit={handleEditFromDetails}
+                        onEdit={() => handleEditFromDetails(selectedPolicy)}
                     />
                 )}
 

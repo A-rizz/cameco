@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { AlertCircle, Archive } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface EmployeeArchiveDialogProps {
     open: boolean;
@@ -30,6 +31,7 @@ export function EmployeeArchiveDialog({
 }: EmployeeArchiveDialogProps) {
     const [reason, setReason] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const { toast } = useToast();
 
     const handleArchive = () => {
         setIsSubmitting(true);
@@ -37,10 +39,20 @@ export function EmployeeArchiveDialog({
         router.delete(`/hr/employees/${employeeId}`, {
             data: { reason },
             onSuccess: () => {
+                toast({
+                    title: "Success",
+                    description: "Employee archived successfully.",
+                    variant: "success",
+                });
                 onOpenChange(false);
                 setReason('');
             },
             onError: () => {
+                toast({
+                    title: "Error",
+                    description: "Failed to archive employee. Please try again.",
+                    variant: "destructive",
+                });
                 setIsSubmitting(false);
             },
             onFinish: () => {

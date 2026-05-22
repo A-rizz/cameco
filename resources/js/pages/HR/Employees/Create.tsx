@@ -1,4 +1,5 @@
 import AppLayout from '@/layouts/app-layout';
+import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Save } from 'lucide-react';
@@ -21,10 +22,8 @@ import {
     GovernmentIDsSection, 
     type GovernmentIDsData 
 } from '@/components/hr/forms/government-ids-section';
-import { 
-    DependentsSection, 
-    type EmployeeDependentData 
-} from '@/components/hr/forms/dependents-section';
+import { DependentsSection, type EmployeeDependentData } from '@/components/hr/forms/dependents-section';
+import { useToast } from '@/hooks/use-toast';
 
 // ============================================================================
 // Type Definitions
@@ -33,6 +32,7 @@ import {
 interface Department {
     id: number;
     name: string;
+    parent_id: number | null;
 }
 
 interface Position {
@@ -55,12 +55,19 @@ interface CreateEmployeeProps {
 
 type EmployeeFormData = PersonalInfoData & EmploymentInfoData & EmergencyContactData & GovernmentIDsData;
 
+const breadcrumbs: BreadcrumbItem[] = [
+    { title: 'HR Dashboard', href: '/hr/dashboard' },
+    { title: 'Employees', href: '/hr/employees' },
+    { title: 'Create Employee', href: '/hr/employees/create' },
+];
+
 // ============================================================================
 // Component
 // ============================================================================
 
 export default function CreateEmployee({ departments = [], positions = [], supervisors = [] }: CreateEmployeeProps) {
     const { hasPermission } = usePermission();
+    const { toast } = useToast();
     
     // Redirect if user doesn't have create permission
     useEffect(() => {
@@ -244,13 +251,17 @@ export default function CreateEmployee({ departments = [], positions = [], super
             }
         });
 
-        // Use axios for FormData upload instead of Inertia router
         axios.post('/hr/employees', formData, {
             headers: {
                 'Content-Type': 'multipart/form-data',
             },
         })
             .then((response) => {
+                toast({
+                    title: "Success",
+                    description: response.data?.message || "Employee created successfully.",
+                    variant: "success",
+                });
                 // Redirect to show page on success
                 if (response.data?.employee_id) {
                     router.visit(`/hr/employees/${response.data.employee_id}`, { method: 'get' });
@@ -265,6 +276,12 @@ export default function CreateEmployee({ departments = [], positions = [], super
                     data: error.response?.data,
                     errors: error.response?.data?.errors,
                 });
+
+                toast({
+                    title: "Error",
+                    description: error.response?.data?.message || "Failed to create employee. Please check the form for errors.",
+                    variant: "destructive",
+                });
                 
                 if (error.response?.data?.errors) {
                     setErrors(error.response.data.errors as Partial<Record<keyof EmployeeFormData, string>>);
@@ -276,22 +293,24 @@ export default function CreateEmployee({ departments = [], positions = [], super
     };
 
     return (
-        <AppLayout>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Create Employee" />
 
-            <div className="space-y-6 p-6">
+            <div className="max-w-[1200px] mx-auto space-y-8 p-6 md:p-8">
                 {/* Header */}
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div className="flex items-center gap-5">
                         <Link href="/hr/employees">
-                            <Button variant="ghost" size="icon">
-                                <ArrowLeft className="h-4 w-4" />
+                            <Button variant="ghost" size="icon" className="rounded-full h-11 w-11 hover:bg-muted transition-colors">
+                                <ArrowLeft className="h-5 w-5" />
                             </Button>
                         </Link>
-                        <div>
-                            <h1 className="text-3xl font-bold tracking-tight">Create New Employee</h1>
-                            <p className="text-muted-foreground">
-                                Add a new employee to the system
+                        <div className="space-y-1">
+                            <h1 className="text-4xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">
+                                Create Employee
+                            </h1>
+                            <p className="text-lg text-muted-foreground">
+                                Add a new member to the company workforce.
                             </p>
                         </div>
                     </div>
@@ -340,15 +359,33 @@ export default function CreateEmployee({ departments = [], positions = [], super
                     />
 
                     {/* Form Actions */}
-                    <div className="flex items-center justify-end gap-4 pt-6 border-t">
+                    <div className="flex items-center justify-end gap-4 pt-8 border-t border-border/50">
                         <Link href="/hr/employees">
-                            <Button type="button" variant="outline" disabled={isSubmitting}>
+                            <Button 
+                                type="button" 
+                                variant="outline" 
+                                disabled={isSubmitting}
+                                className="px-8 py-6 rounded-2xl border-border/60 hover:bg-muted transition-all active:scale-95 font-semibold"
+                            >
                                 Cancel
                             </Button>
                         </Link>
-                        <Button type="submit" disabled={isSubmitting}>
-                            <Save className="h-4 w-4 mr-2" />
-                            {isSubmitting ? 'Creating...' : 'Create Employee'}
+                        <Button 
+                            type="submit" 
+                            disabled={isSubmitting}
+                            className="px-10 py-6 rounded-2xl bg-primary shadow-lg shadow-primary/20 hover:shadow-xl transition-all active:scale-95 font-bold"
+                        >
+                            {isSubmitting ? (
+                                <span className="flex items-center gap-2">
+                                    <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    Creating...
+                                </span>
+                            ) : (
+                                <span className="flex items-center gap-2">
+                                    <Save className="h-5 w-5" />
+                                    Create Employee
+                                </span>
+                            )}
                         </Button>
                     </div>
                 </form>

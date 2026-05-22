@@ -82,7 +82,7 @@ class PayrollOfficerAccountSeeder extends Seeder
             [
                 'name' => 'Maria Santos Reyes',
                 'username' => 'payroll_officer',
-                'password' => Hash::make('payroll123'),
+                'password' => 'payroll123',
                 'email' => 'payroll@cathay.com',
                 'email_verified_at' => now(),
             ]

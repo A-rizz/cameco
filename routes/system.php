@@ -38,7 +38,7 @@ use \App\Http\Controllers\System\SystemAdministration\VendorContractController;
 use \App\Http\Controllers\System\Timekeeping\DeviceManagementController;
 
 
-Route::middleware(['auth', 'superadmin'])->group(function () {
+Route::middleware(['auth', 'superadmin', 'module:system'])->group(function () {
 
     // System Dashboard
     Route::get('/system/dashboard', [DashboardController::class, 'index'])
@@ -52,8 +52,11 @@ Route::middleware(['auth', 'superadmin'])->group(function () {
     // Backup Management
     Route::prefix('system/backups')->group(function () {
         Route::get('/', [BackupController::class, 'index'])->name('system.backups');
+        Route::get('/status', [BackupController::class, 'getStatus'])->name('system.backups.status');
         Route::get('/{backup}', [BackupController::class, 'show'])->name('system.backups.show');
         Route::post('/trigger', [BackupController::class, 'trigger'])->name('system.backups.trigger');
+        Route::post('/download', [BackupController::class, 'download'])->name('system.backups.download');
+        Route::post('/delete-file', [BackupController::class, 'deleteFile'])->name('system.backups.delete-file');
         Route::post('/schedule', [BackupController::class, 'updateSchedule'])->name('system.backups.schedule');
         Route::post('/retention', [BackupController::class, 'updateRetention'])->name('system.backups.retention');
         Route::post('/{backup}/restore', [BackupController::class, 'restore'])->name('system.backups.restore');
@@ -203,13 +206,15 @@ Route::middleware(['auth', 'superadmin'])->group(function () {
         Route::post('/cache/clear', [VendorContractController::class, 'clearCache'])->name('system.vendor-contract.cache.clear');
     });
 
-    // Timekeeping Device Management (RFID)
-    Route::prefix('system/timekeeping/devices')->group(function () {
-        Route::get('/', [DeviceManagementController::class, 'index'])->name('system.timekeeping.devices.index');
-        Route::post('/', [DeviceManagementController::class, 'store'])->name('system.timekeeping.devices.store');
-        Route::patch('/{device}', [DeviceManagementController::class, 'update'])->name('system.timekeeping.devices.update');
-        Route::delete('/{device}', [DeviceManagementController::class, 'destroy'])->name('system.timekeeping.devices.destroy');
-        Route::post('/{device}/generate-key', [DeviceManagementController::class, 'generateKey'])->name('system.timekeeping.devices.generate-key');
-        Route::post('/{device}/revoke-key', [DeviceManagementController::class, 'revokeKey'])->name('system.timekeeping.devices.revoke-key');
-    });
+    // Timekeeping Device Management (RFID) — requires timekeeping module to be enabled
+    Route::prefix('system/timekeeping/devices')
+        ->middleware('module:timekeeping')
+        ->group(function () {
+            Route::get('/', [DeviceManagementController::class, 'index'])->name('system.timekeeping.devices.index');
+            Route::post('/', [DeviceManagementController::class, 'store'])->name('system.timekeeping.devices.store');
+            Route::patch('/{device}', [DeviceManagementController::class, 'update'])->name('system.timekeeping.devices.update');
+            Route::delete('/{device}', [DeviceManagementController::class, 'destroy'])->name('system.timekeeping.devices.destroy');
+            Route::post('/{device}/generate-key', [DeviceManagementController::class, 'generateKey'])->name('system.timekeeping.devices.generate-key');
+            Route::post('/{device}/revoke-key', [DeviceManagementController::class, 'revokeKey'])->name('system.timekeeping.devices.revoke-key');
+        });
 });

@@ -18,9 +18,9 @@ return new class extends Migration
 
         // Backfill department_id for all leave_requests
         DB::statement('
-            UPDATE leave_requests lr
+            UPDATE leave_requests
             SET department_id = (
-                SELECT e.department_id FROM employees e WHERE e.id = lr.employee_id
+                SELECT department_id FROM employees WHERE id = leave_requests.employee_id
             )
         ');
     }

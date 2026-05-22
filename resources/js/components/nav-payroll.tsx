@@ -162,7 +162,7 @@ export function NavPayroll() {
                 <Collapsible defaultOpen={isPayrollPeriodsActive} className="group/collapsible">
                     <SidebarMenuItem>
                         <CollapsibleTrigger asChild>
-                            <SidebarMenuButton className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+                            <SidebarMenuButton tooltip="Payroll Processing" className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
                                 <Calculator className="h-4 w-4" />
                                 <span>Payroll Processing</span>
                                 <ChevronRight className="ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
@@ -194,7 +194,7 @@ export function NavPayroll() {
                 <Collapsible defaultOpen={isEmployeePayrollActive} className="group/collapsible">
                     <SidebarMenuItem>
                         <CollapsibleTrigger asChild>
-                            <SidebarMenuButton className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+                            <SidebarMenuButton tooltip="Employee Payroll" className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
                                 <Users className="h-4 w-4" />
                                 <span>Employee Payroll</span>
                                 <ChevronRight className="ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
@@ -226,7 +226,7 @@ export function NavPayroll() {
                 <Collapsible defaultOpen={isGovernmentComplianceActive} className="group/collapsible">
                     <SidebarMenuItem>
                         <CollapsibleTrigger asChild>
-                            <SidebarMenuButton className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+                            <SidebarMenuButton tooltip="Government Compliance" className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
                                 <Building2 className="h-4 w-4" />
                                 <span>Government Compliance</span>
                                 <ChevronRight className="ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
@@ -258,7 +258,7 @@ export function NavPayroll() {
                 <Collapsible defaultOpen={isPaymentsActive} className="group/collapsible">
                     <SidebarMenuItem>
                         <CollapsibleTrigger asChild>
-                            <SidebarMenuButton className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+                            <SidebarMenuButton tooltip="Payments" className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
                                 <CreditCard className="h-4 w-4" />
                                 <span>Payments</span>
                                 <ChevronRight className="ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
@@ -290,7 +290,7 @@ export function NavPayroll() {
                 <Collapsible defaultOpen={isReportsActive} className="group/collapsible">
                     <SidebarMenuItem>
                         <CollapsibleTrigger asChild>
-                            <SidebarMenuButton className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+                            <SidebarMenuButton tooltip="Reports & Analytics" className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
                                 <BarChart3 className="h-4 w-4" />
                                 <span>Reports & Analytics</span>
                                 <ChevronRight className="ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />

@@ -32,7 +32,19 @@ interface OvertimeRequestsIndexProps {
 }
 
 export default function OvertimeIndex() {
-    const { overtime = { data: [] }, employees = [], summary } = usePage().props as unknown as OvertimeRequestsIndexProps;
+    const { 
+        overtime = { 
+            data: [], 
+            current_page: 1, 
+            last_page: 1, 
+            total: 0, 
+            per_page: 15, 
+            links: { prev: null, next: null }, 
+            meta: {} 
+        } as PaginatedResponse<OvertimeRecord>, 
+        employees = [], 
+        summary 
+    } = usePage().props as unknown as OvertimeRequestsIndexProps;
     const { hasPermission } = usePermission();
 
     // Modal states
@@ -198,7 +210,7 @@ export default function OvertimeIndex() {
                             </div>
 
                             <div className="flex items-center gap-2">
-                                <Link href={overtime.links?.prev} preserve={['page']}>
+                                <Link href={overtime.links?.prev || '#'} preserveScroll preserveState>
                                     <Button
                                         variant="outline"
                                         size="sm"
@@ -215,7 +227,8 @@ export default function OvertimeIndex() {
                                         <Link
                                             key={page}
                                             href={`/hr/timekeeping/overtime?page=${page}`}
-                                            preserve={['filters']}
+                                            preserveScroll
+                                            preserveState
                                         >
                                             <Button
                                                 variant={page === overtime.current_page ? "default" : "outline"}
@@ -228,7 +241,7 @@ export default function OvertimeIndex() {
                                     ))}
                                 </div>
 
-                                <Link href={overtime.links?.next} preserve={['page']}>
+                                <Link href={overtime.links?.next || '#'} preserveScroll preserveState>
                                     <Button
                                         variant="outline"
                                         size="sm"

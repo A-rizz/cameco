@@ -35,6 +35,7 @@ interface TimeLogsStreamProps {
     showLiveIndicator?: boolean;
     className?: string;
     autoScroll?: boolean;
+    headerActions?: React.ReactNode;
 }
 
 /**
@@ -959,6 +960,7 @@ export function TimeLogsStream({
     maxHeight = '600px',
     showLiveIndicator = true,
     autoScroll = true,
+    headerActions,
     className 
 }: TimeLogsStreamProps) {
     const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -1039,11 +1041,11 @@ export function TimeLogsStream({
 
     return (
         <Card className={cn('w-full', className)}>
-            <CardHeader>
-                <div className="flex items-center justify-between">
+            <CardHeader className="pb-2.5 p-4">
+                <div className="flex items-center justify-between flex-wrap gap-2">
                     <div>
-                        <CardTitle className="flex items-center gap-3">
-                            Live Event Stream
+                        <CardTitle className="flex items-center gap-2 text-base">
+                            {showLiveIndicator ? 'Live Event Stream' : 'Replay Event Stream'}
                             {showLiveIndicator && (
                                 <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-50 border border-green-200">
                                     <span className="relative flex h-2 w-2">
@@ -1056,19 +1058,21 @@ export function TimeLogsStream({
                                 </div>
                             )}
                         </CardTitle>
-                        <CardDescription>
-                            Real-time RFID attendance events from ledger
+                        <CardDescription className="text-xs">
+                            Real-time RFID attendance events from ledger • {logs.length} Events
                         </CardDescription>
                     </div>
-                    <Badge variant="outline" className="text-xs">
-                        {logs.length} Events
-                    </Badge>
+                    {headerActions && (
+                        <div className="flex items-center gap-2">
+                            {headerActions}
+                        </div>
+                    )}
                 </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-3">
                 <div 
                     ref={scrollContainerRef}
-                    className="space-y-2 overflow-y-auto pr-2 scroll-smooth"
+                    className="space-y-1.5 overflow-y-auto pr-1 scroll-smooth"
                     style={{ maxHeight }}
                 >
                     {logs.map((log, index) => {
@@ -1084,8 +1088,8 @@ export function TimeLogsStream({
                                     <div
                                         onClick={() => handleLogClick(log)}
                                         className={cn(
-                                            'group relative flex items-start gap-3 p-3 rounded-lg border-2 transition-all duration-200',
-                                            'hover:shadow-lg hover:scale-[1.02] cursor-pointer',
+                                            'group relative flex items-start gap-2.5 p-2 rounded-lg border transition-all duration-200',
+                                            'hover:shadow-md hover:scale-[1.01] cursor-pointer',
                                             config.bgColor,
                                             config.borderColor,
                                             // Slide-in animation for new entries appearing at top
@@ -1093,67 +1097,72 @@ export function TimeLogsStream({
                                         )}
                                     >
                                         {/* Employee Avatar */}
-                                        <Avatar className="h-10 w-10 border-2 border-white shadow-sm">
+                                        <Avatar className="h-8 w-8 border shadow-sm flex-shrink-0">
                                             <AvatarImage src={log.employeePhoto} alt={log.employeeName} />
-                                            <AvatarFallback className={cn(config.badgeBg, config.color, 'font-semibold')}>
+                                            <AvatarFallback className={cn(config.badgeBg, config.color, 'font-semibold text-xs')}>
                                                 {initials}
                                             </AvatarFallback>
                                         </Avatar>
 
                                         {/* Event Details */}
                                         <div className="flex-1 min-w-0">
-                                            {/* Employee Name & ID */}
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <span className="font-semibold text-sm text-gray-900 truncate">
-                                                    {log.employeeName}
-                                                </span>
-                                                <span className="text-xs text-gray-500 font-mono">
-                                                    {log.employeeId}
-                                                </span>
+                                            {/* Line 1: Employee Name, ID & Timestamp */}
+                                            <div className="flex items-center justify-between gap-2">
+                                                <div className="flex items-center gap-1.5 min-w-0">
+                                                    <span className="font-semibold text-sm text-gray-900 truncate">
+                                                        {log.employeeName}
+                                                    </span>
+                                                    <span className="text-[11px] text-gray-400 font-mono truncate hidden sm:inline">
+                                                        {log.employeeId}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center gap-1 text-xs text-gray-500 font-medium flex-shrink-0">
+                                                    <Clock className="h-3.5 w-3.5 text-gray-400" />
+                                                    <span>{timeStr}</span>
+                                                </div>
                                             </div>
 
-                                            {/* Event Type Badge & Timestamp */}
-                                            <div className="flex items-center gap-2 flex-wrap mb-2">
+                                            {/* Line 2: Badge, Location, Verification, Sequence */}
+                                            <div className="flex items-center gap-2 flex-wrap mt-0.5 text-[11px] text-gray-500">
                                                 <Badge 
                                                     variant="secondary"
                                                     className={cn(
-                                                        'text-xs font-semibold border',
+                                                        'text-[9px] leading-none font-semibold px-1.5 py-0.5 border',
                                                         config.color,
                                                         config.badgeBg,
                                                         config.borderColor
                                                     )}
                                                 >
-                                                    <span className="mr-1">{config.emoji}</span>
+                                                    <span className="mr-0.5">{config.emoji}</span>
                                                     {config.label}
                                                 </Badge>
-                                                <div className="flex items-center gap-1 text-xs text-gray-700 font-medium">
-                                                    <Clock className="h-3 w-3" />
-                                                    <span>{timeStr}</span>
+                                                
+                                                <span className="text-gray-300">•</span>
+                                                
+                                                <div className="flex items-center gap-0.5">
+                                                    <MapPin className="h-3 w-3 text-gray-400" />
+                                                    <span className="truncate max-w-[120px] md:max-w-[180px]">{log.deviceLocation}</span>
                                                 </div>
-                                            </div>
 
-                                            {/* Device Location */}
-                                            <div className="flex items-center gap-1 text-xs text-gray-600 mb-1">
-                                                <MapPin className="h-3 w-3" />
-                                                <span>{log.deviceLocation}</span>
-                                            </div>
-
-                                            {/* Sequence ID & Verification Status */}
-                                            <div className="flex items-center gap-3 text-xs">
-                                                <div className="flex items-center gap-1 text-gray-500">
-                                                    <Hash className="h-3 w-3" />
-                                                    <span className="font-mono">{log.sequenceId}</span>
+                                                <span className="text-gray-300">•</span>
+                                                
+                                                <div className="flex items-center gap-0.5 font-mono text-[10px]">
+                                                    <Hash className="h-3 w-3 text-gray-400" />
+                                                    <span>{log.sequenceId}</span>
                                                 </div>
-                                                <div className="flex items-center gap-1">
+
+                                                <span className="text-gray-300">•</span>
+
+                                                <div className="flex items-center gap-0.5">
                                                     {log.verified ? (
                                                         <>
                                                             <Lock className="h-3 w-3 text-green-600" />
-                                                            <span className="text-green-600 font-medium">Verified</span>
+                                                            <span className="text-green-600 font-medium text-[10px]">Verified</span>
                                                         </>
                                                     ) : (
                                                         <>
                                                             <AlertTriangle className="h-3 w-3 text-yellow-600" />
-                                                            <span className="text-yellow-600 font-medium">Pending</span>
+                                                            <span className="text-yellow-600 font-medium text-[10px]">Pending</span>
                                                         </>
                                                     )}
                                                 </div>
@@ -1162,8 +1171,8 @@ export function TimeLogsStream({
 
                                         {/* Hover Effect - Show latency badge */}
                                         {log.latencyMs && (
-                                            <div className="absolute right-3 top-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <Badge variant="outline" className="text-xs">
+                                            <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <Badge variant="outline" className="text-[9px] px-1 py-0 h-4">
                                                     {log.latencyMs}ms
                                                 </Badge>
                                             </div>

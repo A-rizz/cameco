@@ -1,9 +1,18 @@
+import { useState } from 'react';
 import AppLayout from '@/layouts/app-layout';
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from '@/components/ui/dialog';
 import {
 	ArrowLeft,
 	CheckCircle2,
@@ -88,16 +97,52 @@ export default function UserDetailPage({ user, auditLogs, loginHistory }: UserDe
 		{ title: user.name, href: '#' },
 	];
 
+	const { flash } = usePage<{ flash?: { success?: string; error?: string; new_password?: string } }>().props;
+	const [resetResult, setResetResult] = useState<{ name: string; password: string } | null>(null);
+	const [confirmation, setConfirmation] = useState<{
+		title: string;
+		description: string;
+		onConfirm: () => void;
+		confirmText: string;
+		variant: 'default' | 'destructive' | 'amber';
+	} | null>(null);
+
 	function handleResetPassword() {
-		if (!confirm('Send password reset email to this user?')) return;
-		router.post(`/system/users/${user.id}/password-reset`);
+		setConfirmation({
+			title: 'Reset User Password',
+			description: `Are you sure you want to generate a new password for ${user.name}? The current password will be invalidated immediately.`,
+			confirmText: 'Generate New Password',
+			variant: 'amber',
+			onConfirm: () => {
+				router.post(`/system/users/${user.id}/password-reset`, {}, {
+					preserveScroll: true,
+					onSuccess: (page) => {
+						const flashProps = page.props.flash as { new_password?: string };
+						if (flashProps.new_password) {
+							setResetResult({ name: user.name, password: flashProps.new_password });
+						}
+						setConfirmation(null);
+					}
+				});
+			}
+		});
 	}
 
 	function handleToggleActive() {
 		const action = user.is_active ? 'deactivate' : 'activate';
-		const label = user.is_active ? 'deactivate' : 'activate';
-		if (!confirm(`Are you sure you want to ${label} this user?`)) return;
-		router.post(`/system/users/${user.id}/${action}`);
+		const label = user.is_active ? 'Deactivate' : 'Activate';
+		
+		setConfirmation({
+			title: `${label} User Account`,
+			description: `Are you sure you want to ${label.toLowerCase()} ${user.name}'s account?`,
+			confirmText: label,
+			variant: user.is_active ? 'destructive' : 'default',
+			onConfirm: () => {
+				router.post(`/system/users/${user.id}/${action}`, {}, {
+					onSuccess: () => setConfirmation(null)
+				});
+			}
+		});
 	}
 
 	return (
@@ -105,6 +150,18 @@ export default function UserDetailPage({ user, auditLogs, loginHistory }: UserDe
 			<Head title={`User: ${user.name}`} />
 
 			<div className="flex flex-col gap-6 p-4 md:p-6">
+				{/* Flash messages */}
+				{flash?.success && !flash?.new_password && (
+					<div className="rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-800 dark:bg-green-950 dark:text-green-200">
+						{flash.success}
+					</div>
+				)}
+				{flash?.error && (
+					<div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
+						{flash.error}
+					</div>
+				)}
+
 				{/* Header */}
 				<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 					<div className="flex items-center gap-3">
@@ -312,6 +369,62 @@ export default function UserDetailPage({ user, auditLogs, loginHistory }: UserDe
 					</div>
 				</div>
 			</div>
+
+			{/* Action Confirmation Modal */}
+			<Dialog open={confirmation !== null} onOpenChange={(open) => !open && setConfirmation(null)}>
+				<DialogContent className="max-w-md">
+					{confirmation && (
+						<>
+							<DialogHeader>
+								<DialogTitle>{confirmation.title}</DialogTitle>
+								<DialogDescription>{confirmation.description}</DialogDescription>
+							</DialogHeader>
+							<DialogFooter className="gap-2 sm:gap-0">
+								<Button variant="outline" onClick={() => setConfirmation(null)}>
+									Cancel
+								</Button>
+								<Button 
+									variant={confirmation.variant === 'destructive' ? 'destructive' : 'default'}
+									className={confirmation.variant === 'amber' ? 'bg-amber-600 hover:bg-amber-700 text-white' : ''}
+									onClick={confirmation.onConfirm}
+								>
+									{confirmation.confirmText}
+								</Button>
+							</DialogFooter>
+						</>
+					)}
+				</DialogContent>
+			</Dialog>
+
+			{/* Password Reset Result Modal */}
+			<Dialog open={resetResult !== null} onOpenChange={() => setResetResult(null)}>
+				<DialogContent className="max-w-md">
+					<DialogHeader>
+						<DialogTitle className="flex items-center gap-2">
+							<KeyRound className="h-5 w-5 text-amber-500" />
+							Password Reset Successful
+						</DialogTitle>
+						<DialogDescription>
+							A new password has been generated for <strong>{resetResult?.name}</strong>.
+						</DialogDescription>
+					</DialogHeader>
+
+					<div className="space-y-4 py-4">
+						<div className="rounded-lg bg-slate-950 p-4 font-mono text-2xl text-center tracking-widest text-amber-400 select-all border border-amber-500/20 shadow-inner">
+							{resetResult?.password}
+						</div>
+						<p className="text-xs text-muted-foreground text-center">
+							Please copy this password now. It will not be shown again for security reasons.
+						</p>
+					</div>
+
+					<DialogFooter>
+						<Button onClick={() => setResetResult(null)} className="w-full bg-amber-600 hover:bg-amber-700 text-white">
+							I have copied the password
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 		</AppLayout>
 	);
 }

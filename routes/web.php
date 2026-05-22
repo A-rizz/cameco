@@ -25,6 +25,7 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
 // PUBLIC JOB POSTINGS (No Authentication Required)
 Route::prefix('job-postings')
     ->name('public.job-postings.')
+    ->middleware('module:ats')
     ->group(function () {
         Route::get('/', [JobPostingsController::class, 'index'])
             ->name('index');
@@ -38,7 +39,7 @@ Route::prefix('job-postings')
     });
 
 // HR ATS MODULE
-Route::middleware(['auth'])
+Route::middleware(['auth', 'module:ats'])
     ->prefix('hr/ats')
     ->name('hr.ats.')
     ->group(function () {
@@ -85,5 +86,27 @@ Route::middleware(['auth'])
         // hiring pipeline 
         Route::put('pipeline/applications/{application}/move', [ApplicationController::class, 'move'])
     ->name('applications.move');
-    
-});
+    });
+
+// ──────────────────────────────────────────────────────────────
+// PASSWORD RESET REQUESTS (custom superadmin-managed flow)
+// ──────────────────────────────────────────────────────────────
+
+// User-facing: submit a reset request (guest only)
+Route::post('/password-reset-request', [\App\Http\Controllers\Auth\PasswordResetRequestController::class, 'store'])
+    ->middleware('guest')
+    ->name('password.request.store');
+
+// Superadmin-facing: manage pending requests
+Route::middleware(['auth', 'role:Superadmin'])
+    ->prefix('admin/password-requests')
+    ->name('admin.password-requests.')
+    ->group(function () {
+        Route::get('/', [\App\Http\Controllers\Admin\PasswordRequestsController::class, 'index'])
+            ->name('index');
+        Route::post('/{passwordRequest}/process', [\App\Http\Controllers\Admin\PasswordRequestsController::class, 'process'])
+            ->name('process');
+        Route::post('/{passwordRequest}/reject', [\App\Http\Controllers\Admin\PasswordRequestsController::class, 'reject'])
+            ->name('reject');
+    });
+

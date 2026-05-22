@@ -111,6 +111,7 @@ export default function Cron({ jobs, metrics, availableCommands, filters }: Prop
     const [showCreateDialog, setShowCreateDialog] = useState(false);
     const [showEditDialog, setShowEditDialog] = useState(false);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const [showRunDialog, setShowRunDialog] = useState(false);
     const [selectedJob, setSelectedJob] = useState<ScheduledJob | null>(null);
     const [isSyncing, setIsSyncing] = useState(false);
 
@@ -151,12 +152,16 @@ export default function Cron({ jobs, metrics, availableCommands, filters }: Prop
         });
     };
 
-    const handleRun = (jobId: number) => {
-        if (confirm('Are you sure you want to run this job now?')) {
-            router.post(`/system/cron/${jobId}/run`, {}, {
-                preserveScroll: true,
-            });
-        }
+    const handleRun = () => {
+        if (!selectedJob) return;
+
+        router.post(`/system/cron/${selectedJob.id}/run`, {}, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setShowRunDialog(false);
+                setSelectedJob(null);
+            }
+        });
     };
 
     const handleDelete = () => {
@@ -467,7 +472,10 @@ export default function Cron({ jobs, metrics, availableCommands, filters }: Prop
                                                                 </Button>
                                                             </DropdownMenuTrigger>
                                                             <DropdownMenuContent align="end">
-                                                                <DropdownMenuItem onClick={() => handleRun(job.id)}>
+                                                                <DropdownMenuItem onClick={() => {
+                                                                    setSelectedJob(job);
+                                                                    setShowRunDialog(true);
+                                                                }}>
                                                                     <Play className="mr-2 h-4 w-4" />
                                                                     Run Now
                                                                 </DropdownMenuItem>
@@ -746,6 +754,31 @@ export default function Cron({ jobs, metrics, availableCommands, filters }: Prop
                                 onClick={handleDelete}
                             >
                                 Delete Job
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Run Confirmation Dialog */}
+                <Dialog open={showRunDialog} onOpenChange={setShowRunDialog}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Execute Job</DialogTitle>
+                            <DialogDescription>
+                                Are you sure you want to run "{selectedJob?.name}" right now? This will execute the command in the background.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter>
+                            <Button 
+                                variant="outline" 
+                                onClick={() => setShowRunDialog(false)}
+                            >
+                                Cancel
+                            </Button>
+                            <Button 
+                                onClick={handleRun}
+                            >
+                                Run Now
                             </Button>
                         </DialogFooter>
                     </DialogContent>

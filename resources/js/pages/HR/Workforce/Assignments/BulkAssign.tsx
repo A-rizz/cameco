@@ -190,7 +190,7 @@ export default function BulkAssignPage() {
             
             // Ensure conflicts data is properly structured
             const conflicts = Array.isArray(data.conflicts)
-                ? data.conflicts.map((conflict) => ({
+                ? data.conflicts.map((conflict: any) => ({
                     ...conflict,
                     conflicting_dates: Array.isArray(conflict.conflicting_dates)
                         ? conflict.conflicting_dates

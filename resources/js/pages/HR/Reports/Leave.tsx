@@ -17,7 +17,7 @@ const breadcrumbs = [
 export default function LeaveReports({ summary, by_type, by_status, by_month }: LeaveReportsPageProps) {
     const totalRequests = (summary?.total_pending_requests || 0) + (summary?.total_approved_requests || 0) + (summary?.total_rejected_requests || 0);
     // Debug: Log by_month prop
-    // eslint-disable-next-line no-console
+     
     console.log('LeaveReports by_month:', by_month);
 
     // Fix: Convert by_month object to array if needed

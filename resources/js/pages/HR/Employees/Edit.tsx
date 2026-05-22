@@ -21,10 +21,8 @@ import {
     GovernmentIDsSection, 
     type GovernmentIDsData 
 } from '@/components/hr/forms/government-ids-section';
-import { 
-    DependentsSection, 
-    type EmployeeDependentData 
-} from '@/components/hr/forms/dependents-section';
+import { DependentsSection, type EmployeeDependentData } from '@/components/hr/forms/dependents-section';
+import { useToast } from '@/hooks/use-toast';
 
 // ============================================================================
 // Type Definitions
@@ -33,6 +31,7 @@ import {
 interface Department {
     id: number;
     name: string;
+    parent_id: number | null;
 }
 
 interface Position {
@@ -114,6 +113,7 @@ export default function EditEmployee({
     supervisors = [] 
 }: EditEmployeeProps) {
     const { hasPermission } = usePermission();
+    const { toast } = useToast();
     
     // Redirect if user doesn't have update permission
     useEffect(() => {
@@ -317,13 +317,17 @@ export default function EditEmployee({
             personalInfo_profile_picture: personalInfo.profile_picture,
         });
 
-        // Use axios for FormData upload instead of Inertia router
         axios.post(`/hr/employees/${employee.id}?_method=PUT`, formData, {
             headers: {
                 'Content-Type': 'multipart/form-data',
             },
         })
-            .then(() => {
+            .then((response) => {
+                toast({
+                    title: "Success",
+                    description: response.data?.message || "Employee updated successfully.",
+                    variant: "success",
+                });
                 // Redirect on success
                 router.visit(`/hr/employees/${employee.id}`, { method: 'get' });
             })
@@ -335,6 +339,12 @@ export default function EditEmployee({
                     errors: error.response?.data?.errors,
                 });
                 
+                toast({
+                    title: "Error",
+                    description: error.response?.data?.message || "Failed to update employee. Please check the form for errors.",
+                    variant: "destructive",
+                });
+
                 if (error.response?.data?.errors) {
                     setErrors(error.response.data.errors as Partial<Record<keyof EmployeeFormData, string>>);
                 } else if (error.response?.statusText) {
@@ -348,19 +358,21 @@ export default function EditEmployee({
         <AppLayout>
             <Head title={`Edit Employee - ${employee.employee_number}`} />
 
-            <div className="space-y-6 p-6">
+            <div className="max-w-[1200px] mx-auto space-y-8 p-6 md:p-8">
                 {/* Header */}
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <Link href="/hr/employees">
-                            <Button variant="ghost" size="icon">
-                                <ArrowLeft className="h-4 w-4" />
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div className="flex items-center gap-5">
+                        <Link href={`/hr/employees/${employee.id}`}>
+                            <Button variant="ghost" size="icon" className="rounded-full h-11 w-11 hover:bg-muted transition-colors">
+                                <ArrowLeft className="h-5 w-5" />
                             </Button>
                         </Link>
-                        <div>
-                            <h1 className="text-3xl font-bold tracking-tight">Edit Employee</h1>
-                            <p className="text-muted-foreground">
-                                Update employee information for {employee.employee_number}
+                        <div className="space-y-1">
+                            <h1 className="text-4xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">
+                                Edit Employee
+                            </h1>
+                            <p className="text-lg text-muted-foreground">
+                                Updating profile for <span className="font-semibold text-foreground">{employee.profile.first_name} {employee.profile.last_name}</span> ({employee.employee_number})
                             </p>
                         </div>
                     </div>
@@ -409,15 +421,33 @@ export default function EditEmployee({
                     />
 
                     {/* Form Actions */}
-                    <div className="flex items-center justify-end gap-4 pt-6 border-t">
-                        <Link href="/hr/employees">
-                            <Button type="button" variant="outline" disabled={isSubmitting}>
+                    <div className="flex items-center justify-end gap-4 pt-8 border-t border-border/50">
+                        <Link href={`/hr/employees/${employee.id}`}>
+                            <Button 
+                                type="button" 
+                                variant="outline" 
+                                disabled={isSubmitting}
+                                className="px-8 py-6 rounded-2xl border-border/60 hover:bg-muted transition-all active:scale-95 font-semibold"
+                            >
                                 Cancel
                             </Button>
                         </Link>
-                        <Button type="submit" disabled={isSubmitting}>
-                            <Save className="h-4 w-4 mr-2" />
-                            {isSubmitting ? 'Saving...' : 'Save Changes'}
+                        <Button 
+                            type="submit" 
+                            disabled={isSubmitting}
+                            className="px-10 py-6 rounded-2xl bg-primary shadow-lg shadow-primary/20 hover:shadow-xl transition-all active:scale-95 font-bold"
+                        >
+                            {isSubmitting ? (
+                                <span className="flex items-center gap-2">
+                                    <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    Saving...
+                                </span>
+                            ) : (
+                                <span className="flex items-center gap-2">
+                                    <Save className="h-5 w-5" />
+                                    Save Changes
+                                </span>
+                            )}
                         </Button>
                     </div>
                 </form>

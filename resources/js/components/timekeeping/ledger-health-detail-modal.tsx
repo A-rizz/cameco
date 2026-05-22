@@ -93,7 +93,7 @@ export function LedgerHealthDetailModal({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-5xl md:max-w-6xl w-full">
                 <DialogHeader>
                     <div className="flex items-center gap-3">
                         <StatusIcon className={cn('h-6 w-6', config.iconColor)} />

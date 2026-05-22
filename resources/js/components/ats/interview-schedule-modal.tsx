@@ -21,7 +21,7 @@ import {
 import { Calendar, Clock, MapPin } from 'lucide-react';
 import type { InterviewLocationType } from '@/types/ats-pages';
 
-interface ScheduleInterviewData {
+export interface ScheduleInterviewData {
   scheduled_date: string;
   scheduled_time: string;
   duration_minutes: number;

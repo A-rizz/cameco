@@ -1,4 +1,5 @@
 import AppLayout from '@/layouts/app-layout';
+import { type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -9,9 +10,19 @@ import { EmployeeHistoryTab } from '@/components/hr/employee-history-tab';
 import { EmployeeArchiveDialog } from '@/components/hr/employee-archive-dialog';
 import { RemarksSection } from '@/components/hr/forms/remarks-section';
 import { DependentsSection } from '@/components/hr/forms/dependents-section';
-import { ArrowLeft, Edit, Archive, FileText, History, User, Briefcase, MessageSquare, Users } from 'lucide-react';
+import { ArrowLeft, Edit, Archive, FileText, History, User, Briefcase, MessageSquare, Users, Printer, Plus, MessageSquarePlus } from 'lucide-react';
 import { useState } from 'react';
 import { PermissionGate } from '@/components/permission-gate';
+import { EmployeeStatusDialog } from '@/components/hr/employee-status-dialog';
+import { EmployeeAddDependentDialog } from '@/components/hr/employee-add-dependent-dialog';
+import { EmployeeAddRemarkDialog } from '@/components/hr/employee-add-remark-dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useForm } from '@inertiajs/react';
+import { toast } from 'sonner';
+import { ShieldCheck, UploadCloud, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 // ============================================================================
 // Type Definitions
@@ -91,6 +102,21 @@ interface EmployeeRemark {
     };
 }
 
+interface LeaveBalance {
+    id: number;
+    leave_policy_id: number;
+    year: number;
+    earned: number;
+    used: number;
+    carried_forward: number;
+    remaining: number;
+    leave_policy: {
+        id: number;
+        name: string;
+        code: string;
+    };
+}
+
 interface Employee {
     id: number;
     employee_number: string;
@@ -108,12 +134,14 @@ interface Employee {
     supervisor: Supervisor | null;
     dependents: EmployeeDependent[];
     remarks: EmployeeRemark[];
+    leave_balances?: LeaveBalance[];
     created_at: string;
     updated_at: string;
 }
 
 interface ShowEmployeeProps {
     employee: Employee;
+    auditLogs: any[];
 }
 
 // ============================================================================
@@ -219,11 +247,11 @@ function OverviewTab({ employee }: { employee: Employee }) {
             <div className="bg-card rounded-lg border p-6">
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                     <Briefcase className="h-5 w-5" />
-                    Employment Information
+                    Work Information
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label className="text-sm font-medium text-muted-foreground">Employee Number</label>
+                        <label className="text-sm font-medium text-muted-foreground">Employee ID</label>
                         <p className="text-sm mt-1 font-mono">{employee.employee_number}</p>
                     </div>
                     <div>
@@ -241,7 +269,7 @@ function OverviewTab({ employee }: { employee: Employee }) {
                         <p className="text-sm mt-1">{employee.position?.title || 'Not assigned'}</p>
                     </div>
                     <div>
-                        <label className="text-sm font-medium text-muted-foreground">Employment Type</label>
+                        <label className="text-sm font-medium text-muted-foreground">Contract Type</label>
                         <p className="text-sm mt-1">{employee.employment_type}</p>
                     </div>
                     <div>
@@ -249,17 +277,17 @@ function OverviewTab({ employee }: { employee: Employee }) {
                         <p className="text-sm mt-1">{formatDate(employee.date_hired)}</p>
                     </div>
                     <div>
-                        <label className="text-sm font-medium text-muted-foreground">Regularization Date</label>
+                        <label className="text-sm font-medium text-muted-foreground">Regular Date</label>
                         <p className="text-sm mt-1">
-                            {employee.regularization_date ? formatDate(employee.regularization_date) : 'Not yet regularized'}
+                            {employee.regularization_date ? formatDate(employee.regularization_date) : 'Not regular yet'}
                         </p>
                     </div>
                     <div>
-                        <label className="text-sm font-medium text-muted-foreground">Immediate Supervisor</label>
+                        <label className="text-sm font-medium text-muted-foreground">Boss / Supervisor</label>
                         <p className="text-sm mt-1">
                             {employee.supervisor 
                                 ? `${employee.supervisor.profile.first_name} ${employee.supervisor.profile.last_name} (${employee.supervisor.employee_number})`
-                                : 'No supervisor assigned'}
+                                : 'No boss assigned'}
                         </p>
                     </div>
                 </div>
@@ -270,7 +298,7 @@ function OverviewTab({ employee }: { employee: Employee }) {
                 <h3 className="text-lg font-semibold mb-4">Emergency Contact</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label className="text-sm font-medium text-muted-foreground">Contact Name</label>
+                        <label className="text-sm font-medium text-muted-foreground">Person to Contact</label>
                         <p className="text-sm mt-1">{employee.profile.emergency_contact_name || 'Not provided'}</p>
                     </div>
                     <div>
@@ -278,7 +306,7 @@ function OverviewTab({ employee }: { employee: Employee }) {
                         <p className="text-sm mt-1">{employee.profile.emergency_contact_relationship || 'Not provided'}</p>
                     </div>
                     <div>
-                        <label className="text-sm font-medium text-muted-foreground">Phone</label>
+                        <label className="text-sm font-medium text-muted-foreground">Phone Number</label>
                         <p className="text-sm mt-1">{employee.profile.emergency_contact_phone || 'Not provided'}</p>
                     </div>
                     <div>
@@ -298,7 +326,7 @@ function OverviewTab({ employee }: { employee: Employee }) {
                             <p className="text-sm mt-1">{employee.profile.spouse_name || 'Not provided'}</p>
                         </div>
                         <div>
-                            <label className="text-sm font-medium text-muted-foreground">Spouse Date of Birth</label>
+                            <label className="text-sm font-medium text-muted-foreground">Spouse Birthday</label>
                             <p className="text-sm mt-1">
                                 {employee.profile.spouse_date_of_birth 
                                     ? formatDate(employee.profile.spouse_date_of_birth)
@@ -326,7 +354,7 @@ function OverviewTab({ employee }: { employee: Employee }) {
                                 <p className="text-sm mt-1">{employee.profile.father_name || 'Not provided'}</p>
                             </div>
                             <div>
-                                <label className="text-xs font-medium text-muted-foreground">Father's Date of Birth</label>
+                                <label className="text-xs font-medium text-muted-foreground">Father's Birthday</label>
                                 <p className="text-sm mt-1">
                                     {employee.profile.father_date_of_birth
                                         ? formatDate(employee.profile.father_date_of_birth)
@@ -345,7 +373,7 @@ function OverviewTab({ employee }: { employee: Employee }) {
                                 <p className="text-sm mt-1">{employee.profile.mother_name || 'Not provided'}</p>
                             </div>
                             <div>
-                                <label className="text-xs font-medium text-muted-foreground">Mother's Date of Birth</label>
+                                <label className="text-xs font-medium text-muted-foreground">Mother's Birthday</label>
                                 <p className="text-sm mt-1">
                                     {employee.profile.mother_date_of_birth
                                         ? formatDate(employee.profile.mother_date_of_birth)
@@ -364,7 +392,7 @@ function OverviewTab({ employee }: { employee: Employee }) {
                     permission="hr.employees.view_government_ids"
                     fallback={
                         <p className="text-sm text-muted-foreground italic">
-                            You do not have permission to view government IDs. Contact HR Manager for access.
+                            You don't have permission to see these IDs.
                         </p>
                     }
                 >
@@ -497,7 +525,7 @@ function EmploymentTab({ employee }: { employee: Employee }) {
 
             {/* Employment Dates */}
             <div className="bg-card rounded-lg border p-6">
-                <h3 className="text-lg font-semibold mb-4">Employment Timeline</h3>
+                <h3 className="text-lg font-semibold mb-4">Work Timeline</h3>
                 <div className="space-y-4">
                     <div className="flex items-start gap-4">
                         <div className="bg-primary/10 rounded-full p-2 mt-1">
@@ -506,7 +534,7 @@ function EmploymentTab({ employee }: { employee: Employee }) {
                         <div className="flex-1">
                             <p className="font-medium">Date Hired</p>
                             <p className="text-sm text-muted-foreground">{formatDate(employee.date_hired)}</p>
-                            <p className="text-xs text-muted-foreground mt-1">Tenure: {calculateTenure()}</p>
+                            <p className="text-xs text-muted-foreground mt-1">Time at company: {calculateTenure()}</p>
                         </div>
                     </div>
                     
@@ -527,7 +555,7 @@ function EmploymentTab({ employee }: { employee: Employee }) {
                             <User className="h-4 w-4 text-blue-600" />
                         </div>
                         <div className="flex-1">
-                            <p className="font-medium">Employment Type</p>
+                            <p className="font-medium">Contract Type</p>
                             <p className="text-sm text-muted-foreground">{employee.employment_type}</p>
                         </div>
                     </div>
@@ -548,7 +576,7 @@ function EmploymentTab({ employee }: { employee: Employee }) {
 
             {/* Supervisor Information */}
             <div className="bg-card rounded-lg border p-6">
-                <h3 className="text-lg font-semibold mb-4">Reporting Structure</h3>
+                <h3 className="text-lg font-semibold mb-4">Reporting Lines</h3>
                 {employee.supervisor ? (
                     <div className="space-y-2">
                         <div>
@@ -557,13 +585,160 @@ function EmploymentTab({ employee }: { employee: Employee }) {
                                 {employee.supervisor.profile.first_name} {employee.supervisor.profile.last_name}
                             </p>
                             <p className="text-sm text-muted-foreground">
-                                Employee #: {employee.supervisor.employee_number}
+                                Employee ID: {employee.supervisor.employee_number}
                             </p>
                         </div>
                     </div>
                 ) : (
-                    <p className="text-sm text-muted-foreground">No immediate supervisor assigned</p>
+                    <p className="text-sm text-muted-foreground">No boss assigned yet</p>
                 )}
+            </div>
+        </div>
+    );
+}
+
+// ============================================================================
+// Status Update Tab Component
+// ============================================================================
+
+function StatusUpdateTab({ employee }: { employee: Employee }) {
+    const { data, setData, post, processing, reset, errors } = useForm({
+        status: employee.status,
+        reason: '',
+        document: null as File | null,
+    });
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        
+        if (data.status === employee.status) {
+            toast.error("Status is already set to " + data.status.replace('_', ' '));
+            return;
+        }
+
+        if (!data.document && data.status !== 'active') {
+            toast.error("Supporting document is required for " + data.status.replace('_', ' '));
+            return;
+        }
+
+        post(route('hr.employees.status', { id: employee.id }), {
+            forceFormData: true,
+            onSuccess: () => {
+                toast.success('Status updated successfully');
+                reset('reason', 'document');
+            },
+        });
+    };
+
+    return (
+        <div className="max-w-3xl space-y-8">
+            <div className="bg-card rounded-xl border-2 border-primary/5 p-8 shadow-sm relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-4 opacity-5">
+                    <CheckCircle2 className="h-32 w-32" />
+                </div>
+                
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="p-2 bg-primary/10 rounded-lg">
+                        <CheckCircle2 className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                        <h3 className="text-xl font-bold">Update Status</h3>
+                        <p className="text-sm text-muted-foreground">Change employee status and upload a document if needed.</p>
+                    </div>
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                            <Label htmlFor="target-status" className="text-xs font-black uppercase tracking-widest opacity-70">New Status</Label>
+                            <Select 
+                                value={data.status} 
+                                onValueChange={(v: any) => setData('status', v)}
+                            >
+                                <SelectTrigger className="h-12 border-2 focus:ring-primary">
+                                    <SelectValue placeholder="Select Status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="active">Active</SelectItem>
+                                    <SelectItem value="on_leave">On Leave</SelectItem>
+                                    <SelectItem value="suspended">Suspended</SelectItem>
+                                    <SelectItem value="terminated">Terminated</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            {errors.status && <p className="text-xs text-destructive font-bold">{errors.status}</p>}
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label className="text-xs font-black uppercase tracking-widest opacity-70">Upload Document</Label>
+                            <div className="relative">
+                                <Input 
+                                    type="file" 
+                                    id="document-upload"
+                                    className="hidden" 
+                                    onChange={(e) => setData('document', e.target.files ? e.target.files[0] : null)}
+                                    accept=".pdf,.jpg,.jpeg,.png"
+                                />
+                                <Label 
+                                    htmlFor="document-upload"
+                                    className={`flex items-center justify-center h-12 border-2 border-dashed rounded-lg cursor-pointer transition-all hover:bg-muted/50 ${data.document ? 'border-green-500 bg-green-50/50' : 'border-primary/20'}`}
+                                >
+                                    {data.document ? (
+                                        <div className="flex items-center gap-2 text-green-600 font-bold text-sm">
+                                            <CheckCircle2 className="h-4 w-4" />
+                                            {data.document.name.length > 20 ? data.document.name.substring(0, 20) + '...' : data.document.name}
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-2 text-muted-foreground text-sm font-medium">
+                                            <UploadCloud className="h-4 w-4" />
+                                            Upload File (PDF/IMG)
+                                        </div>
+                                    )}
+                                </Label>
+                            </div>
+                            <p className="text-[10px] text-muted-foreground italic">Needed for leave, suspension, or termination.</p>
+                            {errors.document && <p className="text-xs text-destructive font-bold">{errors.document}</p>}
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="status-reason" className="text-xs font-black uppercase tracking-widest opacity-70">Reason</Label>
+                        <Textarea 
+                            id="status-reason"
+                            placeholder="Why are you changing this status?"
+                            className="min-h-[120px] border-2 focus:ring-primary resize-none"
+                            value={data.reason}
+                            onChange={(e) => setData('reason', e.target.value)}
+                        />
+                        {errors.reason && <p className="text-xs text-destructive font-bold">{errors.reason}</p>}
+                    </div>
+
+                    <div className="flex items-center gap-4 p-4 bg-amber-500/5 border border-amber-500/20 rounded-lg">
+                        <AlertCircle className="h-5 w-5 text-amber-600 shrink-0" />
+                        <p className="text-xs text-amber-700 font-medium leading-relaxed">
+                            <strong>Note:</strong> Make sure you have checked the documents. This change will be saved in the system.
+                        </p>
+                    </div>
+
+                    <div className="flex justify-end">
+                        <Button 
+                            type="submit" 
+                            disabled={processing || data.status === employee.status}
+                            className={`h-12 px-8 font-bold shadow-lg shadow-primary/20 transition-all active:scale-95 ${data.status === 'terminated' ? 'bg-destructive hover:bg-destructive/90 shadow-destructive/20' : 'bg-primary hover:bg-primary/90'}`}
+                        >
+                            {processing ? 'Saving...' : 'Save Status Change'}
+                        </Button>
+                    </div>
+                </form>
+            </div>
+
+            <div className="bg-card rounded-xl border p-6 space-y-4">
+                <h4 className="text-sm font-bold uppercase tracking-widest flex items-center gap-2">
+                    <History className="h-4 w-4 text-primary" />
+                    Status History
+                </h4>
+                <div className="text-sm text-muted-foreground bg-muted/30 p-4 rounded-lg italic">
+                    All changes are saved in the <span className="font-bold text-foreground">History</span> tab, including the documents and who made the change.
+                </div>
             </div>
         </div>
     );
@@ -573,14 +748,23 @@ function EmploymentTab({ employee }: { employee: Employee }) {
 // Main Component
 // ============================================================================
 
-export default function ShowEmployee({ employee }: ShowEmployeeProps) {
+export default function ShowEmployee({ employee, auditLogs }: ShowEmployeeProps) {
     const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
+    const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+    const [addDependentOpen, setAddDependentOpen] = useState(false);
+    const [addRemarkOpen, setAddRemarkOpen] = useState(false);
+
+    const breadcrumbs: BreadcrumbItem[] = [
+        { title: 'HR Dashboard', href: '/hr/dashboard' },
+        { title: 'Employees', href: '/hr/employees' },
+        { title: getFullName(employee), href: `/hr/employees/${employee.id}` },
+    ];
 
     return (
-        <AppLayout>
-            <Head title={`${getFullName(employee)} - Employee Details`} />
+        <AppLayout breadcrumbs={breadcrumbs}>
+            <Head title={`${getFullName(employee)} - Details`} />
 
-            <div className="space-y-6 p-6">
+            <div className="space-y-6 p-6 max-w-6xl mx-auto">
                 {/* Header */}
                 <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start gap-4">
@@ -589,15 +773,16 @@ export default function ShowEmployee({ employee }: ShowEmployeeProps) {
                                 <ArrowLeft className="h-4 w-4" />
                             </Button>
                         </Link>
-                        <div className="flex items-start gap-4">
-                            <Avatar className="h-16 w-16">
+                        <div className="flex items-start gap-6">
+                            <Avatar className="h-32 w-32 border-4 border-background shadow-sm">
                                 {employee.profile.profile_picture_path ? (
                                     <AvatarImage 
                                         src={`/storage/${employee.profile.profile_picture_path}`} 
                                         alt={getFullName(employee)}
+                                        className="object-cover"
                                     />
                                 ) : null}
-                                <AvatarFallback className="text-lg">
+                                <AvatarFallback className="text-4xl bg-muted">
                                     {getInitials(employee.profile.first_name, employee.profile.last_name)}
                                 </AvatarFallback>
                             </Avatar>
@@ -614,6 +799,12 @@ export default function ShowEmployee({ employee }: ShowEmployeeProps) {
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
+                        <a href={`/hr/employees/${employee.id}/print`} target="_blank" rel="noopener noreferrer">
+                            <Button variant="outline">
+                                <Printer className="h-4 w-4 mr-2" />
+                                Print
+                            </Button>
+                        </a>
                         <PermissionGate permission="hr.employees.update">
                             <Link href={`/hr/employees/${employee.id}/edit`}>
                                 <Button variant="outline">
@@ -643,24 +834,30 @@ export default function ShowEmployee({ employee }: ShowEmployeeProps) {
                         </TabsTrigger>
                         <TabsTrigger value="employment" className="gap-2">
                             <Briefcase className="h-4 w-4" />
-                            Employment
+                            Work
                         </TabsTrigger>
                         <TabsTrigger value="dependents" className="gap-2">
                             <Users className="h-4 w-4" />
-                            Dependents
+                            Family
                         </TabsTrigger>
                         <TabsTrigger value="remarks" className="gap-2">
                             <MessageSquare className="h-4 w-4" />
-                            Remarks
+                            Notes
                         </TabsTrigger>
                         <TabsTrigger value="documents" className="gap-2">
                             <FileText className="h-4 w-4" />
-                            Documents
+                            Files
                         </TabsTrigger>
                         <TabsTrigger value="history" className="gap-2">
                             <History className="h-4 w-4" />
                             History
                         </TabsTrigger>
+                        <PermissionGate permission="hr.employees.update">
+                            <TabsTrigger value="status" className="gap-2 text-primary font-bold">
+                                <CheckCircle2 className="h-4 w-4" />
+                                Status
+                            </TabsTrigger>
+                        </PermissionGate>
                     </TabsList>
 
                     <TabsContent value="overview" className="mt-6">
@@ -672,10 +869,26 @@ export default function ShowEmployee({ employee }: ShowEmployeeProps) {
                     </TabsContent>
 
                     <TabsContent value="dependents" className="mt-6">
+                        <PermissionGate permission="hr.employees.update">
+                            <div className="flex justify-end mb-4">
+                                <Button onClick={() => setAddDependentOpen(true)} className="gap-2">
+                                    <Plus className="h-4 w-4" />
+                                    Add Dependent
+                                </Button>
+                            </div>
+                        </PermissionGate>
                         <DependentsSection dependents={employee.dependents || []} onChange={() => {}} isEditMode={false} />
                     </TabsContent>
 
                     <TabsContent value="remarks" className="mt-6">
+                        <PermissionGate permission="hr.employees.update">
+                            <div className="flex justify-end mb-4">
+                                <Button onClick={() => setAddRemarkOpen(true)} className="gap-2">
+                                    <MessageSquarePlus className="h-4 w-4" />
+                                    Add Note
+                                </Button>
+                            </div>
+                        </PermissionGate>
                         <RemarksSection remarks={employee.remarks || []} onChange={() => {}} isEditMode={false} />
                     </TabsContent>
 
@@ -684,7 +897,11 @@ export default function ShowEmployee({ employee }: ShowEmployeeProps) {
                     </TabsContent>
 
                     <TabsContent value="history" className="mt-6">
-                        <EmployeeHistoryTab employeeId={employee.id} /> {/* This tab will show the employee's history of changes, including status changes, position changes, etc. */}
+                        <EmployeeHistoryTab employeeId={employee.id} auditLogs={auditLogs} />
+                    </TabsContent>
+
+                    <TabsContent value="status" className="mt-6">
+                        <StatusUpdateTab employee={employee} />
                     </TabsContent>
                 </Tabs>
 
@@ -695,6 +912,29 @@ export default function ShowEmployee({ employee }: ShowEmployeeProps) {
                     employeeId={employee.id}
                     employeeName={getFullName(employee)}
                     employeeNumber={employee.employee_number}
+                />
+
+                {/* Status Update Dialog */}
+                <EmployeeStatusDialog
+                    open={statusDialogOpen}
+                    onOpenChange={setStatusDialogOpen}
+                    employeeId={employee.id}
+                    employeeName={getFullName(employee)}
+                    currentStatus={employee.status}
+                />
+
+                {/* Add Dependent Dialog */}
+                <EmployeeAddDependentDialog
+                    open={addDependentOpen}
+                    onOpenChange={setAddDependentOpen}
+                    employeeId={employee.id}
+                />
+
+                {/* Add Remark Dialog */}
+                <EmployeeAddRemarkDialog
+                    open={addRemarkOpen}
+                    onOpenChange={setAddRemarkOpen}
+                    employeeId={employee.id}
                 />
             </div>
         </AppLayout>

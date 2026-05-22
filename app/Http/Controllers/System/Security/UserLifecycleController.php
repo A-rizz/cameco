@@ -246,27 +246,29 @@ class UserLifecycleController extends Controller
 	}
 
 	/**
-	 * Send password reset link to user.
+	 * Generate a new password for the user and return it once to the Superadmin.
+	 * No email is sent — the Superadmin communicates the new password manually.
 	 */
 	public function sendPasswordReset(Request $request, User $user)
 	{
 		try {
-			// Send password reset notification
-			$user->sendPasswordResetNotification(
-				\Illuminate\Support\Str::random(60)
-			);
+			$newPassword = Str::password(14, letters: true, numbers: true, symbols: false);
 
-			$this->logAudit('user.password_reset_requested', 'info', [
-				'user_id' => $user->id,
-				'user_email' => $user->email,
-				'requested_by' => $request->user()->id,
+			$user->update(['password' => Hash::make($newPassword)]);
+
+			$this->logAudit('user.password_force_reset', 'warning', [
+				'user_id'        => $user->id,
+				'user_email'     => $user->email,
+				'requested_by'   => $request->user()->id,
 			]);
 
-			return redirect()->back()
-				->with('success', "Password reset link sent to {$user->email}.");
+			return redirect()->back()->with([
+				'success'      => "Password reset for {$user->name}.",
+				'new_password' => $newPassword,
+			]);
 		} catch (\Exception $e) {
 			return redirect()->back()
-				->withErrors(['error' => 'Failed to send password reset: ' . $e->getMessage()]);
+				->withErrors(['error' => 'Failed to reset password: ' . $e->getMessage()]);
 		}
 	}
 

@@ -118,6 +118,7 @@ class EmployeeService
                 'tin_number' => $data['tin_number'] ?? null,
                 'philhealth_number' => $data['philhealth_number'] ?? null,
                 'pagibig_number' => $data['pagibig_number'] ?? null,
+                'email' => $data['email'],
             ];
 
             $profile = $this->profileRepository->create($profileData);
@@ -130,7 +131,6 @@ class EmployeeService
                 'profile_id' => $profile->id,
                 'user_id' => $data['user_id'] ?? null,
                 'employee_number' => $employeeNumber,
-                'email' => $data['email'],
                 'department_id' => $data['department_id'],
                 'immediate_supervisor_id' => $data['supervisor_id'] ?? null,
                 'position_id' => $data['position_id'],
@@ -255,6 +255,7 @@ class EmployeeService
                 'tin_number' => $data['tin_number'] ?? null,
                 'philhealth_number' => $data['philhealth_number'] ?? null,
                 'pagibig_number' => $data['pagibig_number'] ?? null,
+                'email' => $data['email'] ?? null,
             ], fn($value) => $value !== null);
 
             if (!empty($profileUpdates)) {
@@ -278,7 +279,6 @@ class EmployeeService
 
             // Update employee data
             $employeeUpdates = array_filter([
-                'email' => $data['email'] ?? null,
                 'department_id' => $data['department_id'] ?? null,
                 'immediate_supervisor_id' => $data['supervisor_id'] ?? null,
                 'position_id' => $data['position_id'] ?? null,

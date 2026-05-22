@@ -17,8 +17,10 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
+import { usePage } from '@inertiajs/react';
 
 // ============================================================================
 // Type Definitions
@@ -67,6 +69,7 @@ export function PositionFormModal({
     positions = [],
     mode = 'create'
 }: PositionFormModalProps) {
+    const page = usePage();
     const [formData, setFormData] = useState({
         title: '',
         code: '',
@@ -80,6 +83,7 @@ export function PositionFormModal({
     });
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
 
     // Initialize form with position data when editing
     useEffect(() => {
@@ -109,8 +113,16 @@ export function PositionFormModal({
                 is_active: true,
             });
         }
+
+        // Check for validation errors from Inertia
+        const errors = (page.props.errors as { [key: string]: string }) || {};
+        if (Object.keys(errors).length > 0) {
+            setFieldErrors(errors);
+        } else {
+            setFieldErrors({});
+        }
         setError(null);
-    }, [mode, position, isOpen]);
+    }, [mode, position, isOpen, page.props.errors]);
 
     const handleInputChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -205,179 +217,205 @@ export function PositionFormModal({
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-[550px]">
-                <DialogHeader>
+            <DialogContent className="sm:max-w-[550px] max-h-[95vh] flex flex-col p-0 overflow-hidden">
+                <DialogHeader className="p-6 pb-2">
                     <DialogTitle>
                         {mode === 'create' ? 'Create Position' : 'Edit Position'}
                     </DialogTitle>
                     <DialogDescription>
                         {mode === 'create'
-                            ? 'Add a new position to your organization'
-                            : 'Update position information'}
+                            ? 'Add a new position to your company'
+                            : 'Update position details'}
                     </DialogDescription>
                 </DialogHeader>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    {/* Error Message */}
-                    {error && (
-                        <div className="rounded-md bg-red-50 p-3 text-sm text-red-600 dark:bg-red-950 dark:text-red-200">
-                            {error}
+                <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+                    <ScrollArea className="flex-1 px-6">
+                        <div className="space-y-4 py-4">
+                            {/* Error Message */}
+                            {error && (
+                                <div className="rounded-md bg-red-50 p-3 text-sm text-red-600 dark:bg-red-950 dark:text-red-200">
+                                    {error}
+                                </div>
+                            )}
+
+                            {/* Position Title */}
+                            <div className="space-y-2">
+                                <Label htmlFor="title" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Position Title *</Label>
+                                <Input
+                                    id="title"
+                                    name="title"
+                                    placeholder="e.g., Senior HR Manager"
+                                    value={formData.title}
+                                    onChange={handleInputChange}
+                                    disabled={isLoading}
+                                    className={`h-10 ${fieldErrors.title ? 'border-red-500 bg-red-50/50' : ''}`}
+                                />
+                                {fieldErrors.title && (
+                                    <p className="text-[10px] font-bold text-red-600 uppercase tracking-tight">{fieldErrors.title}</p>
+                                )}
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {/* Position Code */}
+                                <div className="space-y-2">
+                                    <Label htmlFor="code" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Position Code *</Label>
+                                    <Input
+                                        id="code"
+                                        name="code"
+                                        placeholder="e.g., SHM001"
+                                        value={formData.code}
+                                        onChange={handleInputChange}
+                                        disabled={isLoading}
+                                        className={`h-10 ${fieldErrors.code ? 'border-red-500 bg-red-50/50' : ''}`}
+                                    />
+                                    {fieldErrors.code && (
+                                        <p className="text-[10px] font-bold text-red-600 uppercase tracking-tight">{fieldErrors.code}</p>
+                                    )}
+                                </div>
+
+                                {/* Position Level */}
+                                <div className="space-y-2">
+                                    <Label htmlFor="level" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Position Level *</Label>
+                                    <Input
+                                        id="level"
+                                        name="level"
+                                        placeholder="e.g., Lead"
+                                        value={formData.level}
+                                        onChange={handleInputChange}
+                                        disabled={isLoading}
+                                        className={`h-10 ${fieldErrors.level ? 'border-red-500 bg-red-50/50' : ''}`}
+                                    />
+                                    {fieldErrors.level && (
+                                        <p className="text-[10px] font-bold text-red-600 uppercase tracking-tight">{fieldErrors.level}</p>
+                                    )}
+                                </div>
+
+                                {/* Department */}
+                                <div className="space-y-2">
+                                    <Label htmlFor="department_id" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Department *</Label>
+                                    <Select
+                                        value={formData.department_id}
+                                        onValueChange={(value) => handleSelectChange('department_id', value)}
+                                    >
+                                        <SelectTrigger id="department_id" disabled={isLoading} className={`h-10 ${fieldErrors.department_id ? 'border-red-500 bg-red-50/50' : ''}`}>
+                                            <SelectValue placeholder="Select dept..." />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {departments.map(dept => (
+                                                <SelectItem key={dept.id} value={String(dept.id)}>
+                                                    {dept.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    {fieldErrors.department_id && (
+                                        <p className="text-[10px] font-bold text-red-600 uppercase tracking-tight">{fieldErrors.department_id}</p>
+                                    )}
+                                </div>
+
+                                {/* Reports To */}
+                                <div className="space-y-2">
+                                    <Label htmlFor="reports_to" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Reports To</Label>
+                                    <Select
+                                        value={formData.reports_to}
+                                        onValueChange={(value) => handleSelectChange('reports_to', value)}
+                                    >
+                                        <SelectTrigger id="reports_to" disabled={isLoading || !formData.department_id} className="h-10">
+                                            <SelectValue placeholder="Reporting to..." />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {availableReportingPositions.map(pos => (
+                                                <SelectItem key={pos.id} value={String(pos.id)}>
+                                                    {pos.title}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+
+                            {/* Description */}
+                            <div className="space-y-2">
+                                <Label htmlFor="description" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Description</Label>
+                                <Textarea
+                                    id="description"
+                                    name="description"
+                                    placeholder="Position description and responsibilities..."
+                                    value={formData.description}
+                                    onChange={handleInputChange}
+                                    disabled={isLoading}
+                                    rows={2}
+                                    className="resize-none"
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {/* Salary Range */}
+                                <div className="space-y-2">
+                                    <Label htmlFor="salary_min" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Min Salary</Label>
+                                    <Input
+                                        id="salary_min"
+                                        name="salary_min"
+                                        type="number"
+                                        placeholder="0.00"
+                                        step="0.01"
+                                        value={formData.salary_min}
+                                        onChange={handleInputChange}
+                                        disabled={isLoading}
+                                        className="h-10"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="salary_max" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Max Salary</Label>
+                                    <Input
+                                        id="salary_max"
+                                        name="salary_max"
+                                        type="number"
+                                        placeholder="0.00"
+                                        step="0.01"
+                                        value={formData.salary_max}
+                                        onChange={handleInputChange}
+                                        disabled={isLoading}
+                                        className="h-10"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Active Status */}
+                            <div className="flex items-center justify-between bg-muted/30 p-3 rounded-lg border">
+                                <div className="space-y-0.5">
+                                    <Label htmlFor="is_active" className="text-sm font-bold cursor-pointer">Position is Active</Label>
+                                    <p className="text-[10px] text-muted-foreground">Check this if the position is currently being used.</p>
+                                </div>
+                                <Checkbox
+                                    id="is_active"
+                                    checked={formData.is_active}
+                                    onCheckedChange={handleCheckboxChange}
+                                    disabled={isLoading}
+                                />
+                            </div>
                         </div>
-                    )}
+                    </ScrollArea>
 
-                    {/* Position Title */}
-                    <div className="space-y-2">
-                        <Label htmlFor="title">Position Title *</Label>
-                        <Input
-                            id="title"
-                            name="title"
-                            placeholder="e.g., Senior HR Manager"
-                            value={formData.title}
-                            onChange={handleInputChange}
-                            disabled={isLoading}
-                        />
-                    </div>
-
-                    {/* Position Code */}
-                    <div className="space-y-2">
-                        <Label htmlFor="code">Position Code *</Label>
-                        <Input
-                            id="code"
-                            name="code"
-                            placeholder="e.g., SHM001"
-                            value={formData.code}
-                            onChange={handleInputChange}
-                            disabled={isLoading}
-                        />
-                    </div>
-
-                    {/* Position Level */}
-                    <div className="space-y-2">
-                        <Label htmlFor="level">Position Level *</Label>
-                        <Input
-                            id="level"
-                            name="level"
-                            placeholder="e.g., junior, mid, senior, lead, manager"
-                            value={formData.level}
-                            onChange={handleInputChange}
-                            disabled={isLoading}
-                        />
-                    </div>
-
-                    {/* Description */}
-                    <div className="space-y-2">
-                        <Label htmlFor="description">Description</Label>
-                        <Textarea
-                            id="description"
-                            name="description"
-                            placeholder="Position description and responsibilities..."
-                            value={formData.description}
-                            onChange={handleInputChange}
-                            disabled={isLoading}
-                            rows={3}
-                        />
-                    </div>
-
-                    {/* Department */}
-                    <div className="space-y-2">
-                        <Label htmlFor="department_id">Department *</Label>
-                        <Select
-                            value={formData.department_id}
-                            onValueChange={(value) => handleSelectChange('department_id', value)}
-                        >
-                            <SelectTrigger id="department_id" disabled={isLoading}>
-                                <SelectValue placeholder="Select department..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {departments.map(dept => (
-                                    <SelectItem key={dept.id} value={String(dept.id)}>
-                                        {dept.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    {/* Reports To */}
-                    <div className="space-y-2">
-                        <Label htmlFor="reports_to">Reports To (optional)</Label>
-                        <Select
-                            value={formData.reports_to}
-                            onValueChange={(value) => handleSelectChange('reports_to', value)}
-                        >
-                            <SelectTrigger id="reports_to" disabled={isLoading || !formData.department_id}>
-                                <SelectValue placeholder="Select reporting position..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {availableReportingPositions.map(pos => (
-                                    <SelectItem key={pos.id} value={String(pos.id)}>
-                                        {pos.title}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    {/* Salary Range */}
-                    <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-2">
-                            <Label htmlFor="salary_min">Minimum Salary (optional)</Label>
-                            <Input
-                                id="salary_min"
-                                name="salary_min"
-                                type="number"
-                                placeholder="0.00"
-                                step="0.01"
-                                value={formData.salary_min}
-                                onChange={handleInputChange}
-                                disabled={isLoading}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="salary_max">Maximum Salary (optional)</Label>
-                            <Input
-                                id="salary_max"
-                                name="salary_max"
-                                type="number"
-                                placeholder="0.00"
-                                step="0.01"
-                                value={formData.salary_max}
-                                onChange={handleInputChange}
-                                disabled={isLoading}
-                            />
-                        </div>
-                    </div>
-
-                    {/* Active Status */}
-                    <div className="flex items-center space-x-2">
-                        <Checkbox
-                            id="is_active"
-                            checked={formData.is_active}
-                            onCheckedChange={handleCheckboxChange}
-                            disabled={isLoading}
-                        />
-                        <Label htmlFor="is_active" className="font-normal">
-                            Active
-                        </Label>
-                    </div>
-
-                    {/* Buttons */}
-                    <div className="flex justify-end gap-3 pt-4">
+                    {/* Buttons Footer - Fixed at bottom */}
+                    <div className="flex justify-end gap-3 p-6 border-t bg-muted/10">
                         <Button
                             type="button"
-                            variant="outline"
+                            variant="ghost"
                             onClick={onClose}
                             disabled={isLoading}
+                            className="font-bold text-xs uppercase tracking-widest"
                         >
                             Cancel
                         </Button>
                         <Button
                             type="submit"
                             disabled={isLoading}
-                            className="bg-blue-600 hover:bg-blue-700"
+                            className="bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/20 px-8 font-bold text-xs uppercase tracking-widest"
                         >
                             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            {mode === 'create' ? 'Create' : 'Update'}
+                            {mode === 'create' ? 'Create Position' : 'Save Changes'}
                         </Button>
                     </div>
                 </form>

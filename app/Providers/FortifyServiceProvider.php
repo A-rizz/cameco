@@ -14,6 +14,8 @@ use Laravel\Fortify\Features;
 use Laravel\Fortify\Fortify;
 use Laravel\Fortify\Contracts\LoginResponse as LoginResponseContract;
 use App\Actions\Fortify\CustomLoginResponse;
+use App\Models\SecurityAuditLog;
+
 
 class FortifyServiceProvider extends ServiceProvider
 {
@@ -61,12 +63,40 @@ class FortifyServiceProvider extends ServiceProvider
                     'username' => $user->username,
                     'login_identifier' => $loginInput,
                 ]);
+
+                // Record successful login in security audit logs
+                SecurityAuditLog::create([
+                    'user_id' => $user->id,
+                    'event_type' => 'login',
+                    'severity' => 'info',
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'description' => 'User authenticated successfully',
+                    'metadata' => [
+                        'login_identifier' => $loginInput,
+                    ],
+                ]);
+
                 return $user;
             }
 
             \Log::warning('Failed authentication attempt', [
                 'login_identifier' => $loginInput,
                 'user_found' => $user ? true : false,
+            ]);
+
+            // Record failed authentication attempt in security audit logs
+            SecurityAuditLog::create([
+                'user_id' => $user ? $user->id : null,
+                'event_type' => 'failed_login',
+                'severity' => 'warning',
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'description' => 'Failed authentication attempt',
+                'metadata' => [
+                    'login_identifier' => $loginInput,
+                    'user_found' => $user ? true : false,
+                ],
             ]);
 
             return null;

@@ -34,6 +34,7 @@ interface LeavePolicyFormModalProps {
         description?: string;
     };
     mode: 'create' | 'edit';
+    onSuccess?: () => void;
 }
 
 const leaveTypes = [
@@ -46,7 +47,7 @@ const leaveTypes = [
     'Bereavement Leave',
 ];
 
-export function LeavePolicyFormModal({ isOpen, onClose, policy, mode }: LeavePolicyFormModalProps) {
+export function LeavePolicyFormModal({ isOpen, onClose, policy, mode, onSuccess }: LeavePolicyFormModalProps) {
     const [formData, setFormData] = useState({
         type: policy?.type || '',
         annual_entitlement: policy?.annual_entitlement || 15,
@@ -61,11 +62,17 @@ export function LeavePolicyFormModal({ isOpen, onClose, policy, mode }: LeavePol
         
         if (mode === 'edit' && policy?.id) {
             router.put(`/hr/leave/policies/${policy.id}`, formData, {
-                onSuccess: () => onClose(),
+                onSuccess: () => {
+                    onClose();
+                    onSuccess?.();
+                },
             });
         } else {
             router.post('/hr/leave/policies', formData, {
-                onSuccess: () => onClose(),
+                onSuccess: () => {
+                    onClose();
+                    onSuccess?.();
+                },
             });
         }
     };

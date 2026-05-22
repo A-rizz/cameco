@@ -10,6 +10,7 @@ import { LogsFilterPanel, LogsFilterConfig, defaultFilters } from '@/components/
 import { EventReplayControl } from '@/components/timekeeping/event-replay-control';
 import { DeviceStatusDashboard } from '@/components/timekeeping/device-status-dashboard';
 import { ChevronDown, ChevronUp, Filter, RefreshCw, Download } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 // Declare route as a global function
 declare global {
@@ -291,45 +292,94 @@ export default function TimekeepingLedger() {
         }
     };
 
+    // Stream Header Actions
+    const streamHeaderActions = useMemo(() => (
+        <div className="flex items-center gap-1.5">
+            {/* Filter Panel Toggle */}
+            <Button
+                variant={showFilterPanel ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setShowFilterPanel(!showFilterPanel)}
+                className="h-7 px-2.5 gap-1.5"
+            >
+                <Filter className="h-3.5 w-3.5" />
+                <span className="text-xs hidden sm:inline">
+                    {showFilterPanel ? 'Hide Filters' : 'Show Filters'}
+                </span>
+                <span className="text-xs sm:hidden">Filters</span>
+            </Button>
+
+            {/* Auto-Refresh Toggle (Live Mode Only) */}
+            {!replayMode && (
+                <Button
+                    variant={autoRefresh ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setAutoRefresh(!autoRefresh)}
+                    className="h-7 px-2.5 gap-1.5"
+                >
+                    <RefreshCw className={cn("h-3.5 w-3.5", autoRefresh && "animate-spin")} />
+                    <span className="text-xs hidden sm:inline">
+                        {autoRefresh ? 'Auto ON' : 'Auto OFF'}
+                    </span>
+                    <span className="text-xs sm:hidden">Auto</span>
+                </Button>
+            )}
+
+            {/* Export Button */}
+            <Button
+                variant="outline"
+                size="sm"
+                className="h-7 px-2.5 gap-1.5"
+                onClick={() => handleExport('json')}
+            >
+                <Download className="h-3.5 w-3.5" />
+                <span className="text-xs">Export</span>
+            </Button>
+        </div>
+    ), [showFilterPanel, replayMode, autoRefresh]);
+
     return (
         <AppLayout>
             <Head title="RFID Ledger - Timekeeping" />
 
-            <div className="py-6 space-y-6">
+            <div className="py-4 space-y-4">
                 {/* Ledger Health Widget */}
                 {ledgerHealth && transformedHealthState ? (
                     <LedgerHealthWidget healthState={transformedHealthState} />
                 ) : null}
 
                 {/* Live Mode / Replay Mode Toggle */}
-                <Card>
-                    <CardHeader>
-                        <div className="flex items-center justify-between">
-                            <CardTitle className="text-lg">Event Stream Mode</CardTitle>
-                            <div className="flex items-center gap-3">
-                                <Button
-                                    variant={!replayMode ? 'default' : 'outline'}
-                                    size="sm"
-                                    onClick={() => !replayMode || handleToggleLiveReplayMode()}
-                                    className="gap-2"
-                                >
-                                    🟢 Live Mode
-                                </Button>
-                                <Button
-                                    variant={replayMode ? 'default' : 'outline'}
-                                    size="sm"
-                                    onClick={() => replayMode || handleToggleLiveReplayMode()}
-                                    className="gap-2"
-                                >
-                                    📺 Replay Mode
-                                </Button>
-                            </div>
+                <Card className="border shadow-sm bg-slate-50/50">
+                    <CardContent className="p-2.5 flex items-center justify-between gap-4 flex-wrap">
+                        <div className="flex flex-col">
+                            <span className="text-xs font-bold text-gray-700">Event Ledger Stream Mode</span>
+                            <span className="text-[10px] text-gray-500">Choose between real-time logging and timeline replay simulation</span>
                         </div>
-                    </CardHeader>
+                        <div className="flex items-center gap-1.5">
+                            <Button
+                                variant={!replayMode ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => !replayMode || handleToggleLiveReplayMode()}
+                                className="h-7 px-3 text-xs gap-1.5"
+                            >
+                                <span className={cn("inline-block h-2 w-2 rounded-full", !replayMode ? "bg-green-400 animate-pulse" : "bg-green-500")} />
+                                Live Mode
+                            </Button>
+                            <Button
+                                variant={replayMode ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => replayMode || handleToggleLiveReplayMode()}
+                                className="h-7 px-3 text-xs gap-1.5"
+                            >
+                                <span>📺</span>
+                                Replay Mode
+                            </Button>
+                        </div>
+                    </CardContent>
                 </Card>
 
                 {/* Main Content: Filters + Event Stream */}
-                <div className="grid gap-6 lg:grid-cols-4">
+                <div className="grid gap-4 lg:grid-cols-4 items-start">
                     {/* Left Sidebar: Filters */}
                     {showFilterPanel && (
                         <div className="lg:col-span-1">
@@ -342,149 +392,88 @@ export default function TimekeepingLedger() {
                     )}
 
                     {/* Right Content: Event Stream */}
-                    <div className={showFilterPanel ? 'lg:col-span-3' : 'lg:col-span-4'}>
-                        <Card>
-                            <CardHeader>
-                                <div className="flex items-center justify-between flex-wrap gap-2">
-                                    <div className="flex items-center gap-3">
-                                        <CardTitle>Event Stream</CardTitle>
-                                        {!replayMode && (
-                                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                                <span className="animate-pulse mr-1">●</span> Live
-                                            </Badge>
-                                        )}
-                                        {replayMode && (
-                                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                                                📺 Replay
-                                            </Badge>
-                                        )}
-                                    </div>
-                                    
-                                    <div className="flex items-center gap-2">
-                                        {/* Filter Panel Toggle */}
-                                        <Button
-                                            variant={showFilterPanel ? 'default' : 'outline'}
-                                            size="sm"
-                                            onClick={() => setShowFilterPanel(!showFilterPanel)}
-                                            className="h-8 gap-2"
-                                        >
-                                            <Filter className="h-3 w-3" />
-                                            <span className="text-xs">
-                                                {showFilterPanel ? 'Hide' : 'Show'} Filters
-                                            </span>
-                                        </Button>
-
-                                        {/* Auto-Refresh Toggle (Live Mode Only) */}
-                                        {!replayMode && (
-                                            <Button
-                                                variant={autoRefresh ? 'default' : 'outline'}
-                                                size="sm"
-                                                onClick={() => setAutoRefresh(!autoRefresh)}
-                                                className="h-8 gap-2"
-                                            >
-                                                <RefreshCw className={`h-3 w-3 ${autoRefresh ? 'animate-spin' : ''}`} />
-                                                <span className="text-xs">
-                                                    {autoRefresh ? 'Auto ON' : 'Auto OFF'}
-                                                </span>
-                                            </Button>
-                                        )}
-
-                                        {/* Export Dropdown */}
+                    <div className={showFilterPanel ? 'lg:col-span-3 space-y-3' : 'lg:col-span-4 space-y-3'}>
+                        <TimeLogsStream 
+                            logs={replayMode ? replayEvents : convertedLogs} 
+                            maxHeight="calc(100vh - 420px)"
+                            showLiveIndicator={!replayMode}
+                            autoScroll={!replayMode}
+                            headerActions={streamHeaderActions}
+                        />
+                        
+                        {/* Pagination */}
+                        {!replayMode && logs.total > logs.per_page && (
+                            <div className="flex items-center justify-between border bg-white px-3 py-2 rounded-lg shadow-sm">
+                                <div className="text-xs text-muted-foreground font-semibold">
+                                    Showing {logs.from} to {logs.to} of {logs.total} events
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                    {logs.prev_page_url && (
                                         <Button
                                             variant="outline"
                                             size="sm"
-                                            className="h-8 gap-2"
-                                            onClick={() => handleExport('json')}
+                                            className="h-7 px-2 text-xs font-semibold"
+                                            onClick={() => router.visit(logs.prev_page_url!)}
                                         >
-                                            <Download className="h-3 w-3" />
-                                            <span className="text-xs">Export</span>
+                                            ← Prev
                                         </Button>
-                                    </div>
+                                    )}
+                                    <span className="text-xs font-semibold px-2 bg-slate-100 py-1 border rounded-md">
+                                        Page {logs.current_page} of {logs.last_page}
+                                    </span>
+                                    {logs.next_page_url && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-7 px-2 text-xs font-semibold"
+                                            onClick={() => router.visit(logs.next_page_url!)}
+                                        >
+                                            Next →
+                                        </Button>
+                                    )}
                                 </div>
-
-                                {/* Last refresh time indicator (Live Mode Only) */}
-                                {autoRefresh && !replayMode && (
-                                    <div className="mt-2 text-xs text-muted-foreground">
-                                        Last refreshed: {lastRefreshTime.toLocaleTimeString()} • Updates every 30 seconds
-                                    </div>
-                                )}
-                            </CardHeader>
-                        </Card>
-
-                        {/* Event Stream Component */}
-                        <div className="mt-4">
-                            <TimeLogsStream 
-                                logs={replayMode ? replayEvents : convertedLogs} 
-                                maxHeight="calc(100vh - 500px)"
-                                showLiveIndicator={!replayMode}
-                                autoScroll={!replayMode}
-                            />
-                            
-                            {/* Pagination */}
-                            {!replayMode && logs.total > logs.per_page && (
-                                <div className="mt-4 flex items-center justify-between">
-                                    <div className="text-sm text-muted-foreground">
-                                        Showing {logs.from} to {logs.to} of {logs.total} events
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        {logs.prev_page_url && (
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => router.visit(logs.prev_page_url!)}
-                                            >
-                                                ← Previous
-                                            </Button>
-                                        )}
-                                        <span className="text-sm">
-                                            Page {logs.current_page} of {logs.last_page}
-                                        </span>
-                                        {logs.next_page_url && (
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => router.visit(logs.next_page_url!)}
-                                            >
-                                                Next →
-                                            </Button>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
+                            </div>
+                        )}
                     </div>
                 </div>
 
                 {/* Event Replay Control (Replay Mode Only) */}
                 {replayMode && (
                     <EventReplayControl 
-                        className="mt-6" 
+                        className="mt-2" 
                         onVisibleEventsChange={handleReplayVisibleEventsChange}
                     />
                 )}
 
                 {/* Device Status Dashboard (Collapsible) */}
-                <Card>
-                    <CardHeader>
-                        <div className="flex items-center justify-between">
-                            <CardTitle className="text-lg">Device Status Dashboard</CardTitle>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setShowDeviceStatus(!showDeviceStatus)}
-                                className="h-8 w-8 p-0"
-                            >
-                                {showDeviceStatus ? (
-                                    <ChevronUp className="h-4 w-4" />
-                                ) : (
-                                    <ChevronDown className="h-4 w-4" />
-                                )}
-                            </Button>
+                <Card className="border shadow-sm">
+                    <CardHeader 
+                        className="p-3.5 flex flex-row items-center justify-between cursor-pointer select-none"
+                        onClick={() => setShowDeviceStatus(!showDeviceStatus)}
+                    >
+                        <div className="flex items-center gap-2">
+                            <CardTitle className="text-sm font-semibold">Device Status Dashboard</CardTitle>
+                            <Badge variant="outline" className="bg-slate-50 text-[10px] py-0 px-2 font-bold">
+                                COLLAPSIBLE PANEL
+                            </Badge>
                         </div>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0 hover:bg-slate-100"
+                        >
+                            {showDeviceStatus ? (
+                                <ChevronUp className="h-4 w-4 text-slate-500" />
+                            ) : (
+                                <ChevronDown className="h-4 w-4 text-slate-500" />
+                            )}
+                        </Button>
                     </CardHeader>
                     {showDeviceStatus && (
-                        <CardContent>
-                            <DeviceStatusDashboard />
+                        <CardContent className="pt-0 px-3.5 pb-3.5">
+                            <div className="border-t pt-3">
+                                <DeviceStatusDashboard showTitle={false} />
+                            </div>
                         </CardContent>
                     )}
                 </Card>
