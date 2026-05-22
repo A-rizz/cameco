@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { edit } from '@/routes/user-password';
+import { useToast } from '@/hooks/use-toast';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -21,7 +22,8 @@ const breadcrumbs: BreadcrumbItem[] = [
 export default function Password() {
     const passwordInput = useRef<HTMLInputElement>(null);
     const currentPasswordInput = useRef<HTMLInputElement>(null);
-    const { data, setData, post, processing, errors, recentlySuccessful, reset } = useForm({
+    const { toast } = useToast();
+    const { data, setData, put, processing, errors, recentlySuccessful, reset } = useForm({
         current_password: '',
         password: '',
         password_confirmation: '',
@@ -29,9 +31,16 @@ export default function Password() {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        post('/settings/password/update', {
+        put('/settings/password', {
             preserveScroll: true,
-            onSuccess: () => reset(),
+            onSuccess: () => {
+                reset();
+                toast({
+                    title: 'Success',
+                    description: 'Your password has been updated successfully.',
+                    variant: 'success',
+                });
+            },
             onError: (errors: any) => {
                 reset('password', 'password_confirmation', 'current_password');
                 if (errors.password) {
