@@ -26,7 +26,7 @@ interface PaginationLink {
 }
 
 interface HRMetrics {
-    retention_rate: number;
+    retention_rate: number | null;
     new_hires_month: number;
     terminations_month: number;
 }
@@ -247,7 +247,9 @@ export default function EmployeeIndex({
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl font-black text-primary">{hrMetrics.retention_rate}%</div>
+                            <div className="text-3xl font-black text-primary">
+                                {hrMetrics.retention_rate !== null ? `${hrMetrics.retention_rate}%` : 'No data available'}
+                            </div>
                             <p className="text-xs text-muted-foreground mt-1">Historical active vs separated ratio</p>
                         </CardContent>
                     </Card>
